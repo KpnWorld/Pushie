@@ -438,30 +438,24 @@ class Moderation(commands.Cog, name="Moderation"):
             return
 
         if ctx.interaction:
-            await ctx.interaction.response.defer()
+            await ctx.interaction.response.defer(ephemeral=True)
+
+        async def _reply(embed: discord.Embed) -> None:
+            if ctx.interaction:
+                try:
+                    await ctx.interaction.followup.send(embed=embed, ephemeral=True)
+                except (discord.NotFound, discord.HTTPException):
+                    pass
+            else:
+                await ctx.send(embed=embed)
 
         try:
             deleted = await ctx.channel.purge(limit=limit)
-            if ctx.interaction:
-                await ctx.interaction.followup.send(
-                    embed=UI.success(
-                        f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages.*"
-                    )
-                )
-            else:
-                await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages.*")
+            await _reply(UI.success(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages.*"))
         except discord.Forbidden:
-            msg = "*I don't have permission to delete messages.*"
-            if ctx.interaction:
-                await ctx.interaction.followup.send(embed=UI.error(msg))
-            else:
-                await ctx.err(msg)
+            await _reply(UI.error("*I don't have permission to delete messages.*"))
         except discord.HTTPException as e:
-            msg = f"*Failed to purge: `{e}`*"
-            if ctx.interaction:
-                await ctx.interaction.followup.send(embed=UI.error(msg))
-            else:
-                await ctx.err(msg)
+            await _reply(UI.error(f"*Failed to purge: `{e}`*"))
 
     @commands.hybrid_command(name="warn", description="Warn a member")
     @commands.guild_only()

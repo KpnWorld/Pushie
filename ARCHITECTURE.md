@@ -7,6 +7,7 @@ Complete breakdown of the three-layer architecture as of April 5, 2026.
 ### Data Models
 
 **GuildData** - Per-server configuration (17 fields)
+
 - `id`: Guild ID
 - `prefix`: Server prefix (default: "!")
 - `log_channel`, `log_events`: Logging configuration
@@ -24,6 +25,7 @@ Complete breakdown of the three-layer architecture as of April 5, 2026.
 - `warnings`: User warnings (dict: user_id -> [{reason, timestamp}])
 
 **GlobalData** - Global configuration
+
 - `sudo_users`: List of admin user IDs
 - `banned_guilds`: List of banned guild IDs
 - `banned_users`: List of banned user IDs
@@ -33,23 +35,27 @@ Complete breakdown of the three-layer architecture as of April 5, 2026.
 **Design Pattern**: Async-first with caching + locking
 
 **Key Methods**:
+
 - `load_all()` - Load global data + all guild files on startup
 - `get_guild(guild_id)` - Retrieve with automatic caching
 - `save_guild(guild)` - Persist to JSON with locking
 - Convenience methods: `set_prefix()`, `set_afk()`, `add_reaction_role()`, etc.
 
 **Thread Safety**:
+
 - Per-guild asyncio.Lock (prevents concurrent saves)
 - Global lock for global.json
 - Blocking I/O wrapped in `asyncio.to_thread()`
 
 **Strengths**:
+
 - ✅ Memory-efficient with caching
 - ✅ Safe concurrent access
 - ✅ Automatic file creation for missing guilds
 - ✅ Corrupt file recovery
 
 **Issues**:
+
 - ⚠️ No lock cleanup (memory leak over weeks/months)
 - ⚠️ No schema versioning for migrations
 - ⚠️ Silent field dropping in `from_dict()` (no compatibility warnings)
@@ -60,19 +66,20 @@ Complete breakdown of the three-layer architecture as of April 5, 2026.
 
 ### Cog Organization (7 cogs = 55+ commands)
 
-| Cog | Commands | Purpose | Status |
-|-----|----------|---------|--------|
-| **filters.py** | link, word, mention, caps | Content moderation via Discord AutoMod | ✅ |
-| **moderation.py** | kick, ban, mute, timeout, nick, lock, warn, purge | User enforcement & channel management | ✅ + 🔧 FIXED |
-| **roles.py** | role-list, role-info, role-create, role-assign | Role management system | ✅ |
-| **misc.py** | autoresponder, reactionrole, embed, poll | Utility features | ✅ |
-| **info.py** | serverinfo, userinfo, avatar, banner, icon, image | Information commands + image processing | ✅ |
-| **voice.py** | voice-setup (4 subcommands) | VoiceCenter (temp voice channels) | ⚠️ TODO |
-| **setup.py** | setup (wizard) | Server configuration interactive wizard | ⚠️ TODO |
+| Cog               | Commands                                          | Purpose                                 | Status        |
+| ----------------- | ------------------------------------------------- | --------------------------------------- | ------------- |
+| **filters.py**    | link, word, mention, caps                         | Content moderation via Discord AutoMod  | ✅            |
+| **moderation.py** | kick, ban, mute, timeout, nick, lock, warn, purge | User enforcement & channel management   | ✅ + 🔧 FIXED |
+| **roles.py**      | role-list, role-info, role-create, role-assign    | Role management system                  | ✅            |
+| **misc.py**       | autoresponder, reactionrole, embed, poll          | Utility features                        | ✅            |
+| **info.py**       | serverinfo, userinfo, avatar, banner, icon, image | Information commands + image processing | ✅            |
+| **voice.py**      | voice-setup (4 subcommands)                       | VoiceCenter (temp voice channels)       | ⚠️ TODO       |
+| **setup.py**      | setup (wizard)                                    | Server configuration interactive wizard | ⚠️ TODO       |
 
 ### Command Patterns
 
 **Hybrid Commands** - Support both prefix and slash
+
 ```python
 @commands.hybrid_command(name="cmd", description="...")
 async def cmd(self, ctx: "PushieContext", arg: str) -> None:
@@ -80,6 +87,7 @@ async def cmd(self, ctx: "PushieContext", arg: str) -> None:
 ```
 
 **Command Groups** - Organized subcommands
+
 ```python
 @commands.hybrid_group(name="parent")
 @parent.command(name="child")
@@ -87,12 +95,14 @@ async def child(self, ctx): ...
 ```
 
 **Context Shortcuts** - Standard UI methods
+
 - `ctx.ok(msg)` → Green success embed
 - `ctx.err(msg)` → Red error embed
 - `ctx.warn(msg)` → Yellow warning embed
 - `ctx.info(msg)` → Blue info embed
 
 **Permission Guards**
+
 ```python
 @commands.guild_only()
 @commands.has_guild_permissions(manage_guild=True)
@@ -113,6 +123,7 @@ async def child(self, ctx): ...
 **UI Class** - Static factory methods for consistent embeds
 
 Methods:
+
 - `success(msg)` - Green embed with ☑️
 - `error(msg)` - Red embed with ❌
 - `warning(msg)` - Yellow embed with ⚠️
@@ -122,12 +133,13 @@ Methods:
 - `confirm(msg)` - Confirmation footer with buttons
 - `paginator(msg, page, total)` - Pagination footer
 
-**Format Standard**: `> \`emoji\` *message*` (quoted + italicized)
+**Format Standard**: `> \`emoji\` _message_` (quoted + italicized)
 **Color**: 0xFAB9EC (pink)
 
 ### Interactive Components
 
 **BaseView** - Reusable foundation for all interactive views
+
 ```python
 class BaseView(discord.ui.View):
     - interaction_check() - User isolation
@@ -138,9 +150,11 @@ class BaseView(discord.ui.View):
 ```
 
 **Modals**
+
 - `ChangePrefix` - Prefix configuration modal
 
 **Views**
+
 - `PrefixView` - Prefix management buttons
 - `WelcomeView` - Guild join welcome (layout view with media gallery)
 - `SetupView` - Server configuration wizard
@@ -148,6 +162,7 @@ class BaseView(discord.ui.View):
 ### Pagination System
 
 Footer format:
+
 ```
 page {page}/{total}  ·  ◂ prev  ▸ next  ◆ goto
 ```
@@ -169,6 +184,7 @@ Command (Cog)
 ```
 
 ### Example: Set Prefix Command
+
 1. User types `/prefix new_prefix`
 2. `ChangePrefix.on_submit()` modal captures input
 3. Calls `bot.storage.set_prefix(guild_id, prefix)`
@@ -180,8 +196,10 @@ Command (Cog)
 ## 🐛 ISSUES FOUND & FIXED
 
 ### Runtime Error (FIXED)
+
 **File**: cogs/moderation.py, line 294-297
 **Problem**: Duplicate command alias
+
 ```python
 # BEFORE
 @commands.hybrid_command(
@@ -189,11 +207,12 @@ Command (Cog)
     aliases=["force-nick-reset"],  # ❌ Duplicate!
 )
 
-# AFTER  
+# AFTER
 @commands.hybrid_command(
     name="force-nick-reset",
 )
 ```
+
 **Impact**: Caused `CommandRegistrationError` on bot startup
 **Status**: ✅ FIXED
 
@@ -241,10 +260,12 @@ Command (Cog)
 ## 🔮 RECOMMENDATIONS
 
 ### Immediate (Critical)
+
 - ✅ Fix command alias bug (DONE)
 - ✅ Verify all cogs load (DONE - 6/7 working, voice.py incomplete)
 
 ### Short-term (Within Sprint)
+
 - Add lock cleanup method to StorageManager
 - Add schema version to GuildData + GlobalData
 - Complete voice.py voicecenter implementation
@@ -253,6 +274,7 @@ Command (Cog)
 - Verify all storage convenience methods are used
 
 ### Long-term (Future Releases)
+
 - Migrate to SQLite/PostgreSQL for 100+ guild scale
 - Add transaction support to storage layer
 - Implement per-user command cooldown system
@@ -297,18 +319,21 @@ Command (Cog)
 
 ## 📝 SUMMARY
 
-**Three-Layer Architecture**: 
+**Three-Layer Architecture**:
+
 - **DB Layer**: Async-first StorageManager with file-based persistence
 - **Command Layer**: 7 cogs (55+ commands) with hybrid pattern support
 - **UI Layer**: Consistent embed builders + BaseView component system
 
-**Status**: 
+**Status**:
+
 - Runtime error fixed ✅
 - 6/7 cogs fully implemented ✅
 - 2 cogs have incomplete features ⚠️
 - Clean architecture with good separation ✅
 
 **Next Steps**:
+
 1. Complete voice.py voicecenter implementation
 2. Add lock cleanup to prevent memory leaks
 3. Consider database migration for scale

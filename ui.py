@@ -11,6 +11,7 @@ from emojis import Emoji
 
 COLOR = 0xFAB9EC
 
+
 def _base(msg: str, emoji: str) -> discord.Embed:
     return discord.Embed(description=f"> `{emoji}` *{msg}*", color=COLOR)
 

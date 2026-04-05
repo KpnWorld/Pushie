@@ -41,9 +41,7 @@ class GuildData:
     imute_role: int | None = None
     rmute_role: int | None = None
 
-    reaction_roles: dict[str, int] = field(
-        default_factory=dict
-    )
+    reaction_roles: dict[str, int] = field(default_factory=dict)
     booster_roles: list[int] = field(default_factory=list)
 
     afks: dict[str, Any] = field(default_factory=dict)

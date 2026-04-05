@@ -1,6 +1,7 @@
 # Pushie Bot - Code Structure Overview
 
 ## Directory Structure
+
 ```
 Pushie/
 ├── main.py                 # Bot entry point (550+ lines)
@@ -41,7 +42,9 @@ Pushie/
 ## Code Organization Patterns
 
 ### 1. Storage Layer (`storage.py`)
+
 **Pattern**: Dataclass + Manager pattern
+
 ```python
 @dataclass
 class GuildData:  # 24 fields for per-guild config
@@ -59,6 +62,7 @@ class StorageManager:  # Async-first with caching
 ```
 
 **Thread Safety**:
+
 - Per-guild asyncio.Lock prevents concurrent saves
 - Global lock for global.json
 - Async/await throughout
@@ -66,7 +70,9 @@ class StorageManager:  # Async-first with caching
 ---
 
 ### 2. Command Layer (`cogs/`, 7 files)
+
 **Pattern**: Discord.py Cog + Hybrid Commands
+
 ```python
 class ModCog(commands.Cog):
     @commands.hybrid_command(name="kick")  # Works as /kick and !kick
@@ -77,11 +83,13 @@ class ModCog(commands.Cog):
 ```
 
 **Command Type Distribution**:
+
 - Hybrid (prefix + slash): 85% (responds to both `!cmd` and `/cmd`)
 - Slash only: 10% (Discord-specific features)
 - Text only: 5% (legacy prefix commands)
 
 **Permissions**:
+
 - Decorator-based (@commands.has_permissions)
 - Global checks (banned user/guild)
 - Per-command role/user validation
@@ -89,7 +97,9 @@ class ModCog(commands.Cog):
 ---
 
 ### 3. UI Layer (`ui.py`)
+
 **Pattern**: Factory methods + Base classes
+
 ```python
 class UI:  # Static factory for consistent embeds
     @staticmethod
@@ -108,14 +118,17 @@ class BaseView(discord.ui.View):  # Reusable button/select base
 ```
 
 **Standard Format**:
-- All embeds: `> \`emoji\` *message*`
+
+- All embeds: `> \`emoji\` _message_`
 - All colors: 0xFAB9EC (pink)
 - All timeouts: 30-300 seconds
 
 ---
 
 ### 4. Bot Initialization (`main.py`)
+
 **Startup Sequence**:
+
 ```
 1. Load .env configuration
 2. Setup logging (INFO level)
@@ -129,6 +142,7 @@ class BaseView(discord.ui.View):  # Reusable button/select base
 ```
 
 **Event Handlers**:
+
 - `on_ready()`: Sync slash commands, display status
 - `on_guild_join()`: Send welcome message, ban check
 - `on_guild_remove()`: Log departure
@@ -166,18 +180,20 @@ Discord Response
 ## Error Handling Architecture
 
 ### Global Level
+
 ```python
 def _setup_checks(bot):
     @bot.check
     async def global_banned_guild(ctx) -> bool:
         return not bot.storage.is_banned_guild(ctx.guild.id)
-    
+
     @bot.check
     async def global_banned_user(ctx) -> bool:
         return not bot.storage.is_banned_user(ctx.author.id)
 ```
 
 ### Command Level
+
 ```python
 @bot.hybrid_command()
 @commands.has_guild_permissions(manage_guild=True)
@@ -186,6 +202,7 @@ async def cmd(ctx): ...
 ```
 
 ### Handler Level
+
 ```python
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
@@ -200,6 +217,7 @@ async def on_command_error(ctx, error):
 ## Important Classes & Methods
 
 ### StorageManager (Critical)
+
 - `load_all()` - Boot sequence
 - `get_guild(id)` - Cached retrieval
 - `save_guild(guild)` - Atomic persistence
@@ -208,6 +226,7 @@ async def on_command_error(ctx, error):
 - `clear_voicecenter()` - VoiceCenter reset
 
 ### PushieContext (Custom)
+
 ```python
 class PushieContext(commands.Context):
     async def ok(msg) -> discord.Message    # Green embed
@@ -217,6 +236,7 @@ class PushieContext(commands.Context):
 ```
 
 ### Permission Decorators
+
 ```python
 @is_sudo()           # Bot admin only
 @is_guild_owner()    # Server owner only
@@ -231,15 +251,15 @@ class PushieContext(commands.Context):
 
 ## Cog Breakdown
 
-| Cog | Commands | Key Features | Status |
-|-----|----------|--------------|--------|
-| **filters.py** | 6 | Discord AutoMod integration | ✅ Complete |
-| **moderation.py** | 34 | Ban/kick, mute, timeout, warn, lock | ✅ Complete |
-| **roles.py** | 15 | Role CRUD, assign, info, backup schema | ✅ Complete |
-| **misc.py** | 8 | Autoresponder, reaction roles, poll | ✅ Complete |
-| **info.py** | 17 | User/server info, avatar, image proc | ✅ Complete |
-| **voice.py** | 12 | VoiceCenter setup (persist ready) | ✅ Complete |
-| **setup.py** | 8 | Interactive config wizard | ✅ Complete |
+| Cog               | Commands | Key Features                           | Status      |
+| ----------------- | -------- | -------------------------------------- | ----------- |
+| **filters.py**    | 6        | Discord AutoMod integration            | ✅ Complete |
+| **moderation.py** | 34       | Ban/kick, mute, timeout, warn, lock    | ✅ Complete |
+| **roles.py**      | 15       | Role CRUD, assign, info, backup schema | ✅ Complete |
+| **misc.py**       | 8        | Autoresponder, reaction roles, poll    | ✅ Complete |
+| **info.py**       | 17       | User/server info, avatar, image proc   | ✅ Complete |
+| **voice.py**      | 12       | VoiceCenter setup (persist ready)      | ✅ Complete |
+| **setup.py**      | 8        | Interactive config wizard              | ✅ Complete |
 
 **Total**: 100 commands across 7 cogs
 
@@ -248,6 +268,7 @@ class PushieContext(commands.Context):
 ## Technology Stack
 
 ### Core Dependencies
+
 - discord.py 2.x - Discord Bot Framework
 - aiohttp - Async HTTP for Discord API
 - python-dotenv - Environment config
@@ -255,6 +276,7 @@ class PushieContext(commands.Context):
 - psutil - Performance monitoring
 
 ### Architecture Patterns
+
 - Async/await (100% async code)
 - Cog-based modularity
 - JSON persistence with file locking
@@ -267,16 +289,19 @@ class PushieContext(commands.Context):
 ## Performance Characteristics
 
 ### Memory
+
 - Guild cache: 1 GuildData per guild (avg ~2KB each)
 - Lock registry: 1 asyncio.Lock per guild
 - Global scope: Negligible (< 1KB)
 
 ### I/O
+
 - Blocking calls wrapped in `asyncio.to_thread()`
 - Per-guild locks prevent concurrent writes
 - Cache-first strategy minimizes disk I/O
 
 ### Scalability
+
 - Tested: 500+ guilds ✓
 - Ready for: 1000+ guilds (with potential lock cleanup)
 
@@ -299,4 +324,4 @@ class PushieContext(commands.Context):
 
 ---
 
-*Generated April 5, 2026 | All systems operational*
+_Generated April 5, 2026 | All systems operational_

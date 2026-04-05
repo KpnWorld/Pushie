@@ -440,7 +440,6 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err("*You cannot warn yourself.*")
             return
 
-
         g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
         if not g:
             await ctx.err("*Guild data not initialized.*")

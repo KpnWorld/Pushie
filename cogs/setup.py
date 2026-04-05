@@ -499,7 +499,7 @@ class SetupView(BaseView):
 
     async def _redraw(self, inter: discord.Interaction) -> None:
         await self._reload_gdata()
-        await inter.response.edit_message(
+        await inter.edit_original_response(
             embed=_build_summary(self.gdata, self.guild), view=self
         )
 

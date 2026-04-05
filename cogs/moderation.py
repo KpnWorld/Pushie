@@ -469,15 +469,15 @@ class Moderation(commands.Cog, name="Moderation"):
         if user_id not in g.warnings:
             g.warnings[user_id] = []
 
-        g.warnings[user_id].append({
-            "reason": reason,
-            "timestamp": time.time(),
-            "moderator_id": ctx.author.id
-        })
+        g.warnings[user_id].append(
+            {"reason": reason, "timestamp": time.time(), "moderator_id": ctx.author.id}
+        )
 
         await ctx.bot.storage.save_guild(g)
         warn_count = len(g.warnings[user_id])
-        await ctx.ok(f"`{Emoji.WARN}` *{member.mention} has been warned.* (Warn `{warn_count}`/3)")
+        await ctx.ok(
+            f"`{Emoji.WARN}` *{member.mention} has been warned.* (Warn `{warn_count}`/3)"
+        )
 
     @commands.hybrid_command(name="warned", description="List warnings for a member")
     @commands.guild_only()
@@ -508,7 +508,7 @@ class Moderation(commands.Cog, name="Moderation"):
 
         embed = discord.Embed(
             description=f"`{Emoji.WARN}` *Warnings for {m.mention}* (`{warn_count}/3`)\n\n{warn_text}{extra}",
-            color=0xFAB9EC
+            color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
 

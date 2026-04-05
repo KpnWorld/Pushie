@@ -136,10 +136,7 @@ class Voice(commands.Cog, name="Voice"):
         if ctx.guild is None:
             return
         author = cast(discord.Member, ctx.author)
-        if (
-            not isinstance(author.voice, discord.VoiceState)
-            or not author.voice.channel
-        ):
+        if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")
             return
 
@@ -163,10 +160,7 @@ class Voice(commands.Cog, name="Voice"):
         if ctx.guild is None:
             return
         author = cast(discord.Member, ctx.author)
-        if (
-            not isinstance(author.voice, discord.VoiceState)
-            or not author.voice.channel
-        ):
+        if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")
             return
 
@@ -188,10 +182,7 @@ class Voice(commands.Cog, name="Voice"):
     async def limit(self, ctx: "PushieContext", limit: int = 0) -> None:
         """Set or remove the user limit for the current voice channel."""
         author = cast(discord.Member, ctx.author)
-        if (
-            not isinstance(author.voice, discord.VoiceState)
-            or not author.voice.channel
-        ):
+        if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")
             return
 
@@ -219,10 +210,7 @@ class Voice(commands.Cog, name="Voice"):
     async def name(self, ctx: "PushieContext", *, new_name: str) -> None:
         """Rename the current voice channel."""
         author = cast(discord.Member, ctx.author)
-        if (
-            not isinstance(author.voice, discord.VoiceState)
-            or not author.voice.channel
-        ):
+        if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")
             return
 
@@ -249,10 +237,7 @@ class Voice(commands.Cog, name="Voice"):
     async def bitrate(self, ctx: "PushieContext", bitrate: int) -> None:
         """Set the bitrate for the current voice channel."""
         author = cast(discord.Member, ctx.author)
-        if (
-            not isinstance(author.voice, discord.VoiceState)
-            or not author.voice.channel
-        ):
+        if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")
             return
 
@@ -277,10 +262,7 @@ class Voice(commands.Cog, name="Voice"):
     async def info(self, ctx: "PushieContext") -> None:
         """View information about the current voice channel."""
         author = cast(discord.Member, ctx.author)
-        if (
-            not isinstance(author.voice, discord.VoiceState)
-            or not author.voice.channel
-        ):
+        if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")
             return
 
@@ -331,10 +313,7 @@ class Voice(commands.Cog, name="Voice"):
         if ctx.guild is None:
             return
         author = cast(discord.Member, ctx.author)
-        if (
-            not isinstance(author.voice, discord.VoiceState)
-            or not author.voice.channel
-        ):
+        if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")
             return
 
@@ -360,10 +339,7 @@ class Voice(commands.Cog, name="Voice"):
         if ctx.guild is None:
             return
         author = cast(discord.Member, ctx.author)
-        if (
-            not isinstance(author.voice, discord.VoiceState)
-            or not author.voice.channel
-        ):
+        if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")
             return
 
@@ -389,10 +365,7 @@ class Voice(commands.Cog, name="Voice"):
         if ctx.guild is None:
             return
         author = cast(discord.Member, ctx.author)
-        if (
-            not isinstance(author.voice, discord.VoiceState)
-            or not author.voice.channel
-        ):
+        if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")
             return
 

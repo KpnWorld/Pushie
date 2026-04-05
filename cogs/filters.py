@@ -8,7 +8,11 @@ from datetime import timedelta
 import discord
 from discord.ext import commands
 from discord.automod import AutoModTrigger, AutoModRuleAction
-from discord.enums import AutoModRuleTriggerType, AutoModRuleActionType, AutoModRuleEventType
+from discord.enums import (
+    AutoModRuleTriggerType,
+    AutoModRuleActionType,
+    AutoModRuleEventType,
+)
 
 from emojis import Emoji
 from ui import UI
@@ -60,7 +64,7 @@ class Filters(commands.Cog, name="Filters"):
                     current_patterns.append(pattern)
                     new_trigger = AutoModTrigger(
                         type=AutoModRuleTriggerType.keyword,
-                        regex_patterns=current_patterns
+                        regex_patterns=current_patterns,
                     )
                     await link_rule.edit(trigger=new_trigger)
                     await ctx.ok(f"`{Emoji.INFO}` *Link filter updated: `{pattern}`*")
@@ -69,8 +73,7 @@ class Filters(commands.Cog, name="Filters"):
             else:
                 # Create new rule
                 trigger = AutoModTrigger(
-                    type=AutoModRuleTriggerType.keyword,
-                    regex_patterns=[pattern]
+                    type=AutoModRuleTriggerType.keyword, regex_patterns=[pattern]
                 )
                 action = AutoModRuleAction(type=AutoModRuleActionType.block_message)
                 await ctx.guild.create_automod_rule(
@@ -79,7 +82,7 @@ class Filters(commands.Cog, name="Filters"):
                     trigger=trigger,
                     actions=[action],
                     enabled=True,
-                    reason="Created via link filter command"
+                    reason="Created via link filter command",
                 )
                 await ctx.ok(f"`{Emoji.INFO}` *Link filter added: `{pattern}`*")
         except discord.Forbidden:
@@ -109,14 +112,16 @@ class Filters(commands.Cog, name="Filters"):
                     # Update rule with remaining patterns
                     new_trigger = AutoModTrigger(
                         type=AutoModRuleTriggerType.keyword,
-                        regex_patterns=current_patterns
+                        regex_patterns=current_patterns,
                     )
                     await link_rule.edit(trigger=new_trigger)
                     await ctx.ok(f"`{Emoji.INFO}` *Link filter removed: `{pattern}`*")
                 else:
                     # Delete the rule if no patterns left
                     await link_rule.delete()
-                    await ctx.ok(f"`{Emoji.INFO}` *Link filter `{pattern}` removed. Rule deleted.*")
+                    await ctx.ok(
+                        f"`{Emoji.INFO}` *Link filter `{pattern}` removed. Rule deleted.*"
+                    )
             else:
                 await ctx.err("*This pattern is not in the filter.*")
         except discord.Forbidden:
@@ -139,12 +144,14 @@ class Filters(commands.Cog, name="Filters"):
                 return
 
             patterns = link_rule.trigger.regex_patterns
-            filter_text = "\n".join(f"> `{i+1}.` `{p}`" for i, p in enumerate(patterns[:10]))
+            filter_text = "\n".join(
+                f"> `{i+1}.` `{p}`" for i, p in enumerate(patterns[:10])
+            )
             extra = f"\n> *+{len(patterns) - 10} more...*" if len(patterns) > 10 else ""
 
             embed = discord.Embed(
                 description=f"`{Emoji.INFO}` *Link Filters ({len(patterns)} total)*\n\n{filter_text}{extra}",
-                color=0xFAB9EC
+                color=0xFAB9EC,
             )
             await ctx.send(embed=embed)
         except discord.Forbidden:
@@ -180,7 +187,7 @@ class Filters(commands.Cog, name="Filters"):
                     current_words.append(word)
                     new_trigger = AutoModTrigger(
                         type=AutoModRuleTriggerType.keyword,
-                        keyword_filter=current_words
+                        keyword_filter=current_words,
                     )
                     await word_rule.edit(trigger=new_trigger)
                     await ctx.ok(f"`{Emoji.INFO}` *Word filter updated: `{word}`*")
@@ -189,8 +196,7 @@ class Filters(commands.Cog, name="Filters"):
             else:
                 # Create new rule
                 trigger = AutoModTrigger(
-                    type=AutoModRuleTriggerType.keyword,
-                    keyword_filter=[word]
+                    type=AutoModRuleTriggerType.keyword, keyword_filter=[word]
                 )
                 action = AutoModRuleAction(type=AutoModRuleActionType.block_message)
                 await ctx.guild.create_automod_rule(
@@ -199,7 +205,7 @@ class Filters(commands.Cog, name="Filters"):
                     trigger=trigger,
                     actions=[action],
                     enabled=True,
-                    reason="Created via word filter command"
+                    reason="Created via word filter command",
                 )
                 await ctx.ok(f"`{Emoji.INFO}` *Word filter added: `{word}`*")
         except discord.Forbidden:
@@ -228,13 +234,15 @@ class Filters(commands.Cog, name="Filters"):
                 if current_words:
                     new_trigger = AutoModTrigger(
                         type=AutoModRuleTriggerType.keyword,
-                        keyword_filter=current_words
+                        keyword_filter=current_words,
                     )
                     await word_rule.edit(trigger=new_trigger)
                     await ctx.ok(f"`{Emoji.INFO}` *Word filter removed: `{word}`*")
                 else:
                     await word_rule.delete()
-                    await ctx.ok(f"`{Emoji.INFO}` *Word `{word}` removed. Rule deleted.*")
+                    await ctx.ok(
+                        f"`{Emoji.INFO}` *Word `{word}` removed. Rule deleted.*"
+                    )
             else:
                 await ctx.err("*This word is not in the filter.*")
         except discord.Forbidden:
@@ -257,12 +265,14 @@ class Filters(commands.Cog, name="Filters"):
                 return
 
             words = word_rule.trigger.keyword_filter
-            filter_text = "\n".join(f"> `{i+1}.` `{w}`" for i, w in enumerate(words[:10]))
+            filter_text = "\n".join(
+                f"> `{i+1}.` `{w}`" for i, w in enumerate(words[:10])
+            )
             extra = f"\n> *+{len(words) - 10} more...*" if len(words) > 10 else ""
 
             embed = discord.Embed(
                 description=f"`{Emoji.INFO}` *Filtered Words ({len(words)} total)*\n\n{filter_text}{extra}",
-                color=0xFAB9EC
+                color=0xFAB9EC,
             )
             await ctx.send(embed=embed)
         except discord.Forbidden:
@@ -296,8 +306,7 @@ class Filters(commands.Cog, name="Filters"):
             mention_rule = next((r for r in rules if r.name == "mention_filter"), None)
 
             trigger = AutoModTrigger(
-                type=AutoModRuleTriggerType.mention_spam,
-                mention_limit=limit
+                type=AutoModRuleTriggerType.mention_spam, mention_limit=limit
             )
             action = AutoModRuleAction(type=AutoModRuleActionType.block_message)
 
@@ -311,7 +320,7 @@ class Filters(commands.Cog, name="Filters"):
                     trigger=trigger,
                     actions=[action],
                     enabled=True,
-                    reason="Created via mention filter command"
+                    reason="Created via mention filter command",
                 )
                 await ctx.ok(f"`{Emoji.INFO}` *Mention limit set to `{limit}`.*")
         except discord.Forbidden:
@@ -358,7 +367,7 @@ class Filters(commands.Cog, name="Filters"):
 
             embed = discord.Embed(
                 description=f"`{Emoji.INFO}` *Mention Filter Settings*\n\n> **Limit:** `{limit}` mentions\n> **Raid Protection:** `{raid_protection}`",
-                color=0xFAB9EC
+                color=0xFAB9EC,
             )
             await ctx.send(embed=embed)
         except discord.Forbidden:
@@ -401,7 +410,9 @@ class Filters(commands.Cog, name="Filters"):
 
             # This is a limitation - Discord AutoMod doesn't filter caps directly
             # But we can use the storage to enable caps filtering through bot logic
-            await ctx.warn("*Discord AutoMod doesn't support native caps filtering. Consider using word filters or mention filters instead.*")
+            await ctx.warn(
+                "*Discord AutoMod doesn't support native caps filtering. Consider using word filters or mention filters instead.*"
+            )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to manage automod rules.*")
         except discord.HTTPException as e:
@@ -414,7 +425,9 @@ class Filters(commands.Cog, name="Filters"):
         """Disable excessive caps filtering."""
         assert ctx.guild is not None
         # Caps filtering is not natively supported by Discord AutoMod
-        await ctx.info("*Discord AutoMod doesn't support native caps filtering. Caps filtering not available.*")
+        await ctx.info(
+            "*Discord AutoMod doesn't support native caps filtering. Caps filtering not available.*"
+        )
 
     # =========================================================================
     # FILTER MANAGEMENT
@@ -430,7 +443,12 @@ class Filters(commands.Cog, name="Filters"):
         assert ctx.guild is not None
         try:
             rules = await ctx.guild.fetch_automod_rules()
-            filter_rules = [r for r in rules if r.name in ("link_filter", "word_filter", "mention_filter", "caps_filter")]
+            filter_rules = [
+                r
+                for r in rules
+                if r.name
+                in ("link_filter", "word_filter", "mention_filter", "caps_filter")
+            ]
 
             if not filter_rules:
                 await ctx.info("*No filter rules to reset.*")
@@ -439,7 +457,9 @@ class Filters(commands.Cog, name="Filters"):
             for rule in filter_rules:
                 await rule.delete()
 
-            await ctx.ok(f"`{Emoji.RESET}` *All {len(filter_rules)} filter(s) have been reset.*")
+            await ctx.ok(
+                f"`{Emoji.RESET}` *All {len(filter_rules)} filter(s) have been reset.*"
+            )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to manage automod rules.*")
         except discord.HTTPException as e:

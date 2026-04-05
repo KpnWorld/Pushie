@@ -63,7 +63,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
             "response": message,
             "exact": False,
             "created_by": ctx.author.id,
-            "created_at": str(ctx.message.created_at)
+            "created_at": str(ctx.message.created_at),
         }
         await ctx.bot.storage.save_guild(g)
 
@@ -109,7 +109,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
         embed = discord.Embed(
             description=f"`{Emoji.INFO}` *Autoresponders ({len(triggers)} total)*\n\n{resp_text}{extra}",
-            color=0xFAB9EC
+            color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
 
@@ -173,7 +173,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
             return
 
         author = cast(discord.Member, ctx.author)
-        
+
         if role >= author.top_role:
             await ctx.err("*You cannot assign a role higher than your own.*")
             return

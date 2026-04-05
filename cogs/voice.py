@@ -130,10 +130,12 @@ class Voice(commands.Cog, name="Voice"):
         """Delete empty temporary voice channels and fix stuck channels."""
         await ctx.ok(f"`{Emoji.CHANNEL}` *Cleanup completed.*")
 
-    @commands.hybrid_command(name="lock", description="Lock the current voice channel")
+    @commands.hybrid_command(
+        name="voice-lock", description="Lock your current voice channel"
+    )
     @commands.guild_only()
-    async def lock(self, ctx: "PushieContext") -> None:
-        """Lock the current voice channel to prevent new members joining."""
+    async def voice_lock(self, ctx: "PushieContext") -> None:
+        """Lock your current voice channel to prevent new members joining."""
         if ctx.guild is None:
             return
         author = cast(discord.Member, ctx.author)
@@ -152,11 +154,11 @@ class Voice(commands.Cog, name="Voice"):
             await ctx.err(f"*Failed to lock channel: `{e}`*")
 
     @commands.hybrid_command(
-        name="unlock", description="Unlock the current voice channel"
+        name="voice-unlock", description="Unlock your current voice channel"
     )
     @commands.guild_only()
-    async def unlock(self, ctx: "PushieContext") -> None:
-        """Unlock the current voice channel to allow members joining."""
+    async def voice_unlock(self, ctx: "PushieContext") -> None:
+        """Unlock your current voice channel to allow members joining."""
         if ctx.guild is None:
             return
         author = cast(discord.Member, ctx.author)
@@ -176,10 +178,10 @@ class Voice(commands.Cog, name="Voice"):
             await ctx.err(f"*Failed to unlock channel: `{e}`*")
 
     @commands.hybrid_command(
-        name="limit", description="Set user limit for current voice channel"
+        name="voice-limit", description="Set user limit for your voice channel"
     )
     @commands.guild_only()
-    async def limit(self, ctx: "PushieContext", limit: int = 0) -> None:
+    async def voice_limit(self, ctx: "PushieContext", limit: int = 0) -> None:
         """Set or remove the user limit for the current voice channel."""
         author = cast(discord.Member, ctx.author)
         if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
@@ -203,11 +205,11 @@ class Voice(commands.Cog, name="Voice"):
             await ctx.err(f"*Failed to set limit: `{e}`*")
 
     @commands.hybrid_command(
-        name="name", description="Rename the current voice channel"
+        name="voice-name", description="Rename your current voice channel"
     )
     @commands.guild_only()
-    async def name(self, ctx: "PushieContext", *, new_name: str) -> None:
-        """Rename the current voice channel."""
+    async def voice_name(self, ctx: "PushieContext", *, new_name: str) -> None:
+        """Rename your current voice channel."""
         author = cast(discord.Member, ctx.author)
         if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")
@@ -230,11 +232,11 @@ class Voice(commands.Cog, name="Voice"):
             await ctx.err(f"*Failed to rename channel: `{e}`*")
 
     @commands.hybrid_command(
-        name="bitrate", description="Set bitrate for current voice channel"
+        name="voice-bitrate", description="Set bitrate for your voice channel"
     )
     @commands.guild_only()
-    async def bitrate(self, ctx: "PushieContext", bitrate: int) -> None:
-        """Set the bitrate for the current voice channel."""
+    async def voice_bitrate(self, ctx: "PushieContext", bitrate: int) -> None:
+        """Set the bitrate for your voice channel."""
         author = cast(discord.Member, ctx.author)
         if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
             await ctx.err("*You must be in a voice channel.*")

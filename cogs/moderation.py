@@ -109,10 +109,19 @@ class Moderation(commands.Cog, name="Moderation"):
     async def ban_list(self, ctx: "PushieContext") -> None:
         """View all banned members in the server."""
         assert ctx.guild is not None
+
+        if ctx.interaction:
+            await ctx.interaction.response.defer()
+
         try:
             bans = [entry async for entry in ctx.guild.bans()]
             if not bans:
-                await ctx.info("*No users are currently banned.*")
+                if ctx.interaction:
+                    await ctx.interaction.followup.send(
+                        embed=UI.info("*No users are currently banned.*")
+                    )
+                else:
+                    await ctx.info("*No users are currently banned.*")
                 return
 
             ban_text = "\n".join(
@@ -125,9 +134,17 @@ class Moderation(commands.Cog, name="Moderation"):
                 description=f"`{Emoji.BAN}` *Banned users ({len(bans)} total)*\n\n{ban_text}{extra}",
                 color=0xFAB9EC,
             )
-            await ctx.send(embed=embed)
+
+            if ctx.interaction:
+                await ctx.interaction.followup.send(embed=embed)
+            else:
+                await ctx.send(embed=embed)
         except discord.Forbidden:
-            await ctx.err("*I don't have permission to view bans.*")
+            msg = "*I don't have permission to view bans.*"
+            if ctx.interaction:
+                await ctx.interaction.followup.send(embed=UI.error(msg))
+            else:
+                await ctx.err(msg)
 
     @commands.hybrid_command(
         name="mute", description="Mute a member (remove Send Messages permission)"
@@ -420,13 +437,31 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err("*Limit must be between `1` and `100`.*")
             return
 
+        if ctx.interaction:
+            await ctx.interaction.response.defer()
+
         try:
             deleted = await ctx.channel.purge(limit=limit)
-            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages.*")
+            if ctx.interaction:
+                await ctx.interaction.followup.send(
+                    embed=UI.success(
+                        f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages.*"
+                    )
+                )
+            else:
+                await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages.*")
         except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+            msg = "*I don't have permission to delete messages.*"
+            if ctx.interaction:
+                await ctx.interaction.followup.send(embed=UI.error(msg))
+            else:
+                await ctx.err(msg)
         except discord.HTTPException as e:
-            await ctx.err(f"*Failed to purge: `{e}`*")
+            msg = f"*Failed to purge: `{e}`*"
+            if ctx.interaction:
+                await ctx.interaction.followup.send(embed=UI.error(msg))
+            else:
+                await ctx.err(msg)
 
     @commands.hybrid_command(name="warn", description="Warn a member")
     @commands.guild_only()

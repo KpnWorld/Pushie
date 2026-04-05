@@ -516,9 +516,10 @@ class Info(commands.Cog, name="Info"):
         image_bytes: bytes | None = None
 
         if ctx.message.attachments:
-            att = ctx.message.attachments[0]
-            image_bytes = await att.read()
+            image_bytes = await ctx.message.attachments[0].read()
         elif link:
+            if ctx.interaction:
+                await ctx.interaction.response.defer()
             try:
                 image_bytes = await _fetch_bytes(self.bot.session, link)
             except Exception:
@@ -545,7 +546,12 @@ class Info(commands.Cog, name="Info"):
 
         try:
             await g.edit(icon=image_bytes)
-            await ctx.send(embed=UI.success("*Server icon updated!*"))
+            if ctx.interaction and ctx.interaction.response.is_done():
+                await ctx.interaction.followup.send(
+                    embed=UI.success("*Server icon updated!*")
+                )
+            else:
+                await ctx.send(embed=UI.success("*Server icon updated!*"))
         except discord.Forbidden:
             await ctx.send(
                 embed=UI.error("*I don't have permission to change the server icon.*")
@@ -602,6 +608,8 @@ class Info(commands.Cog, name="Info"):
         if ctx.message.attachments:
             image_bytes = await ctx.message.attachments[0].read()
         elif link:
+            if ctx.interaction:
+                await ctx.interaction.response.defer()
             try:
                 image_bytes = await _fetch_bytes(self.bot.session, link)
             except Exception:
@@ -624,7 +632,12 @@ class Info(commands.Cog, name="Info"):
 
         try:
             await g.edit(banner=image_bytes)
-            await ctx.send(embed=UI.success("*Server banner updated!*"))
+            if ctx.interaction and ctx.interaction.response.is_done():
+                await ctx.interaction.followup.send(
+                    embed=UI.success("*Server banner updated!*")
+                )
+            else:
+                await ctx.send(embed=UI.success("*Server banner updated!*"))
         except discord.Forbidden:
             await ctx.send(
                 embed=UI.error("*I don't have permission to change the server banner.*")
@@ -674,6 +687,8 @@ class Info(commands.Cog, name="Info"):
         if not (0.0 < factor <= 1.0):
             await ctx.send(embed=UI.error("*Factor must be between `0.0` and `1.0`.*"))
             return
+        if ctx.interaction:
+            await ctx.interaction.response.defer()
         async with ctx.typing():
             file = await _process_image(self.bot.session, url, "darken", factor)
         embed = discord.Embed(
@@ -681,7 +696,10 @@ class Info(commands.Cog, name="Info"):
             color=0xFAB9EC,
         )
         embed.set_image(url="attachment://image.png")
-        await ctx.send(embed=embed, file=file)
+        if ctx.interaction and ctx.interaction.response.is_done():
+            await ctx.interaction.followup.send(embed=embed, file=file)
+        else:
+            await ctx.send(embed=embed, file=file)
 
     @image.command(name="lighten", description="Lighten an attached image")
     async def image_lighten(
@@ -695,6 +713,8 @@ class Info(commands.Cog, name="Info"):
         if not (0.0 < factor <= 1.0):
             await ctx.send(embed=UI.error("*Factor must be between `0.0` and `1.0`.*"))
             return
+        if ctx.interaction:
+            await ctx.interaction.response.defer()
         async with ctx.typing():
             file = await _process_image(self.bot.session, url, "lighten", factor)
         embed = discord.Embed(
@@ -702,13 +722,18 @@ class Info(commands.Cog, name="Info"):
             color=0xFAB9EC,
         )
         embed.set_image(url="attachment://image.png")
-        await ctx.send(embed=embed, file=file)
+        if ctx.interaction and ctx.interaction.response.is_done():
+            await ctx.interaction.followup.send(embed=embed, file=file)
+        else:
+            await ctx.send(embed=embed, file=file)
 
     @image.command(name="round", description="Round-crop an attached image")
     async def image_round(self, ctx: "PushieContext") -> None:
         url = await self._get_image_url(ctx)
         if not url:
             return
+        if ctx.interaction:
+            await ctx.interaction.response.defer()
         async with ctx.typing():
             file = await _process_image(self.bot.session, url, "round")
         embed = discord.Embed(
@@ -716,7 +741,10 @@ class Info(commands.Cog, name="Info"):
             color=0xFAB9EC,
         )
         embed.set_image(url="attachment://image.png")
-        await ctx.send(embed=embed, file=file)
+        if ctx.interaction and ctx.interaction.response.is_done():
+            await ctx.interaction.followup.send(embed=embed, file=file)
+        else:
+            await ctx.send(embed=embed, file=file)
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.MissingPermissions):

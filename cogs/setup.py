@@ -139,7 +139,7 @@ class _WelcomeView(BaseView):
                 self.parent.guild.id, welcome_channel=None
             )
             await self.parent._reload_gdata()
-        await self.parent._redraw(inter)
+        await self.parent._redraw()
 
     @discord.ui.button(
         label="Member Autorole",
@@ -283,7 +283,7 @@ class _JailView(BaseView):
                 self.parent.guild.id, jail_channel=None
             )
             await self.parent._reload_gdata()
-        await self.parent._redraw(inter)
+        await self.parent._redraw()
 
     @discord.ui.button(
         label="Back", emoji=Emoji.PREV, style=discord.ButtonStyle.grey, row=2
@@ -424,11 +424,12 @@ class _ChannelSelectView(BaseView):
     async def _on_select(self, interaction: discord.Interaction) -> None:
         channel = self._select.values[0]
         setup_view = self._parent.parent
+        await interaction.response.defer()
         await setup_view.bot.storage.update_setup(
             setup_view.guild.id, **{self._field: channel.id}
         )
         await setup_view._reload_gdata()
-        await interaction.response.edit_message(
+        await interaction.edit_original_response(
             embed=self._parent._embed(), view=cast(BaseView, self._parent)
         )
 
@@ -463,11 +464,12 @@ class _RoleSelectView(BaseView):
     async def _on_select(self, interaction: discord.Interaction) -> None:
         role = self._select.values[0]
         setup_view = self._parent.parent
+        await interaction.response.defer()
         await setup_view.bot.storage.update_setup(
             setup_view.guild.id, **{self._field: role.id}
         )
         await setup_view._reload_gdata()
-        await interaction.response.edit_message(
+        await interaction.edit_original_response(
             embed=self._parent._embed(), view=cast(BaseView, self._parent)
         )
 
@@ -497,11 +499,14 @@ class SetupView(BaseView):
     async def _reload_gdata(self) -> None:
         self.gdata = await self.bot.storage.get_guild(self.guild.id)
 
-    async def _redraw(self, inter: discord.Interaction) -> None:
+    async def _redraw(self, inter: discord.Interaction | None = None) -> None:
         await self._reload_gdata()
-        await inter.edit_original_response(
-            embed=_build_summary(self.gdata, self.guild), view=self
-        )
+        embed = _build_summary(self.gdata, self.guild)
+        # Prefer using the stored message to avoid stale interactions
+        if self.message:
+            await self.message.edit(embed=embed, view=self)
+        elif inter:
+            await inter.edit_original_response(embed=embed, view=self)
 
     @discord.ui.button(
         label="Welcome", emoji=Emoji.WELCOME, style=discord.ButtonStyle.primary, row=0
@@ -536,8 +541,10 @@ class SetupView(BaseView):
         self, inter: discord.Interaction, _: discord.ui.Button
     ) -> None:
         new_val = not self.gdata.bot_lock
+        await inter.response.defer()
         await self.bot.storage.update_setup(self.guild.id, bot_lock=new_val)
-        await self._redraw(inter)
+        await self._reload_gdata()
+        await inter.edit_original_response(embed=_build_summary(self.gdata, self.guild), view=self)
 
     @discord.ui.button(
         label="Done", emoji=Emoji.SUCCESS, style=discord.ButtonStyle.success, row=2
@@ -632,12 +639,13 @@ class Setup(commands.Cog):
     async def setup_cmd(self, inter: discord.Interaction) -> None:
         if not await self._can_setup(inter):
             return
+        # Defer immediately before any async operations
+        await inter.response.defer(ephemeral=True)
         gdata = await self.bot.storage.get_guild(inter.guild.id)  # type: ignore[union-attr]
         view = SetupView(self.bot, inter.user, inter.guild, gdata)  # type: ignore[arg-type]
-        await inter.response.send_message(
+        await inter.edit_original_response(
             embed=_build_summary(gdata, inter.guild),  # type: ignore[arg-type]
             view=view,
-            ephemeral=True,
         )
         view.message = await inter.original_response()
 

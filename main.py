@@ -218,13 +218,27 @@ class Pushie(commands.Bot):
                     )
 
         if g and str(message.author.id) in g.afks:
+            afk_info = g.afks[str(message.author.id)]
+            afk_since = afk_info.get("since", 0)
+            current_time = datetime.datetime.now(datetime.UTC).timestamp()
+
+            # Only show welcome back if AFK was set >2 seconds ago (not a fresh /afk command)
+            if current_time - afk_since > 2:
+                # Check if this looks like a command to avoid duplicate messages
+                prefix = g.prefix if g else "!"
+                is_command = message.content.startswith(
+                    prefix
+                ) or message.content.startswith("/")
+
+                if not is_command:
+                    await message.channel.send(
+                        embed=UI.success(
+                            f"Welcome back {message.author.mention}, AFK cleared."
+                        ),
+                        delete_after=5,
+                    )
+
             await self.storage.clear_afk(message.guild.id, message.author.id)
-            await message.channel.send(
-                embed=UI.success(
-                    f"Welcome back {message.author.mention}, AFK cleared."
-                ),
-                delete_after=5,
-            )
 
         await self.process_commands(message)
 
@@ -447,8 +461,19 @@ def _setup_commands(bot: Pushie) -> None:
                 await ctx.err("You need Manage Server permission to change the prefix.")
                 return
 
+            # For slash commands, defer before async storage operations
+            if ctx.interaction:
+                await ctx.interaction.response.defer()
+
             await bot.storage.set_prefix(ctx.guild.id, new_prefix)
-            await ctx.ok(f"Prefix changed to `{new_prefix}`")
+
+            # Use appropriate response method based on command type
+            if ctx.interaction:
+                await ctx.interaction.followup.send(
+                    embed=UI.success(f"Prefix changed to `{new_prefix}`")
+                )
+            else:
+                await ctx.ok(f"Prefix changed to `{new_prefix}`")
             return
 
         g = bot.storage.get_guild_sync(ctx.guild.id)

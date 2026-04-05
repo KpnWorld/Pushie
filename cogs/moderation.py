@@ -113,15 +113,19 @@ class Moderation(commands.Cog, name="Moderation"):
         if ctx.interaction:
             await ctx.interaction.response.defer()
 
+        async def _reply(embed: discord.Embed) -> None:
+            if ctx.interaction:
+                try:
+                    await ctx.interaction.followup.send(embed=embed)
+                except (discord.NotFound, discord.HTTPException):
+                    pass
+            else:
+                await ctx.send(embed=embed)
+
         try:
             bans = [entry async for entry in ctx.guild.bans()]
             if not bans:
-                if ctx.interaction:
-                    await ctx.interaction.followup.send(
-                        embed=UI.info("*No users are currently banned.*")
-                    )
-                else:
-                    await ctx.info("*No users are currently banned.*")
+                await _reply(UI.info("*No users are currently banned.*"))
                 return
 
             ban_text = "\n".join(
@@ -134,17 +138,9 @@ class Moderation(commands.Cog, name="Moderation"):
                 description=f"`{Emoji.BAN}` *Banned users ({len(bans)} total)*\n\n{ban_text}{extra}",
                 color=0xFAB9EC,
             )
-
-            if ctx.interaction:
-                await ctx.interaction.followup.send(embed=embed)
-            else:
-                await ctx.send(embed=embed)
+            await _reply(embed)
         except discord.Forbidden:
-            msg = "*I don't have permission to view bans.*"
-            if ctx.interaction:
-                await ctx.interaction.followup.send(embed=UI.error(msg))
-            else:
-                await ctx.err(msg)
+            await _reply(UI.error("*I don't have permission to view bans.*"))
 
     @commands.hybrid_command(
         name="mute", description="Mute a member (remove Send Messages permission)"
@@ -616,6 +612,10 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err(f"*Failed to change nickname: `{e}`*")
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
+        if isinstance(error, commands.HybridCommandError):
+            error = error.original
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
         if isinstance(error, commands.MissingPermissions):
             await ctx.send(
                 embed=UI.error(

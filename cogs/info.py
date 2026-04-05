@@ -85,7 +85,6 @@ class DownloadView(BaseView):
                 label=label,
                 style=discord.ButtonStyle.link,
                 url=url,
-                emoji=Emoji.DOWNLOAD,
             )
         )
 
@@ -547,9 +546,12 @@ class Info(commands.Cog, name="Info"):
         try:
             await g.edit(icon=image_bytes)
             if ctx.interaction and ctx.interaction.response.is_done():
-                await ctx.interaction.followup.send(
-                    embed=UI.success("*Server icon updated!*")
-                )
+                try:
+                    await ctx.interaction.followup.send(
+                        embed=UI.success("*Server icon updated!*")
+                    )
+                except (discord.NotFound, discord.HTTPException):
+                    pass
             else:
                 await ctx.send(embed=UI.success("*Server icon updated!*"))
         except discord.Forbidden:
@@ -633,9 +635,12 @@ class Info(commands.Cog, name="Info"):
         try:
             await g.edit(banner=image_bytes)
             if ctx.interaction and ctx.interaction.response.is_done():
-                await ctx.interaction.followup.send(
-                    embed=UI.success("*Server banner updated!*")
-                )
+                try:
+                    await ctx.interaction.followup.send(
+                        embed=UI.success("*Server banner updated!*")
+                    )
+                except (discord.NotFound, discord.HTTPException):
+                    pass
             else:
                 await ctx.send(embed=UI.success("*Server banner updated!*"))
         except discord.Forbidden:
@@ -747,6 +752,10 @@ class Info(commands.Cog, name="Info"):
             await ctx.send(embed=embed, file=file)
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
+        if isinstance(error, commands.HybridCommandError):
+            error = error.original
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
         if isinstance(error, commands.MissingPermissions):
             await ctx.send(
                 embed=UI.error(

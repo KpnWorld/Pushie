@@ -299,6 +299,10 @@ class Misc(commands.Cog, name="Miscellaneous"):
         await ctx.send(embed=embed)
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
+        if isinstance(error, commands.HybridCommandError):
+            error = error.original
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
         if isinstance(error, commands.MissingPermissions):
             await ctx.send(
                 embed=UI.error(

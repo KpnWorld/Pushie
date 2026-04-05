@@ -1,0 +1,53 @@
+[2026-04-05 22:34:58] INFO werkzeug: WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.93.194:5000
+[2026-04-05 22:34:58] INFO werkzeug: Press CTRL+C to quit
+[2026-04-05 22:34:58] INFO storage: Storage loaded: 4 guild(s)
+[2026-04-05 22:34:58] INFO pushie: Loaded cogs.filters
+[2026-04-05 22:34:58] INFO pushie: Loaded cogs.info
+[2026-04-05 22:34:58] INFO pushie: Loaded cogs.misc
+[2026-04-05 22:34:58] INFO pushie: Loaded cogs.moderation
+[2026-04-05 22:34:58] INFO pushie: Loaded cogs.roles
+[2026-04-05 22:34:58] INFO pushie: Loaded cogs.voice
+[2026-04-05 22:34:59] INFO discord.gateway: Shard ID None has connected to Gateway (Session ID: bf1586edc14a0c099babe91444b60ffb).
+[2026-04-05 22:35:01] INFO pushie: Ready — Pushie Pusheen#6861 (1489902945448493086) | 4 guilds
+[2026-04-05 22:35:01] INFO pushie: Synced 78 slash commands
+[2026-04-05 22:40:22] ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='discord-ui-view-timeout-384b4baff4ebaa2939eafbcf574eba52' coro=<BaseView.on_timeout() done, defined at /home/runner/workspace/ui.py:115> exception=NotFound('404 Not Found (error code: 10062): Unknown interaction')>
+Traceback (most recent call last):
+  File "/home/runner/workspace/ui.py", line 117, in on_timeout
+    await self._edit(view=self)
+  File "/home/runner/workspace/ui.py", line 99, in _edit
+    await self.interaction.response.edit_message(**kwargs)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/interactions.py", line 1234, in edit_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/webhook/async_.py", line 224, in request
+    raise NotFound(response, data)
+discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+[2026-04-05 22:44:03] ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='discord-ui-view-timeout-5c86ec9d193b3b75b7ec3b19d7178b78' coro=<BaseView.on_timeout() done, defined at /home/runner/workspace/ui.py:115> exception=NotFound('404 Not Found (error code: 10062): Unknown interaction')>
+Traceback (most recent call last):
+  File "/home/runner/workspace/ui.py", line 117, in on_timeout
+    await self._edit(view=self)
+  File "/home/runner/workspace/ui.py", line 99, in _edit
+    await self.interaction.response.edit_message(**kwargs)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/interactions.py", line 1234, in edit_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/webhook/async_.py", line 224, in request
+    raise NotFound(response, data)
+discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+[2026-04-05 22:44:26] ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='discord-ui-view-timeout-1a645d3bbe0b6855a435d9fc0864c7a6' coro=<BaseView.on_timeout() done, defined at /home/runner/workspace/ui.py:115> exception=NotFound('404 Not Found (error code: 10062): Unknown interaction')>
+Traceback (most recent call last):
+  File "/home/runner/workspace/ui.py", line 117, in on_timeout
+    await self._edit(view=self)
+  File "/home/runner/workspace/ui.py", line 99, in _edit
+    await self.interaction.response.edit_message(**kwargs)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/interactions.py", line 1234, in edit_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/webhook/async_.py", line 224, in request
+    raise NotFound(response, data)

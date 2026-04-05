@@ -92,13 +92,16 @@ class BaseView(discord.ui.View):
                 item.disabled = True
 
     async def _edit(self, **kwargs: Any) -> None:
-        if self.interaction is None and self.message is not None:
-            await self.message.edit(**kwargs)
-        elif self.interaction is not None:
-            try:
-                await self.interaction.response.edit_message(**kwargs)
-            except discord.InteractionResponded:
-                await self.interaction.edit_original_response(**kwargs)
+        try:
+            if self.message is not None:
+                await self.message.edit(**kwargs)
+            elif self.interaction is not None:
+                if not self.interaction.response.is_done():
+                    await self.interaction.response.edit_message(**kwargs)
+                else:
+                    await self.interaction.edit_original_response(**kwargs)
+        except (discord.NotFound, discord.HTTPException):
+            pass
 
     async def on_error(
         self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item

@@ -11,11 +11,6 @@ from emojis import Emoji
 
 COLOR = 0xFAB9EC
 
-# ---------------------------------------------------------------------------
-# Embed builders
-# ---------------------------------------------------------------------------
-
-
 def _base(msg: str, emoji: str) -> discord.Embed:
     return discord.Embed(description=f"> `{emoji}` *{msg}*", color=COLOR)
 
@@ -73,11 +68,6 @@ class UI:
         return embed
 
 
-# ---------------------------------------------------------------------------
-# Base view
-# ---------------------------------------------------------------------------
-
-
 class BaseView(discord.ui.View):
     interaction: discord.Interaction | None = None
     message: discord.Message | None = None
@@ -126,9 +116,6 @@ class BaseView(discord.ui.View):
         await self._edit(view=self)
 
 
-# ---------------------------------------------------------------------------
-# Prefix modal + view
-# ---------------------------------------------------------------------------
 class ChangePrefix(discord.ui.Modal):
     """Modal for changing the server prefix."""
 
@@ -186,11 +173,6 @@ class PrefixView(discord.ui.View):
         await interaction.response.send_modal(modal)
 
 
-# ---------------------------------------------------------------------------
-# Confirm view
-# ---------------------------------------------------------------------------
-
-
 class ConfirmView(BaseView):
     def __init__(self, user: discord.User | discord.Member, timeout: float = 30.0):
         super().__init__(user, timeout)
@@ -213,11 +195,6 @@ class ConfirmView(BaseView):
         self._disable_all()
         await self._edit(embed=UI.error("Cancelled."), view=self)
         self.stop()
-
-
-# ---------------------------------------------------------------------------
-# Base modal
-# ---------------------------------------------------------------------------
 
 
 class BaseModal(discord.ui.Modal):
@@ -248,11 +225,6 @@ class BaseModal(discord.ui.Modal):
     @property
     def interaction(self) -> discord.Interaction | None:
         return self._interaction
-
-
-# ---------------------------------------------------------------------------
-# Embed builder modal
-# ---------------------------------------------------------------------------
 
 
 class EmbedBuilderModal(BaseModal, title="Embed Builder"):
@@ -290,10 +262,6 @@ class EmbedBuilderModal(BaseModal, title="Embed Builder"):
             embed.set_footer(text=footer)
         return embed
 
-
-# ---------------------------------------------------------------------------
-# Converters & input parsing
-# ---------------------------------------------------------------------------
 
 # duration  e.g. "10m" "2h" "1d"
 _DURATION_RE = re.compile(r"^(\d+)([smhdw])$")

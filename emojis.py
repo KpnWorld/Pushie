@@ -1,8 +1,3 @@
-# emoji.py
-# Central emoji registry for Pushie Pusheen
-# All emojis used in UI, responses, modals, paginators, etc. live here
-# Never hardcode an emoji anywhere else in the bot
-
 from __future__ import annotations
 
 
@@ -14,14 +9,12 @@ class Emoji:
         embed = discord.Embed(description=f"> {Emoji.SUCCESS} *Action completed*")
     """
 
-    # Status / UI
     SUCCESS = "☑️"
     ERROR = "❌"
     WARNING = "⚠️"
     INFO = "ℹ️"
     LOADING = "⏳"
 
-    # Moderation
     JAIL = "🔒"
     UNJAIL = "🔓"
     KICK = "👢"
@@ -43,18 +36,15 @@ class Emoji:
     NICK = "📝"
     RESET = "🔄"
 
-    # Setup
     SETUP = "⚙️"
     CHANNEL = "📢"
     SYNC = "🔁"
 
-    # Roles & Welcome
     ROLE = "🏷️"
     WELCOME = "👋"
     AUTOROLE = "⭐"
     BOOSTER = "🚀"
 
-    # Pagination (exactly as requested)
     PREV = "◂"
     NEXT = "▸"
     GOTO = "◆"
@@ -62,42 +52,34 @@ class Emoji:
     LAST = "⏩"
     STOP = "🗑️"
 
-    # Confirmation prompts
     CONFIRM = "✓"
     CANCEL = "✕"
 
-    # Misc / Fun
     PING = "🏓"
     HEART = "💖"
     PUSHEEN = "🐱"  # main bot mascot emoji
     STICKY = "📌"
 
-    # Commands / Sudo
     SUDO = "🛠️"
     COG = "📦"
     RESTART = "🔄"
     STATS = "📊"
 
-    # Log events
     JOIN = "📥"
     LEAVE = "📤"
     EDIT = "📝"
     DELETE = "🗑️"
 
-    # Bot access
     LOCK = "🔐"
     UNLOCK = "🔓"
     WHITELIST = "✅"
     BLACKLIST = "🚫"
 
-    # Embed / Modal
     EMBED = "📋"
     MODAL = "📝"
 
-    # Reaction roles
     REACTION = "🔄"
 
-    # Info / Images
     IMAGE = "🖼️"
     DOWNLOAD = "⬇️"
 

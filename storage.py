@@ -14,63 +14,55 @@ GUILDS_DIR = DATA_DIR / "guilds"
 GLOBAL_FILE = DATA_DIR / "global.json"
 
 
-# ---------------------------------------------------------------------------
-# Data models
-# ---------------------------------------------------------------------------
-
-
 @dataclass
 class GuildData:
     id: int = 0
     prefix: str = "!"
 
-    # logging
     log_channel: int | None = None
     log_events: list[str] = field(default_factory=list)
 
-    # moderation
     jail_channel: int | None = None
     jail_role: int | None = None
     jailed: list[int] = field(default_factory=list)
     user_blacklist: list[int] = field(default_factory=list)
     user_whitelist: list[int] = field(default_factory=list)
 
-    # welcome / autorole
     welcome_channel: int | None = None
     welcome_role: int | None = None
     welcome_role_bot: int | None = None
     welcome_msg: str | None = None
 
-    # bot access control
     bot_lock: bool = False
     bot_whitelist: list[int] = field(default_factory=list)
     bot_blacklist: list[int] = field(default_factory=list)
 
-    # mute roles
-    mute_role: int | None = None  # text / msg mute
-    imute_role: int | None = None  # image mute
-    rmute_role: int | None = None  # reaction mute
+    mute_role: int | None = None
+    imute_role: int | None = None
+    rmute_role: int | None = None
 
-    # roles
     reaction_roles: dict[str, int] = field(
         default_factory=dict
-    )  # "msg_id:emoji" -> role_id
+    )
     booster_roles: list[int] = field(default_factory=list)
 
-    # afk { user_id -> {"reason": str, "since": float} }
     afks: dict[str, Any] = field(default_factory=dict)
 
-    # sticky { channel_id -> {"content": str, "message_id": int} }
     sticky_messages: dict[str, Any] = field(default_factory=dict)
 
-    # autoresponders { trigger -> {"response": str, "exact": bool} }
     autoresponders: dict[str, Any] = field(default_factory=dict)
 
-    # embed templates { name -> embed_dict }
     embed_templates: dict[str, Any] = field(default_factory=dict)
 
-    # warnings { user_id -> [{"reason": str, "timestamp": float}] }
     warnings: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+
+    voicecenter_channel: int | None = None
+    voicecenter_category: int | None = None
+    voicecenter_defaults: dict[str, Any] = field(default_factory=dict)
+    voicecenter_rolejoin: int | None = None
+    voicecenter_temp_channels: dict[int, dict[str, Any]] = field(default_factory=dict)
+
+    role_backup: dict[int, dict[str, Any]] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -96,11 +88,6 @@ class GlobalData:
         return cls(**{k: v for k, v in data.items() if k in valid})
 
 
-# ---------------------------------------------------------------------------
-# Manager
-# ---------------------------------------------------------------------------
-
-
 class StorageManager:
 
     def __init__(self) -> None:
@@ -109,8 +96,6 @@ class StorageManager:
         self._global_lock = asyncio.Lock()
         self.global_data: GlobalData = GlobalData()
         GUILDS_DIR.mkdir(parents=True, exist_ok=True)
-
-    # global
 
     async def load_all(self) -> None:
         await self._load_global()
@@ -141,8 +126,6 @@ class StorageManager:
                 json.dumps(self.global_data.to_dict(), indent=2),
                 "utf-8",
             )
-
-    # guild
 
     def _guild_path(self, guild_id: int) -> Path:
         return GUILDS_DIR / f"{guild_id}.json"
@@ -187,8 +170,6 @@ class StorageManager:
         if path.exists():
             await asyncio.to_thread(path.unlink)
 
-    # convenience — guild
-
     async def set_prefix(self, guild_id: int, prefix: str) -> None:
         g = await self.get_guild(guild_id)
         g.prefix = prefix
@@ -216,7 +197,38 @@ class StorageManager:
         g.reaction_roles.pop(key, None)
         await self.save_guild(g)
 
-    # convenience — global
+    async def set_voicecenter_channel(self, guild_id: int, channel_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.voicecenter_channel = channel_id
+        await self.save_guild(g)
+
+    async def set_voicecenter_category(self, guild_id: int, category_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.voicecenter_category = category_id
+        await self.save_guild(g)
+
+    async def set_voicecenter_default(
+        self, guild_id: int, key: str, value: Any
+    ) -> None:
+        g = await self.get_guild(guild_id)
+        if not g.voicecenter_defaults:
+            g.voicecenter_defaults = {}
+        g.voicecenter_defaults[key] = value
+        await self.save_guild(g)
+
+    async def set_voicecenter_rolejoin(self, guild_id: int, role_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.voicecenter_rolejoin = role_id
+        await self.save_guild(g)
+
+    async def clear_voicecenter(self, guild_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.voicecenter_channel = None
+        g.voicecenter_category = None
+        g.voicecenter_defaults.clear()
+        g.voicecenter_rolejoin = None
+        g.voicecenter_temp_channels.clear()
+        await self.save_guild(g)
 
     def is_sudo(self, user_id: int) -> bool:
         return user_id in self.global_data.sudo_users
@@ -256,8 +268,6 @@ class StorageManager:
         if user_id in self.global_data.banned_users:
             self.global_data.banned_users.remove(user_id)
             await self.save_global()
-
-    # convenience — setup
 
     async def update_setup(self, guild_id: int, **kwargs: Any) -> None:
         """Bulk-update any GuildData fields by keyword and save once."""

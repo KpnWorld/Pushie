@@ -562,8 +562,7 @@ def main() -> None:
         format="[%(asctime)s] %(levelname)s %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    
-    # Start Flask in a background thread for Render health checks
+
     app = _setup_flask()
     port = int(os.getenv("PORT", 5000))
     flask_thread = threading.Thread(
@@ -572,7 +571,7 @@ def main() -> None:
     )
     flask_thread.start()
     log.info("Flask health endpoint started on port %d", port)
-    
+
     bot = Pushie()
     _setup_checks(bot)
     _setup_commands(bot)

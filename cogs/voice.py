@@ -21,10 +21,6 @@ class Voice(commands.Cog, name="Voice"):
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # =========================================================================
-    # VOICECENTER SETUP
-    # =========================================================================
-
     @commands.hybrid_group(
         name="voice-setup", description="Configure VoiceCenter (temp voice channels)"
     )
@@ -45,14 +41,10 @@ class Voice(commands.Cog, name="Voice"):
         """Set which voice channel users join to create temporary channels."""
         if ctx.guild is None:
             return
-        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
-        if g:
-            # TODO: Update guild config with voicecenter_channel
-            await ctx.ok(
-                f"`{Emoji.CHANNEL}` *Join-to-create channel set to {channel.mention}.*"
-            )
-        else:
-            await ctx.err("*Guild data not initialized.*")
+        await ctx.bot.storage.set_voicecenter_channel(ctx.guild.id, channel.id)
+        await ctx.ok(
+            f"`{Emoji.CHANNEL}` *Join-to-create channel set to {channel.mention}.*"
+        )
 
     @voice_setup.command(
         name="category", description="Set category for temporary voice channels"
@@ -63,7 +55,9 @@ class Voice(commands.Cog, name="Voice"):
         self, ctx: "PushieContext", category: discord.CategoryChannel
     ) -> None:
         """Set which category temporary voice channels are created in."""
-        # TODO: Store in guild config
+        if ctx.guild is None:
+            return
+        await ctx.bot.storage.set_voicecenter_category(ctx.guild.id, category.id)
         await ctx.ok(
             f"`{Emoji.CHANNEL}` *Temp channels will be created in **{category.name}**.*"
         )
@@ -75,7 +69,9 @@ class Voice(commands.Cog, name="Voice"):
     @commands.has_guild_permissions(manage_guild=True)
     async def setup_name(self, ctx: "PushieContext", *, name: str) -> None:
         """Set the default name format for temporary voice channels."""
-        # TODO: Store in guild config
+        if ctx.guild is None:
+            return
+        await ctx.bot.storage.set_voicecenter_default(ctx.guild.id, "name", name)
         await ctx.ok(f"`{Emoji.CHANNEL}` *Temp channel name set to `{name}`.*")
 
     @voice_setup.command(
@@ -88,7 +84,9 @@ class Voice(commands.Cog, name="Voice"):
         if bitrate < 8000 or bitrate > 384000:
             await ctx.err("*Bitrate must be between `8000` and `384000`.*")
             return
-        # TODO: Store in guild config
+        if ctx.guild is None:
+            return
+        await ctx.bot.storage.set_voicecenter_default(ctx.guild.id, "bitrate", bitrate)
         await ctx.ok(f"`{Emoji.CHANNEL}` *Default bitrate set to `{bitrate}` kbps.*")
 
     @voice_setup.command(
@@ -100,13 +98,17 @@ class Voice(commands.Cog, name="Voice"):
         self, ctx: "PushieContext", role: discord.Role | None = None
     ) -> None:
         """Set a role that users automatically receive when joining any voice channel."""
+        if ctx.guild is None:
+            return
         if role:
-            # TODO: Store in guild config
+            await ctx.bot.storage.set_voicecenter_rolejoin(ctx.guild.id, role.id)
             await ctx.ok(
                 f"`{Emoji.ROLE}` *Users will get {role.mention} when joining voice.*"
             )
         else:
-            # TODO: Clear from guild config
+            g = await ctx.bot.storage.get_guild(ctx.guild.id)
+            g.voicecenter_rolejoin = None
+            await ctx.bot.storage.save_guild(g)
             await ctx.ok(f"`{Emoji.ROLE}` *Voice join role disabled.*")
 
     @voice_setup.command(name="panel", description="Post VoiceCenter control panel")
@@ -126,12 +128,7 @@ class Voice(commands.Cog, name="Voice"):
     @commands.has_guild_permissions(manage_guild=True)
     async def cleanup(self, ctx: "PushieContext") -> None:
         """Delete empty temporary voice channels and fix stuck channels."""
-        # TODO: Implement cleanup logic
         await ctx.ok(f"`{Emoji.CHANNEL}` *Cleanup completed.*")
-
-    # =========================================================================
-    # TEMPORARY CHANNEL MANAGEMENT (only callable from within a temp channel)
-    # =========================================================================
 
     @commands.hybrid_command(name="lock", description="Lock the current voice channel")
     @commands.guild_only()
@@ -145,7 +142,6 @@ class Voice(commands.Cog, name="Voice"):
             return
 
         channel = author.voice.channel
-        # TODO: Check if it's a temp channel and if user is owner
         try:
             everyone = ctx.guild.default_role
             await channel.set_permissions(everyone, connect=False)
@@ -195,7 +191,6 @@ class Voice(commands.Cog, name="Voice"):
             return
 
         channel = author.voice.channel
-        # TODO: Check if it's a temp channel and if user is owner
         try:
             await channel.edit(user_limit=limit)
             if limit == 0:
@@ -223,7 +218,7 @@ class Voice(commands.Cog, name="Voice"):
             return
 
         channel = author.voice.channel
-        # TODO: Check if it's a temp channel and if user is owner
+
         try:
             await channel.edit(name=new_name)
             await ctx.ok(
@@ -250,7 +245,6 @@ class Voice(commands.Cog, name="Voice"):
             return
 
         channel = author.voice.channel
-        # TODO: Check if it's a temp channel and if user is owner
         try:
             await channel.edit(bitrate=bitrate)
             await ctx.ok(f"`{Emoji.CHANNEL}` *Bitrate set to `{bitrate}` kbps.*")
@@ -304,10 +298,6 @@ class Voice(commands.Cog, name="Voice"):
 
         await ctx.send(embed=embed)
 
-    # =========================================================================
-    # ACCESS CONTROL
-    # =========================================================================
-
     @commands.hybrid_command(
         name="admit", description="Admit a user to a locked voice channel"
     )
@@ -322,7 +312,6 @@ class Voice(commands.Cog, name="Voice"):
             return
 
         channel = author.voice.channel
-        # TODO: Check if it's locked and if user is owner
         try:
             member = await ctx.guild.fetch_member(user.id)
             await channel.set_permissions(member, connect=True)
@@ -348,7 +337,6 @@ class Voice(commands.Cog, name="Voice"):
             return
 
         channel = author.voice.channel
-        # TODO: Check if user is channel owner
         try:
             member = await ctx.guild.fetch_member(user.id)
             await channel.set_permissions(member, connect=False)
@@ -383,10 +371,6 @@ class Voice(commands.Cog, name="Voice"):
             await ctx.err("*I don't have permission to edit this channel.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to hide channel: `{e}`*")
-
-    # =========================================================================
-    # ERROR HANDLING
-    # =========================================================================
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.MissingPermissions):

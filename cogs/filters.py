@@ -29,10 +29,6 @@ class Filters(commands.Cog, name="Filters"):
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # =========================================================================
-    # LINK FILTERS
-    # =========================================================================
-
     @commands.hybrid_group(name="link", description="Manage link filtering")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -53,12 +49,10 @@ class Filters(commands.Cog, name="Filters"):
             return
 
         try:
-            # Fetch existing rules to get current patterns
             rules = await ctx.guild.fetch_automod_rules()
             link_rule = next((r for r in rules if r.name == "link_filter"), None)
 
             if link_rule:
-                # Update existing rule with new pattern
                 current_patterns = link_rule.trigger.regex_patterns or []
                 if pattern not in current_patterns:
                     current_patterns.append(pattern)
@@ -71,7 +65,6 @@ class Filters(commands.Cog, name="Filters"):
                 else:
                     await ctx.err("*This pattern is already in the filter.*")
             else:
-                # Create new rule
                 trigger = AutoModTrigger(
                     type=AutoModRuleTriggerType.keyword, regex_patterns=[pattern]
                 )
@@ -109,7 +102,6 @@ class Filters(commands.Cog, name="Filters"):
                 current_patterns.remove(pattern)
 
                 if current_patterns:
-                    # Update rule with remaining patterns
                     new_trigger = AutoModTrigger(
                         type=AutoModRuleTriggerType.keyword,
                         regex_patterns=current_patterns,
@@ -117,7 +109,6 @@ class Filters(commands.Cog, name="Filters"):
                     await link_rule.edit(trigger=new_trigger)
                     await ctx.ok(f"`{Emoji.INFO}` *Link filter removed: `{pattern}`*")
                 else:
-                    # Delete the rule if no patterns left
                     await link_rule.delete()
                     await ctx.ok(
                         f"`{Emoji.INFO}` *Link filter `{pattern}` removed. Rule deleted.*"
@@ -159,10 +150,6 @@ class Filters(commands.Cog, name="Filters"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to fetch link filters: `{e}`*")
 
-    # =========================================================================
-    # WORD FILTERS
-    # =========================================================================
-
     @commands.hybrid_group(name="word", description="Manage word filtering")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -181,7 +168,6 @@ class Filters(commands.Cog, name="Filters"):
             word_rule = next((r for r in rules if r.name == "word_filter"), None)
 
             if word_rule:
-                # Update existing rule
                 current_words = word_rule.trigger.keyword_filter or []
                 if word not in current_words:
                     current_words.append(word)
@@ -194,7 +180,6 @@ class Filters(commands.Cog, name="Filters"):
                 else:
                     await ctx.err("*This word is already in the filter.*")
             else:
-                # Create new rule
                 trigger = AutoModTrigger(
                     type=AutoModRuleTriggerType.keyword, keyword_filter=[word]
                 )
@@ -279,10 +264,6 @@ class Filters(commands.Cog, name="Filters"):
             await ctx.err("*I don't have permission to view automod rules.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to fetch word filters: `{e}`*")
-
-    # =========================================================================
-    # MENTION FILTERS
-    # =========================================================================
 
     @commands.hybrid_group(name="mention", description="Manage mention filtering")
     @commands.guild_only()
@@ -375,10 +356,6 @@ class Filters(commands.Cog, name="Filters"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to fetch mention filter: `{e}`*")
 
-    # =========================================================================
-    # CAPS FILTERS
-    # =========================================================================
-
     @commands.hybrid_group(name="caps", description="Manage excessive caps filtering")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -397,19 +374,14 @@ class Filters(commands.Cog, name="Filters"):
             return
 
         try:
-            # Note: Discord's AutoMod doesn't have a direct caps filter, so we'll use keyword_preset with CAPS_LOCK
             rules = await ctx.guild.fetch_automod_rules()
             caps_rule = next((r for r in rules if r.name == "caps_filter"), None)
 
-            # Discord doesn't have native caps filter, so we'll create a placeholder
-            # Store the threshold in the bot's storage instead
             g = self.bot.storage.get_guild_sync(ctx.guild.id)
             if not g:
                 await ctx.err("*Guild data not initialized.*")
                 return
 
-            # This is a limitation - Discord AutoMod doesn't filter caps directly
-            # But we can use the storage to enable caps filtering through bot logic
             await ctx.warn(
                 "*Discord AutoMod doesn't support native caps filtering. Consider using word filters or mention filters instead.*"
             )
@@ -424,14 +396,9 @@ class Filters(commands.Cog, name="Filters"):
     async def caps_remove(self, ctx: "PushieContext") -> None:
         """Disable excessive caps filtering."""
         assert ctx.guild is not None
-        # Caps filtering is not natively supported by Discord AutoMod
         await ctx.info(
             "*Discord AutoMod doesn't support native caps filtering. Caps filtering not available.*"
         )
-
-    # =========================================================================
-    # FILTER MANAGEMENT
-    # =========================================================================
 
     @commands.hybrid_command(
         name="filters-reset", aliases=["filter-reset"], description="Reset all filters"
@@ -464,10 +431,6 @@ class Filters(commands.Cog, name="Filters"):
             await ctx.err("*I don't have permission to manage automod rules.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to reset filters: `{e}`*")
-
-    # =========================================================================
-    # ERROR HANDLING
-    # =========================================================================
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.MissingPermissions):

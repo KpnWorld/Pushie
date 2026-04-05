@@ -17,10 +17,6 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 
 def _format_permissions(permissions: discord.Permissions) -> str:
     perms = [p.replace("_", " ").title() for p, v in permissions if v]
@@ -74,11 +70,6 @@ async def _process_image(
     return discord.File(buf, filename="image.png")
 
 
-# ---------------------------------------------------------------------------
-# Download view  (↓ button on avatar / banner embeds)
-# ---------------------------------------------------------------------------
-
-
 class DownloadView(BaseView):
     """Single button that links directly to the full-size asset."""
 
@@ -97,11 +88,6 @@ class DownloadView(BaseView):
                 emoji=Emoji.DOWNLOAD,
             )
         )
-
-
-# ---------------------------------------------------------------------------
-# Server icon / banner set modal
-# ---------------------------------------------------------------------------
 
 
 class _AssetLinkModal(discord.ui.Modal):
@@ -127,11 +113,6 @@ class _AssetLinkModal(discord.ui.Modal):
             embed=UI.error("Invalid input."), ephemeral=True
         )
         self.stop()
-
-
-# ---------------------------------------------------------------------------
-# Cog
-# ---------------------------------------------------------------------------
 
 
 class Info(commands.Cog, name="Info"):

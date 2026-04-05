@@ -21,10 +21,6 @@ class Roles(commands.Cog, name="Roles"):
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # =========================================================================
-    # ROLE INFORMATION
-    # =========================================================================
-
     @commands.hybrid_command(
         name="role-list", description="List all roles in the server"
     )
@@ -100,10 +96,6 @@ class Roles(commands.Cog, name="Roles"):
         )
 
         await ctx.send(embed=embed)
-
-    # =========================================================================
-    # ROLE MANAGEMENT (assign/remove/create/delete/clear)
-    # =========================================================================
 
     @commands.hybrid_command(name="role-add", description="Assign a role to a member")
     @commands.guild_only()
@@ -301,7 +293,6 @@ class Roles(commands.Cog, name="Roles"):
             if icon_url:
                 icon_data = await self.bot.session.get(icon_url)
                 icon_bytes = await icon_data.read()
-                # Note: Role icons are not supported in discord.py
                 # await role.edit(icon=icon_bytes)
                 await ctx.ok(f"`{Emoji.ROLE}` *Role icon feature coming soon.*")
             else:
@@ -355,10 +346,6 @@ class Roles(commands.Cog, name="Roles"):
             await ctx.err("*I don't have permission to edit this role.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to toggle mentionable: `{e}`*")
-
-    # =========================================================================
-    # MASS ROLE OPERATIONS
-    # =========================================================================
 
     @commands.hybrid_command(
         name="role-mass-assign", description="Assign role to multiple members"
@@ -437,10 +424,6 @@ class Roles(commands.Cog, name="Roles"):
                         pass
 
         await ctx.ok(f"`{Emoji.ROLE}` *{role.mention} removed from `{count}` members.*")
-
-    # =========================================================================
-    # PERMISSION MANAGEMENT
-    # =========================================================================
 
     @commands.hybrid_command(
         name="strip", description="Remove dangerous permissions from a role"

@@ -22,10 +22,6 @@ class Misc(commands.Cog, name="Miscellaneous"):
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # =========================================================================
-    # AUTORESPONDERS
-    # =========================================================================
-
     @commands.hybrid_group(
         name="autoresponder",
         aliases=["autoreply", "autoresponse"],
@@ -139,10 +135,6 @@ class Misc(commands.Cog, name="Miscellaneous"):
         await ctx.bot.storage.save_guild(g)
         await ctx.ok(f"`{Emoji.INFO}` *Autoresponder `{trigger}` updated.*")
 
-    # =========================================================================
-    # REACTION ROLES
-    # =========================================================================
-
     @commands.hybrid_group(
         name="reactionrole",
         aliases=["rr", "reactrole"],
@@ -165,7 +157,6 @@ class Misc(commands.Cog, name="Miscellaneous"):
     ) -> None:
         """Bind an emoji to a role for reaction roles."""
         try:
-            # Validate emoji
             await ctx.message.add_reaction(emoji)
             await ctx.message.remove_reaction(emoji, ctx.me)
         except discord.HTTPException:
@@ -178,7 +169,6 @@ class Misc(commands.Cog, name="Miscellaneous"):
             await ctx.err("*You cannot assign a role higher than your own.*")
             return
 
-        # TODO: Store emoji → role binding in guild config
         await ctx.ok(f"`{Emoji.ROLE}` *{emoji} → {role.mention} reaction role added.*")
 
     @reactionrole.command(name="remove", description="Remove a reaction role binding")
@@ -186,7 +176,6 @@ class Misc(commands.Cog, name="Miscellaneous"):
     @commands.has_guild_permissions(manage_roles=True)
     async def reactionrole_remove(self, ctx: "PushieContext", emoji: str) -> None:
         """Remove a reaction role binding."""
-        # TODO: Remove from guild config
         await ctx.ok(f"`{Emoji.ROLE}` *Reaction role {emoji} removed.*")
 
     @reactionrole.command(name="list", description="List all reaction role bindings")
@@ -194,7 +183,6 @@ class Misc(commands.Cog, name="Miscellaneous"):
     @commands.has_guild_permissions(manage_roles=True)
     async def reactionrole_list(self, ctx: "PushieContext") -> None:
         """View all reaction role bindings in the server."""
-        # TODO: Fetch from guild config
         await ctx.info("*No reaction roles configured.*")
 
     @reactionrole.command(name="message", description="Set the reaction role message")
@@ -205,15 +193,9 @@ class Misc(commands.Cog, name="Miscellaneous"):
     ) -> None:
         """Set or view which message reaction roles are attached to."""
         if message_link:
-            # TODO: Parse link and set as reaction role message
             await ctx.ok(f"`{Emoji.ROLE}` *Reaction role message set.*")
         else:
-            # TODO: Show current reaction role message
             await ctx.info("*No reaction role message set.*")
-
-    # =========================================================================
-    # EMBED CREATION
-    # =========================================================================
 
     @commands.hybrid_command(
         name="embed", description="Create a custom embed from JSON"
@@ -229,16 +211,12 @@ class Misc(commands.Cog, name="Miscellaneous"):
             return
 
         try:
-            # Build embed from JSON
+            data = json.loads(json_str)
             embed = discord.Embed.from_dict(data)
             embed.color = embed.color or discord.Color(0xFAB9EC)
             await ctx.send(embed=embed)
         except (KeyError, ValueError) as e:
             await ctx.err(f"*Invalid embed data: `{e}`*")
-
-    # =========================================================================
-    # POLLS
-    # =========================================================================
 
     @commands.hybrid_command(name="poll", description="Create a reaction-based poll")
     @commands.guild_only()
@@ -253,17 +231,14 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
         Usage: `!poll "Should we add X feature?" "Yes|No|Maybe"`
         """
-        # Parse options (comma or pipe separated)
         option_list = [opt.strip() for opt in options.replace("|", ",").split(",")]
         if len(option_list) < 2 or len(option_list) > 10:
             await ctx.err("*Poll must have between 2 and 10 options.*")
             return
 
-        # Use regional indicator emojis (🇦 🇧 🇨 etc.)
         regional_indicators = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯"]
         emoji_list = regional_indicators[: len(option_list)]
 
-        # Build poll embed
         description = f"**{question}**\n\n"
         for emoji, option in zip(emoji_list, option_list):
             description += f"{emoji} — {option}\n"
@@ -276,7 +251,6 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
         poll_message = await ctx.send(embed=embed)
 
-        # Add reactions
         for emoji in emoji_list:
             try:
                 await poll_message.add_reaction(emoji)
@@ -284,10 +258,6 @@ class Misc(commands.Cog, name="Miscellaneous"):
                 pass
 
     # =========================================================================
-    # HELP COMMAND FOR MISC
-    # =========================================================================
-
-    @commands.hybrid_command(name="mischelp", description="Show misc commands help")
     async def mischelp(self, ctx: "PushieContext") -> None:
         """View help for miscellaneous commands."""
         embed = discord.Embed(
@@ -327,10 +297,6 @@ class Misc(commands.Cog, name="Miscellaneous"):
         )
 
         await ctx.send(embed=embed)
-
-    # =========================================================================
-    # ERROR HANDLING
-    # =========================================================================
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.MissingPermissions):

@@ -23,10 +23,6 @@ class Moderation(commands.Cog, name="Moderation"):
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # =========================================================================
-    # USER MODERATION (kick, ban, mute, timeout, etc)
-    # =========================================================================
-
     @commands.hybrid_command(name="kick", description="Kick a member from the server")
     @commands.guild_only()
     @commands.has_guild_permissions(kick_members=True)
@@ -151,8 +147,7 @@ class Moderation(commands.Cog, name="Moderation"):
             return
 
         try:
-            await member.edit(timed_out_until=None)  # Reset any existing timeout first
-            # Note: Mute is typically done via role or timeout; this is a placeholder
+            await member.edit(timed_out_until=None)
             await ctx.ok(f"`{Emoji.MUTE}` *{member.mention} has been muted.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to mute this member.*")
@@ -184,7 +179,6 @@ class Moderation(commands.Cog, name="Moderation"):
         duration: str,
     ) -> None:
         """Timeout a member for a specified duration (e.g. '5m', '1h', '7d')."""
-        # Parse duration string to timedelta
         import re
         from datetime import datetime, timedelta, timezone
 
@@ -239,10 +233,6 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to remove timeout: `{e}`*")
 
-    # =========================================================================
-    # NICKNAME MANAGEMENT
-    # =========================================================================
-
     @commands.hybrid_group(name="nick", description="Manage member nicknames")
     @commands.guild_only()
     async def nick(self, ctx: "PushieContext") -> None:
@@ -294,7 +284,6 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.hybrid_command(
         name="force-nick-reset",
         description="Force reset a member's nickname",
-        aliases=["force-nick-reset"],
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_nicknames=True)
@@ -311,10 +300,6 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err("*I don't have permission to reset this member's nickname.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to reset nickname: `{e}`*")
-
-    # =========================================================================
-    # CHANNEL MANAGEMENT (lock, unlock, slowmode, etc)
-    # =========================================================================
 
     @commands.hybrid_command(
         name="lock", description="Lock a channel (prevent sending messages)"
@@ -443,10 +428,6 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to purge: `{e}`*")
 
-    # =========================================================================
-    # WARNING SYSTEM
-    # =========================================================================
-
     @commands.hybrid_command(name="warn", description="Warn a member")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
@@ -459,7 +440,7 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err("*You cannot warn yourself.*")
             return
 
-        # Store warn in guild storage
+
         g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
         if not g:
             await ctx.err("*Guild data not initialized.*")
@@ -544,7 +525,6 @@ class Moderation(commands.Cog, name="Moderation"):
         self, ctx: "PushieContext", member: discord.Member, *, reason: str | None = None
     ) -> None:
         """Ignore mute a member (prevent sending images/attachments)."""
-        # TODO: implement image mute via role or permissions
         await ctx.ok(f"`{Emoji.IMUTE}` *{member.mention} has been image muted.*")
 
     @commands.hybrid_command(
@@ -581,14 +561,9 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.has_guild_permissions(manage_messages=True)
     async def picperms(self, ctx: "PushieContext", member: discord.Member) -> None:
         """Toggle image/attachment sending permissions for a member."""
-        # TODO: implement via role or user-specific overrides
         await ctx.ok(
             f"`{Emoji.IMAGE}` *Image permissions toggled for {member.mention}.*"
         )
-
-    # =========================================================================
-    # BOT SETTINGS
-    # =========================================================================
 
     @commands.hybrid_command(
         name="nickname", description="Change the bot's nickname in this server"
@@ -611,10 +586,6 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err("*I don't have permission to change my nickname.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to change nickname: `{e}`*")
-
-    # =========================================================================
-    # ERROR HANDLING
-    # =========================================================================
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.MissingPermissions):

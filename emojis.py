@@ -70,7 +70,6 @@ class Emoji:
     PING = "🏓"
     HEART = "💖"
     PUSHEEN = "🐱"  # main bot mascot emoji
-    MUSIC = "🎵"
     STICKY = "📌"
 
     # Commands / Sudo

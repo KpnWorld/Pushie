@@ -127,26 +127,6 @@ _Image commands require attached image or reply to message with image_
 
 ---
 
-### **SPOTIFY Commands** (`spotify.py`) — 5 total
-
-**Cog Name:** Spotify  
-**Features:** Account linking, now playing, playlist management  
-**Status:** Partially implemented
-
-#### Command Group: `spotify`
-
-| Subcommand | Parameters                 | Feature                                |
-| ---------- | -------------------------- | -------------------------------------- |
-| `link`     | `username: str`            | Link Spotify account                   |
-| `now`      | —                          | Show currently playing (with controls) |
-| `playlist` | `action: str`, `name: str` | Create/manage playlists                |
-| `search`   | `query: str`               | Search Spotify for track               |
-| `unlink`   | —                          | Unlink Spotify account                 |
-
-_Future: `view` (show linked account), `feed` (play in VC + update)_
-
----
-
 ### **MODERATION Commands** (`moderation.py`) — 34 total
 
 **Cog Name:** Moderation  
@@ -375,22 +355,6 @@ _Future: `view` (show linked account), `feed` (play in VC + update)_
 
 ---
 
-### **MUSIC Commands** (`music.py`) — 6 total
-
-**Cog Name:** Music  
-**Status:** ❌ Not implemented (Spotify feed alternative)
-
-| Command  | Parameters      | Feature                     |
-| -------- | --------------- | --------------------------- |
-| `play`   | `query: str`    | Play song (YouTube/Spotify) |
-| `pause`  | —               | Pause playback              |
-| `skip`   | —               | Skip current track          |
-| `queue`  | `page: int = 1` | View song queue             |
-| `stop`   | —               | Stop playback & disconnect  |
-| `volume` | `level: int`    | Set volume (0-100)          |
-
----
-
 ### **MISCELLANEOUS Commands** (`misc.py`) — 11 total
 
 **Cog Name:** Miscellaneous  
@@ -478,32 +442,25 @@ _Future: `view` (show linked account), `feed` (play in VC + update)_
 ✅ ROLES (roles.py):             22 commands [SCAFFOLDED - ready for testing]
 ✅ VOICE (voice.py):             15 commands [SCAFFOLDED - ready for testing]
 ✅ FILTERS (filters.py):         11 commands [SCAFFOLDED - ready for testing]
-
-⚠️ SPOTIFY (spotify.py):          5 commands [PARTIAL - basic structure, needs API]
-⚠️ MUSIC (music.py):              6 commands [PARTIAL - needs music library]
 ```
 
 ### Totals
 
 | Metric                     | Count                                     |
 | -------------------------- | ----------------------------------------- |
-| **Total Commands**         | **133** (actual, not planned)             |
-| **Fully Implemented**      | **40** (30%)                              |
-| **Scaffolded (Testing)**   | **82** (62%)                              |
-| **Partial/Needs Work**     | **11** (8%)                               |
-| **Total Cogs**             | **10**                                    |
+| **Total Commands**         | **127** (actual, not planned)             |
+| **Fully Implemented**      | **40** (31%)                              |
+| **Scaffolded (Testing)**   | **82** (65%)                              |
+| **Partial/Needs Work**     | **5** (4%)                                |
+| **Total Cogs**             | **8**                                     |
 | **Cogs Fully Implemented** | **4** (main, info, setup, misc)           |
 | **Cogs Scaffolded**        | **4** (moderation, roles, voice, filters) |
-| **Cogs Partial**           | **2** (spotify, music)                    |
 
 ### Implementation Priority
 
 1. **TESTING** — Verify all 82 scaffolded commands work with Discord API
 2. **STORAGE** — Replace TODO placeholders with persistent guild storage
 3. **EVENT LISTENERS** — Implement on_message, on_reaction_add, on_voice_state_update
-4. **MUSIC** (6 cmds) — Complete music player integration
-5. **SPOTIFY** (5 cmds) — Integrate Spotify API
-6. **DOCUMENTATION** — Update command docstrings with parameters/examples
 
 ---
 
@@ -518,9 +475,7 @@ cogs/
 ├── moderation.py     ✅ SCAFFOLDED (34 commands - ready for testing)
 ├── roles.py          ✅ SCAFFOLDED (22 commands - ready for testing)
 ├── voice.py          ✅ SCAFFOLDED (15 commands - ready for testing)
-├── filters.py        ✅ SCAFFOLDED (11 commands - ready for testing)
-├── spotify.py        ⚠️ PARTIAL (5 commands - needs Spotify API)
-└── music.py          ⚠️ PARTIAL (6 commands - needs music library)
+└── filters.py        ✅ SCAFFOLDED (11 commands - ready for testing)
 ```
 
 ---
@@ -650,33 +605,14 @@ cogs/
 - [ ] `caps` - add/delete/list user puts a word and adds it to discord automod filter
 - [ ] `reset` - reset all filter settings
 
-#### 6️⃣ **Music** (`music.py`)
-
-- [ ] `play` — Play a song
-- [ ] `pause` — Pause playback
-- [ ] `skip` — Skip current track
-- [ ] `queue` — View song queue
-- [ ] `stop` — Stop playback
-- [ ] `volume` — Adjust volume
-
-#### 7️⃣ **Spotify** (`spotify.py`) — Already Partially Implemented
-
-- [ ] `link` — Link Spotify account
-- [ ] `now` — Show currently playing track control next/playpause/previous
-- [ ] `playlist` — Create/manage playlists
-- [ ] `search` — Search Spotify
-- [ ] `unlink` — Unlink Spotify account
-- [ ] `view` — View linked Spotify account
-- [ ] `feed` - play track in voice channel and update with currently playing track
-
-#### 8️⃣ **Info** (`info.py`) — Already Implemented
+#### 6️⃣ **Info** (`info.py`) — Already Implemented
 
 - ✅ General information commands
 - ✅ Image/picture commands
 
-### 9️⃣ **Levels**
+### 7️⃣ **Levels**
 
-### 0️⃣ **Miscellaneous**
+### 8️⃣ **Miscellaneous**
 
 - [ ] `poll` — Create a reaction poll
 - [ ] `embed` — Create a custom embed

@@ -265,7 +265,7 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err(f"*Failed to reset nickname: `{e}`*")
 
     @commands.hybrid_command(
-        name="force nick", description="Force change a member's nickname"
+        name="force-nick", description="Force change a member's nickname"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_nicknames=True)
@@ -292,7 +292,7 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err(f"*Failed to change nickname: `{e}`*")
 
     @commands.hybrid_command(
-        name="force nick reset",
+        name="force-nick-reset",
         description="Force reset a member's nickname",
         aliases=["force-nick-reset"],
     )

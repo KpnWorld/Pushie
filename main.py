@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 import os
+import threading
 import traceback
 import typing
 from pathlib import Path
@@ -11,6 +12,7 @@ import aiohttp
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from flask import Flask, jsonify
 
 from storage import StorageManager
 from ui import UI, PrefixView
@@ -289,6 +291,21 @@ def _setup_checks(bot: Pushie) -> None:
         return not bot.storage.is_banned_user(ctx.author.id)
 
 
+def _setup_flask() -> Flask:
+    """Create and configure Flask app for Render health checks."""
+    app = Flask(__name__)
+
+    @app.route("/health", methods=["GET"])
+    def health() -> typing.Any:
+        return jsonify({"status": "ok"})
+
+    @app.route("/", methods=["GET"])
+    def index() -> typing.Any:
+        return jsonify({"bot": "Pushie", "status": "running"})
+
+    return app
+
+
 def is_sudo():
     async def predicate(ctx: PushieContext) -> bool:
         if ctx.bot.storage.is_sudo(ctx.author.id):
@@ -545,6 +562,17 @@ def main() -> None:
         format="[%(asctime)s] %(levelname)s %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+    
+    # Start Flask in a background thread for Render health checks
+    app = _setup_flask()
+    port = int(os.getenv("PORT", 5000))
+    flask_thread = threading.Thread(
+        target=lambda: app.run(host="0.0.0.0", port=port, debug=False),
+        daemon=True,
+    )
+    flask_thread.start()
+    log.info("Flask health endpoint started on port %d", port)
+    
     bot = Pushie()
     _setup_checks(bot)
     _setup_commands(bot)

@@ -50,7 +50,7 @@ class Roles(commands.Cog, name="Roles"):
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(
-        name="role info", description="Show information about a role"
+        name="role-info", description="Show information about a role"
     )
     @commands.guild_only()
     async def role_info(self, ctx: "PushieContext", role: discord.Role) -> None:
@@ -105,7 +105,7 @@ class Roles(commands.Cog, name="Roles"):
     # ROLE MANAGEMENT (assign/remove/create/delete/clear)
     # =========================================================================
 
-    @commands.hybrid_command(name="role add", description="Assign a role to a member")
+    @commands.hybrid_command(name="role-add", description="Assign a role to a member")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
     async def role_add(
@@ -132,7 +132,7 @@ class Roles(commands.Cog, name="Roles"):
             await ctx.err(f"*Failed to assign role: `{e}`*")
 
     @commands.hybrid_command(
-        name="role remove", description="Remove a role from a member"
+        name="role-remove", description="Remove a role from a member"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
@@ -159,7 +159,7 @@ class Roles(commands.Cog, name="Roles"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to remove role: `{e}`*")
 
-    @commands.hybrid_command(name="role create", description="Create a new role")
+    @commands.hybrid_command(name="role-create", description="Create a new role")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
     async def role_create(
@@ -180,7 +180,7 @@ class Roles(commands.Cog, name="Roles"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to create role: `{e}`*")
 
-    @commands.hybrid_command(name="role delete", description="Delete a role")
+    @commands.hybrid_command(name="role-delete", description="Delete a role")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
     async def role_delete(self, ctx: "PushieContext", role: discord.Role) -> None:
@@ -204,7 +204,7 @@ class Roles(commands.Cog, name="Roles"):
             await ctx.err(f"*Failed to delete role: `{e}`*")
 
     @commands.hybrid_command(
-        name="role clear", description="Remove all roles from a member"
+        name="role-clear", description="Remove all roles from a member"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
@@ -226,7 +226,7 @@ class Roles(commands.Cog, name="Roles"):
             await ctx.err(f"*Failed to clear roles: `{e}`*")
 
     @commands.hybrid_command(
-        name="role restore", description="Restore previously removed roles"
+        name="role-restore", description="Restore previously removed roles"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
@@ -239,7 +239,7 @@ class Roles(commands.Cog, name="Roles"):
     # ROLE CUSTOMIZATION
     # =========================================================================
 
-    @commands.hybrid_command(name="role color", description="Change a role's color")
+    @commands.hybrid_command(name="role-color", description="Change a role's color")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
     async def role_color(
@@ -262,7 +262,7 @@ class Roles(commands.Cog, name="Roles"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to change color: `{e}`*")
 
-    @commands.hybrid_command(name="role rename", description="Rename a role")
+    @commands.hybrid_command(name="role-rename", description="Rename a role")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
     async def role_rename(
@@ -285,7 +285,7 @@ class Roles(commands.Cog, name="Roles"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to rename role: `{e}`*")
 
-    @commands.hybrid_command(name="role icon", description="Set a role's icon")
+    @commands.hybrid_command(name="role-icon", description="Set a role's icon")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
     async def role_icon(
@@ -313,7 +313,7 @@ class Roles(commands.Cog, name="Roles"):
             await ctx.err(f"*Failed to set icon: `{e}`*")
 
     @commands.hybrid_command(
-        name="role hoist", description="Toggle role display setting"
+        name="role-hoist", description="Toggle role display setting"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
@@ -336,7 +336,7 @@ class Roles(commands.Cog, name="Roles"):
             await ctx.err(f"*Failed to toggle hoist: `{e}`*")
 
     @commands.hybrid_command(
-        name="role mentionable", description="Toggle role mentionability"
+        name="role-mentionable", description="Toggle role mentionability"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
@@ -361,7 +361,7 @@ class Roles(commands.Cog, name="Roles"):
     # =========================================================================
 
     @commands.hybrid_command(
-        name="role mass assign", description="Assign role to multiple members"
+        name="role-mass-assign", description="Assign role to multiple members"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
@@ -400,7 +400,7 @@ class Roles(commands.Cog, name="Roles"):
         await ctx.ok(f"`{Emoji.ROLE}` *{role.mention} assigned to `{count}` members.*")
 
     @commands.hybrid_command(
-        name="role mass remove", description="Remove role from multiple members"
+        name="role-mass-remove", description="Remove role from multiple members"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)

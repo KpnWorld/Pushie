@@ -201,7 +201,11 @@ class Pushie(commands.Bot):
                     return
 
         if message.mentions and g:
+            seen = set()
             for user in message.mentions:
+                if user.id in seen:
+                    continue
+                seen.add(user.id)
                 afk = g.afks.get(str(user.id))
                 if afk:
                     since = datetime.datetime.utcfromtimestamp(afk["since"])

@@ -9,10 +9,10 @@ class Emoji:
         embed = discord.Embed(description=f"> {Emoji.SUCCESS} *Action completed*")
     """
 
-    SUCCESS = "☑️"
+    SUCCESS = "☑"
     ERROR = "❌"
-    WARNING = "⚠️"
-    INFO = "ℹ️"
+    WARNING = "⚠"
+    INFO = "ℹ"
     LOADING = "⏳"
 
     JAIL = "🔒"
@@ -21,46 +21,46 @@ class Emoji:
     BAN = "🔨"
     UNBAN = "✅"
     TIMEOUT = "⏰"
-    UNTIMEOUT = "⏲️"
+    UNTIMEOUT = "⏲"
     AFK = "💤"
     MUTE = "🔇"
     UNMUTE = "🔊"
-    IMUTE = "🖼️"
+    IMUTE = "🖼"
     RMUTE = "🚫"
-    WARN = "⚠️"
+    WARN = "⚠"
     CLEAR = "🧹"
-    HIDE = "👁️"
-    UNHIDE = "👁️"
+    HIDE = "👁"
+    UNHIDE = "👁"
     SLOWMODE = "🐌"
-    PURGE = "🗑️"
+    PURGE = "🗑"
     NICK = "📝"
     RESET = "🔄"
 
-    SETUP = "⚙️"
+    SETUP = "⚙"
     CHANNEL = "📢"
     SYNC = "🔁"
 
-    ROLE = "🏷️"
+    ROLE = "🏷"
     WELCOME = "👋"
     AUTOROLE = "⭐"
     BOOSTER = "🚀"
 
-    PREV = "◀️"
-    NEXT = "▶️"
-    GOTO = "🔹"
+    PREV = "◂"
+    NEXT = "▸"
+    GOTO = "◆"
     FIRST = "⏪"
     LAST = "⏩"
-    STOP = "🗑️"
+    STOP = "🗑"
 
-    CONFIRM = "✔️"
-    CANCEL = "✖️"
+    CONFIRM = "✓"
+    CANCEL = "✕"
 
     PING = "🏓"
     HEART = "💖"
     PUSHEEN = "🐱"  # main bot mascot emoji
     STICKY = "📌"
 
-    SUDO = "🛠️"
+    SUDO = "🛠"
     COG = "📦"
     RESTART = "🔄"
     STATS = "📊"
@@ -68,7 +68,7 @@ class Emoji:
     JOIN = "📥"
     LEAVE = "📤"
     EDIT = "📝"
-    DELETE = "🗑️"
+    DELETE = "🗑"
 
     LOCK = "🔐"
     UNLOCK = "🔓"
@@ -80,8 +80,8 @@ class Emoji:
 
     REACTION = "🔄"
 
-    IMAGE = "🖼️"
-    DOWNLOAD = "⬇️"
+    IMAGE = "🖼"
+    DOWNLOAD = "⬇"
 
     @classmethod
     def code(cls, emoji: str) -> str:

@@ -123,8 +123,7 @@ class _WelcomeView(BaseView):
         await inter.response.edit_message(embed=view._embed(), view=view)
 
     @discord.ui.button(
-        label="Disable Welcome",
-        emoji=Emoji.CANCEL,
+        label=Emoji.CANCEL + " Disable Welcome",
         style=discord.ButtonStyle.danger,
         row=0,
     )
@@ -166,7 +165,7 @@ class _WelcomeView(BaseView):
         await inter.response.edit_message(embed=view._embed(), view=view)
 
     @discord.ui.button(
-        label="Back", emoji=Emoji.PREV, style=discord.ButtonStyle.grey, row=2
+        label=Emoji.PREV + " Back", style=discord.ButtonStyle.grey, row=2
     )
     async def go_back(self, inter: discord.Interaction, _: discord.ui.Button) -> None:
         await self.parent._redraw(inter)
@@ -267,8 +266,7 @@ class _JailView(BaseView):
         await inter.response.edit_message(embed=view._embed(), view=view)
 
     @discord.ui.button(
-        label="Disable Jail",
-        emoji=Emoji.CANCEL,
+        label=Emoji.CANCEL + " Disable Jail",
         style=discord.ButtonStyle.danger,
         row=2,
     )
@@ -286,7 +284,7 @@ class _JailView(BaseView):
         await self.parent._redraw()
 
     @discord.ui.button(
-        label="Back", emoji=Emoji.PREV, style=discord.ButtonStyle.grey, row=2
+        label=Emoji.PREV + " Back", style=discord.ButtonStyle.grey, row=2
     )
     async def go_back(self, inter: discord.Interaction, _: discord.ui.Button) -> None:
         await self.parent._redraw(inter)
@@ -395,7 +393,7 @@ class _MuteView(BaseView):
         await inter.response.edit_message(embed=view._embed(), view=view)
 
     @discord.ui.button(
-        label="Back", emoji=Emoji.PREV, style=discord.ButtonStyle.grey, row=3
+        label=Emoji.PREV + " Back", style=discord.ButtonStyle.grey, row=3
     )
     async def go_back(self, inter: discord.Interaction, _: discord.ui.Button) -> None:
         await self.parent._redraw(inter)
@@ -434,7 +432,7 @@ class _ChannelSelectView(BaseView):
         )
 
     @discord.ui.button(
-        label="Cancel", emoji=Emoji.CANCEL, style=discord.ButtonStyle.grey
+        label=Emoji.CANCEL + " Cancel", style=discord.ButtonStyle.grey
     )
     async def cancel(self, inter: discord.Interaction, _: discord.ui.Button) -> None:
         await inter.response.edit_message(
@@ -474,7 +472,7 @@ class _RoleSelectView(BaseView):
         )
 
     @discord.ui.button(
-        label="Cancel", emoji=Emoji.CANCEL, style=discord.ButtonStyle.grey
+        label=Emoji.CANCEL + " Cancel", style=discord.ButtonStyle.grey
     )
     async def cancel(self, inter: discord.Interaction, _: discord.ui.Button) -> None:
         await inter.response.edit_message(

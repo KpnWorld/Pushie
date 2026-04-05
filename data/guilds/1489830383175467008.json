@@ -15,15 +15,20 @@
   "bot_lock": false,
   "bot_whitelist": [],
   "bot_blacklist": [],
+  "mute_role": null,
+  "imute_role": null,
+  "rmute_role": null,
   "reaction_roles": {},
   "booster_roles": [],
-  "afks": {
-    "895767962722660372": {
-      "reason": "AFK",
-      "since": 1775306480.200662
-    }
-  },
+  "afks": {},
   "sticky_messages": {},
   "autoresponders": {},
-  "embed_templates": {}
+  "embed_templates": {},
+  "warnings": {},
+  "voicecenter_channel": null,
+  "voicecenter_category": null,
+  "voicecenter_defaults": {},
+  "voicecenter_rolejoin": null,
+  "voicecenter_temp_channels": {},
+  "role_backup": {}
 }

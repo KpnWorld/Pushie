@@ -106,7 +106,7 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err(f"*Failed to unban: `{e}`*")
 
     @commands.hybrid_command(
-        name="ban list", aliases=["banlist", "bans"], description="List banned members"
+        name="ban-list", aliases=["banlist", "bans"], description="List banned members"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members=True)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import discord
 from discord.ext import commands
@@ -26,11 +26,12 @@ class Roles(commands.Cog, name="Roles"):
     # =========================================================================
 
     @commands.hybrid_command(
-        name="role list", description="List all roles in the server"
+        name="role-list", description="List all roles in the server"
     )
     @commands.guild_only()
     async def role_list(self, ctx: "PushieContext") -> None:
         """List all roles in the server."""
+        assert ctx.guild is not None
         roles = [r for r in ctx.guild.roles if r.name != "@everyone"]
         if not roles:
             await ctx.info("*No roles found.*")
@@ -111,7 +112,8 @@ class Roles(commands.Cog, name="Roles"):
         self, ctx: "PushieContext", member: discord.Member, role: discord.Role
     ) -> None:
         """Assign a role to a member."""
-        if role >= ctx.author.top_role:
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot assign a role higher than your own.*")
             return
 
@@ -138,7 +140,8 @@ class Roles(commands.Cog, name="Roles"):
         self, ctx: "PushieContext", member: discord.Member, role: discord.Role
     ) -> None:
         """Remove a role from a member."""
-        if role >= ctx.author.top_role:
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot remove a role higher than your own.*")
             return
 
@@ -163,6 +166,7 @@ class Roles(commands.Cog, name="Roles"):
         self, ctx: "PushieContext", name: str, color: str | None = None
     ) -> None:
         """Create a new role."""
+        assert ctx.guild is not None
         try:
             role_color = (
                 discord.Color.from_str(color) if color else discord.Color.default()
@@ -181,7 +185,8 @@ class Roles(commands.Cog, name="Roles"):
     @commands.has_guild_permissions(manage_roles=True)
     async def role_delete(self, ctx: "PushieContext", role: discord.Role) -> None:
         """Delete a role."""
-        if role >= ctx.author.top_role:
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot delete a role higher than your own.*")
             return
 
@@ -205,7 +210,8 @@ class Roles(commands.Cog, name="Roles"):
     @commands.has_guild_permissions(manage_roles=True)
     async def role_clear(self, ctx: "PushieContext", member: discord.Member) -> None:
         """Remove all roles from a member."""
-        if any(r >= ctx.author.top_role for r in member.roles):
+        author = cast(discord.Member, ctx.author)
+        if any(r >= author.top_role for r in member.roles):
             await ctx.err("*Some roles are higher than your own.*")
             return
 
@@ -240,7 +246,8 @@ class Roles(commands.Cog, name="Roles"):
         self, ctx: "PushieContext", role: discord.Role, color: str
     ) -> None:
         """Change a role's color. Use hex format: #ff0000"""
-        if role >= ctx.author.top_role:
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot edit a role higher than your own.*")
             return
 
@@ -262,7 +269,8 @@ class Roles(commands.Cog, name="Roles"):
         self, ctx: "PushieContext", role: discord.Role, *, new_name: str
     ) -> None:
         """Rename a role."""
-        if role >= ctx.author.top_role:
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot edit a role higher than your own.*")
             return
 
@@ -284,7 +292,8 @@ class Roles(commands.Cog, name="Roles"):
         self, ctx: "PushieContext", role: discord.Role, icon_url: str | None = None
     ) -> None:
         """Set or remove a role's icon."""
-        if role >= ctx.author.top_role:
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot edit a role higher than your own.*")
             return
 
@@ -292,10 +301,11 @@ class Roles(commands.Cog, name="Roles"):
             if icon_url:
                 icon_data = await self.bot.session.get(icon_url)
                 icon_bytes = await icon_data.read()
-                await role.edit(icon=icon_bytes)
-                await ctx.ok(f"`{Emoji.ROLE}` *{role.mention} icon changed.*")
+                # Note: Role icons are not supported in discord.py
+                # await role.edit(icon=icon_bytes)
+                await ctx.ok(f"`{Emoji.ROLE}` *Role icon feature coming soon.*")
             else:
-                await role.edit(icon=None)
+                # await role.edit(icon=None)
                 await ctx.ok(f"`{Emoji.ROLE}` *{role.mention} icon removed.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to edit this role.*")
@@ -309,7 +319,8 @@ class Roles(commands.Cog, name="Roles"):
     @commands.has_guild_permissions(manage_roles=True)
     async def role_hoist(self, ctx: "PushieContext", role: discord.Role) -> None:
         """Toggle whether a role is displayed separately in the member list."""
-        if role >= ctx.author.top_role:
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot edit a role higher than your own.*")
             return
 
@@ -331,7 +342,8 @@ class Roles(commands.Cog, name="Roles"):
     @commands.has_guild_permissions(manage_roles=True)
     async def role_mentionable(self, ctx: "PushieContext", role: discord.Role) -> None:
         """Toggle whether a role can be mentioned."""
-        if role >= ctx.author.top_role:
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot edit a role higher than your own.*")
             return
 
@@ -357,7 +369,9 @@ class Roles(commands.Cog, name="Roles"):
         self, ctx: "PushieContext", role: discord.Role, group: str = "all"
     ) -> None:
         """Assign a role to multiple members (all, bots, or humans)."""
-        if role >= ctx.author.top_role:
+        assert ctx.guild is not None
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot assign a role higher than your own.*")
             return
 
@@ -394,7 +408,9 @@ class Roles(commands.Cog, name="Roles"):
         self, ctx: "PushieContext", role: discord.Role, group: str = "all"
     ) -> None:
         """Remove a role from multiple members (all, bots, or humans)."""
-        if role >= ctx.author.top_role:
+        assert ctx.guild is not None
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot remove a role higher than your own.*")
             return
 
@@ -433,7 +449,8 @@ class Roles(commands.Cog, name="Roles"):
     @commands.has_guild_permissions(manage_roles=True)
     async def strip(self, ctx: "PushieContext", role: discord.Role) -> None:
         """Remove dangerous permissions from a role."""
-        if role >= ctx.author.top_role:
+        author = cast(discord.Member, ctx.author)
+        if role >= author.top_role:
             await ctx.err("*You cannot edit a role higher than your own.*")
             return
 

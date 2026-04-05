@@ -434,7 +434,7 @@ class Filters(commands.Cog, name="Filters"):
     # =========================================================================
 
     @commands.hybrid_command(
-        name="filters reset", aliases=["filter-reset"], description="Reset all filters"
+        name="filters-reset", aliases=["filter-reset"], description="Reset all filters"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)

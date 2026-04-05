@@ -26,18 +26,20 @@ class Voice(commands.Cog, name="Voice"):
     # =========================================================================
 
     @commands.hybrid_group(
-        name="setup", description="Configure VoiceCenter (temp voice channels)"
+        name="voice-setup", description="Configure VoiceCenter (temp voice channels)"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    async def setup(self, ctx: "PushieContext") -> None:
+    async def voice_setup(self, ctx: "PushieContext") -> None:
         """VoiceCenter configuration commands."""
         pass
 
-    @setup.command(name="channel", description="Set the join-to-create voice channel")
+    @voice_setup.command(
+        name="channel", description="Set the join-to-create voice channel"
+    )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    async def setup_channel(
+    async def voice_setup_channel(
         self, ctx: "PushieContext", channel: discord.VoiceChannel
     ) -> None:
         """Set which voice channel users join to create temporary channels."""
@@ -52,7 +54,7 @@ class Voice(commands.Cog, name="Voice"):
         else:
             await ctx.err("*Guild data not initialized.*")
 
-    @setup.command(
+    @voice_setup.command(
         name="category", description="Set category for temporary voice channels"
     )
     @commands.guild_only()
@@ -66,7 +68,9 @@ class Voice(commands.Cog, name="Voice"):
             f"`{Emoji.CHANNEL}` *Temp channels will be created in **{category.name}**.*"
         )
 
-    @setup.command(name="name", description="Set default name for temporary channels")
+    @voice_setup.command(
+        name="name", description="Set default name for temporary channels"
+    )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def setup_name(self, ctx: "PushieContext", *, name: str) -> None:
@@ -74,7 +78,7 @@ class Voice(commands.Cog, name="Voice"):
         # TODO: Store in guild config
         await ctx.ok(f"`{Emoji.CHANNEL}` *Temp channel name set to `{name}`.*")
 
-    @setup.command(
+    @voice_setup.command(
         name="bitrate", description="Set default bitrate for temporary channels"
     )
     @commands.guild_only()
@@ -87,7 +91,7 @@ class Voice(commands.Cog, name="Voice"):
         # TODO: Store in guild config
         await ctx.ok(f"`{Emoji.CHANNEL}` *Default bitrate set to `{bitrate}` kbps.*")
 
-    @setup.command(
+    @voice_setup.command(
         name="rolejoin", description="Set role given when joining voice channels"
     )
     @commands.guild_only()
@@ -105,7 +109,7 @@ class Voice(commands.Cog, name="Voice"):
             # TODO: Clear from guild config
             await ctx.ok(f"`{Emoji.ROLE}` *Voice join role disabled.*")
 
-    @setup.command(name="panel", description="Post VoiceCenter control panel")
+    @voice_setup.command(name="panel", description="Post VoiceCenter control panel")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def setup_panel(

@@ -544,7 +544,9 @@ class SetupView(BaseView):
         await inter.response.defer()
         await self.bot.storage.update_setup(self.guild.id, bot_lock=new_val)
         await self._reload_gdata()
-        await inter.edit_original_response(embed=_build_summary(self.gdata, self.guild), view=self)
+        await inter.edit_original_response(
+            embed=_build_summary(self.gdata, self.guild), view=self
+        )
 
     @discord.ui.button(
         label="Done", emoji=Emoji.SUCCESS, style=discord.ButtonStyle.success, row=2

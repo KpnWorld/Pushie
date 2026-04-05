@@ -26,11 +26,22 @@ class Emoji:
     UNJAIL = "🔓"
     KICK = "👢"
     BAN = "🔨"
+    UNBAN = "✅"
     TIMEOUT = "⏰"
+    UNTIMEOUT = "⏲️"
     AFK = "💤"
     MUTE = "🔇"
+    UNMUTE = "🔊"
     IMUTE = "🖼️"
     RMUTE = "🚫"
+    WARN = "⚠️"
+    CLEAR = "🧹"
+    HIDE = "👁️‍🗨️"
+    UNHIDE = "👁️"
+    SLOWMODE = "🐌"
+    PURGE = "🗑️"
+    NICK = "📝"
+    RESET = "🔄"
 
     # Setup
     SETUP = "⚙️"
@@ -86,6 +97,10 @@ class Emoji:
 
     # Reaction roles
     REACTION = "🔄"
+
+    # Info / Images
+    IMAGE = "🖼️"
+    DOWNLOAD = "⬇️"
 
     @classmethod
     def code(cls, emoji: str) -> str:

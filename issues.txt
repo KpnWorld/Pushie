@@ -1,0 +1,200 @@
+[{
+	"resource": "/c:/Users/ogdev/Pushie/cogs/setup.py",
+	"owner": "Pylance6",
+	"code": {
+		"value": "reportArgumentType",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportArgumentType.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "Argument of type \"dict[Snowflake, PermissionOverwrite]\" cannot be assigned to parameter \"overwrites\" of type \"Mapping[Role | Member | Object, PermissionOverwrite]\" in function \"create_text_channel\"\n  \"dict[Snowflake, PermissionOverwrite]\" is not assignable to \"Mapping[Role | Member | Object, PermissionOverwrite]\"\n    Type parameter \"_KT@Mapping\" is invariant, but \"Snowflake\" is not the same as \"Role | Member | Object\"",
+	"source": "Pylance",
+	"startLineNumber": 238,
+	"startColumn": 24,
+	"endLineNumber": 238,
+	"endColumn": 34,
+	"modelVersionId": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/Users/ogdev/Pushie/cogs/setup.py",
+	"owner": "Pylance6",
+	"code": {
+		"value": "reportArgumentType",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportArgumentType.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "Argument of type \"_SubView\" cannot be assigned to parameter \"view\" of type \"View | LayoutView | None\" in function \"edit_message\"\n  Type \"_SubView\" is not assignable to type \"View | LayoutView | None\"\n    \"_SubView\" is not assignable to \"View\"\n    \"_SubView\" is not assignable to \"LayoutView\"\n    \"_SubView\" is not assignable to \"None\"",
+	"source": "Pylance",
+	"startLineNumber": 457,
+	"startColumn": 47,
+	"endLineNumber": 457,
+	"endColumn": 59,
+	"modelVersionId": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/Users/ogdev/Pushie/cogs/setup.py",
+	"owner": "Pylance6",
+	"code": {
+		"value": "reportArgumentType",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportArgumentType.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "Argument of type \"_SubView\" cannot be assigned to parameter \"view\" of type \"View | LayoutView | None\" in function \"edit_message\"\n  Type \"_SubView\" is not assignable to type \"View | LayoutView | None\"\n    \"_SubView\" is not assignable to \"View\"\n    \"_SubView\" is not assignable to \"LayoutView\"\n    \"_SubView\" is not assignable to \"None\"",
+	"source": "Pylance",
+	"startLineNumber": 465,
+	"startColumn": 47,
+	"endLineNumber": 465,
+	"endColumn": 59,
+	"modelVersionId": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/Users/ogdev/Pushie/cogs/setup.py",
+	"owner": "Pylance6",
+	"code": {
+		"value": "reportArgumentType",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportArgumentType.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "Argument of type \"_SubView\" cannot be assigned to parameter \"view\" of type \"View | LayoutView | None\" in function \"edit_message\"\n  Type \"_SubView\" is not assignable to type \"View | LayoutView | None\"\n    \"_SubView\" is not assignable to \"View\"\n    \"_SubView\" is not assignable to \"LayoutView\"\n    \"_SubView\" is not assignable to \"None\"",
+	"source": "Pylance",
+	"startLineNumber": 496,
+	"startColumn": 47,
+	"endLineNumber": 496,
+	"endColumn": 59,
+	"modelVersionId": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/Users/ogdev/Pushie/cogs/setup.py",
+	"owner": "Pylance6",
+	"code": {
+		"value": "reportArgumentType",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportArgumentType.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "Argument of type \"_SubView\" cannot be assigned to parameter \"view\" of type \"View | LayoutView | None\" in function \"edit_message\"\n  Type \"_SubView\" is not assignable to type \"View | LayoutView | None\"\n    \"_SubView\" is not assignable to \"View\"\n    \"_SubView\" is not assignable to \"LayoutView\"\n    \"_SubView\" is not assignable to \"None\"",
+	"source": "Pylance",
+	"startLineNumber": 504,
+	"startColumn": 47,
+	"endLineNumber": 504,
+	"endColumn": 59,
+	"modelVersionId": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/Users/ogdev/Pushie/cogs/setup.py",
+	"owner": "Pylance6",
+	"code": {
+		"value": "reportIncompatibleMethodOverride",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportIncompatibleMethodOverride.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "Method \"_refresh\" overrides class \"BaseView\" in an incompatible manner\n  Parameter 2 name mismatch: base parameter is named \"components\", override parameter is named \"inter\"\n  Return type mismatch: base method returns type \"None\", override returns type \"CoroutineType[Any, Any, None]\"\n    \"CoroutineType[Any, Any, None]\" is not assignable to \"None\"",
+	"source": "Pylance",
+	"startLineNumber": 530,
+	"startColumn": 15,
+	"endLineNumber": 530,
+	"endColumn": 23,
+	"relatedInformation": [
+		{
+			"startLineNumber": 628,
+			"startColumn": 9,
+			"endLineNumber": 628,
+			"endColumn": 17,
+			"message": "Overridden method",
+			"resource": "/c:/Users/ogdev/Pushie/.venv/Lib/site-packages/discord/ui/view.py"
+		}
+	],
+	"modelVersionId": 1,
+	"origin": "extHost1"
+}]
+[{
+	"resource": "/c:/Users/ogdev/Pushie/main.py",
+	"owner": "Pylance6",
+	"code": {
+		"value": "reportIncompatibleMethodOverride",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportIncompatibleMethodOverride.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "Method \"get_context\" overrides class \"BotBase\" in an incompatible manner\n  Parameter 2 type mismatch: base parameter is type \"Message | Interaction[Client]\", override parameter is type \"Message\"\n    Type \"Message | Interaction[Client]\" is not assignable to type \"Message\"\n      \"Interaction[Client]\" is not assignable to \"Message\"",
+	"source": "Pylance",
+	"startLineNumber": 65,
+	"startColumn": 15,
+	"endLineNumber": 65,
+	"endColumn": 26,
+	"relatedInformation": [
+		{
+			"startLineNumber": 1258,
+			"startColumn": 15,
+			"endLineNumber": 1258,
+			"endColumn": 26,
+			"message": "Overridden method",
+			"resource": "/c:/Users/ogdev/Pushie/.venv/Lib/site-packages/discord/ext/commands/bot.py"
+		}
+	],
+	"modelVersionId": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/Users/ogdev/Pushie/main.py",
+	"owner": "Pylance6",
+	"code": {
+		"value": "reportIncompatibleMethodOverride",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportIncompatibleMethodOverride.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "Method \"on_command_error\" overrides class \"BotBase\" in an incompatible manner\n  Parameter 2 type mismatch: base parameter is type \"Context[BotT@on_command_error]\", override parameter is type \"PushieContext\"\n    \"Context[BotT@on_command_error]\" is not assignable to \"PushieContext\"",
+	"source": "Pylance",
+	"startLineNumber": 234,
+	"startColumn": 15,
+	"endLineNumber": 234,
+	"endColumn": 31,
+	"relatedInformation": [
+		{
+			"startLineNumber": 340,
+			"startColumn": 15,
+			"endLineNumber": 340,
+			"endColumn": 31,
+			"message": "Overridden method",
+			"resource": "/c:/Users/ogdev/Pushie/.venv/Lib/site-packages/discord/ext/commands/bot.py"
+		}
+	],
+	"modelVersionId": 1,
+	"origin": "extHost1"
+}]

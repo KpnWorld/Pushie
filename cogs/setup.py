@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, cast, runtime_checkable
 
 import discord
 from discord import app_commands
@@ -16,10 +16,6 @@ if TYPE_CHECKING:
     from main import Pushie
 
 log = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 MUTE_DENY = discord.PermissionOverwrite(send_messages=False)
 IMUTE_DENY = discord.PermissionOverwrite(attach_files=False, embed_links=False)
@@ -44,7 +40,6 @@ def _status(value: bool) -> str:
 
 
 def _build_summary(g_data: GuildData, guild: discord.Guild) -> discord.Embed:
-    """Build the main setup panel embed from current GuildData."""
     lines = [
         f"> `{Emoji.WELCOME}` **Welcome**",
         f"> channel — {_fmt_channel(g_data.welcome_channel)}",
@@ -69,11 +64,6 @@ def _build_summary(g_data: GuildData, guild: discord.Guild) -> discord.Embed:
     ).set_footer(text="Use the buttons below to configure each section.")
 
 
-# ---------------------------------------------------------------------------
-# Modals
-# ---------------------------------------------------------------------------
-
-
 class _DisableModal(discord.ui.Modal, title="Disable"):
     confirm = discord.ui.TextInput(
         label='Type "disable" to confirm',
@@ -93,9 +83,12 @@ class _DisableModal(discord.ui.Modal, title="Disable"):
         self.stop()
 
 
-# ---------------------------------------------------------------------------
-# Sub-views (one per section)
-# ---------------------------------------------------------------------------
+@runtime_checkable
+class _SubView(Protocol):
+    parent: "SetupView"
+    invoker: discord.Member
+
+    def _embed(self) -> discord.Embed: ...
 
 
 class _WelcomeView(BaseView):
@@ -117,7 +110,6 @@ class _WelcomeView(BaseView):
             color=0xFAB9EC,
         )
 
-    # --- channel ---
     @discord.ui.button(
         label="Set Channel",
         emoji=Emoji.CHANNEL,
@@ -147,9 +139,8 @@ class _WelcomeView(BaseView):
                 self.parent.guild.id, welcome_channel=None
             )
             await self.parent._reload_gdata()
-        await self.parent._refresh(inter if modal.confirmed else inter)
+        await self.parent._redraw(inter)
 
-    # --- member role ---
     @discord.ui.button(
         label="Member Autorole",
         emoji=Emoji.ROLE,
@@ -174,12 +165,11 @@ class _WelcomeView(BaseView):
         view = _RoleSelectView(self, "welcome_role_bot", "Bot Autorole")
         await inter.response.edit_message(embed=view._embed(), view=view)
 
-    # --- back ---
     @discord.ui.button(
         label="Back", emoji=Emoji.PREV, style=discord.ButtonStyle.grey, row=2
     )
     async def go_back(self, inter: discord.Interaction, _: discord.ui.Button) -> None:
-        await self.parent._refresh(inter)
+        await self.parent._redraw(inter)
 
 
 class _JailView(BaseView):
@@ -225,8 +215,9 @@ class _JailView(BaseView):
         guild = self.parent.guild
         g = self.parent.gdata
 
-        # Build overwrites: deny @everyone, allow jail role if exists
-        overwrites: dict[discord.abc.Snowflake, discord.PermissionOverwrite] = {
+        overwrites: dict[
+            discord.Role | discord.Member | discord.Object, discord.PermissionOverwrite
+        ] = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
         }
         jail_role = guild.get_role(g.jail_role) if g.jail_role else None
@@ -292,13 +283,13 @@ class _JailView(BaseView):
                 self.parent.guild.id, jail_channel=None
             )
             await self.parent._reload_gdata()
-        await self.parent._refresh(inter if modal.confirmed else inter)
+        await self.parent._redraw(inter)
 
     @discord.ui.button(
         label="Back", emoji=Emoji.PREV, style=discord.ButtonStyle.grey, row=2
     )
     async def go_back(self, inter: discord.Interaction, _: discord.ui.Button) -> None:
-        await self.parent._refresh(inter)
+        await self.parent._redraw(inter)
 
 
 class _MuteView(BaseView):
@@ -336,7 +327,6 @@ class _MuteView(BaseView):
             reason=f"Pushie setup — {name} role created",
         )
         await self.parent.bot.storage.update_setup(guild.id, **{field: role.id})
-        # Apply overwrite across all categories
         await _apply_role_overwrite(guild, role, overwrite)
         await self.parent._reload_gdata()
         await inter.edit_original_response(embed=self._embed(), view=self)
@@ -408,22 +398,7 @@ class _MuteView(BaseView):
         label="Back", emoji=Emoji.PREV, style=discord.ButtonStyle.grey, row=3
     )
     async def go_back(self, inter: discord.Interaction, _: discord.ui.Button) -> None:
-        await self.parent._refresh(inter)
-
-
-# ---------------------------------------------------------------------------
-# Generic channel / role select sub-views
-# ---------------------------------------------------------------------------
-
-
-@runtime_checkable
-class _SubView(Protocol):
-    """Protocol satisfied by _WelcomeView, _JailView, _MuteView."""
-
-    parent: "SetupView"
-    invoker: discord.Member
-
-    def _embed(self) -> discord.Embed: ...
+        await self.parent._redraw(inter)
 
 
 class _ChannelSelectView(BaseView):
@@ -454,7 +429,7 @@ class _ChannelSelectView(BaseView):
         )
         await setup_view._reload_gdata()
         await interaction.response.edit_message(
-            embed=self._parent._embed(), view=self._parent
+            embed=self._parent._embed(), view=cast(BaseView, self._parent)
         )
 
     @discord.ui.button(
@@ -462,7 +437,7 @@ class _ChannelSelectView(BaseView):
     )
     async def cancel(self, inter: discord.Interaction, _: discord.ui.Button) -> None:
         await inter.response.edit_message(
-            embed=self._parent._embed(), view=self._parent
+            embed=self._parent._embed(), view=cast(BaseView, self._parent)
         )
 
 
@@ -493,7 +468,7 @@ class _RoleSelectView(BaseView):
         )
         await setup_view._reload_gdata()
         await interaction.response.edit_message(
-            embed=self._parent._embed(), view=self._parent
+            embed=self._parent._embed(), view=cast(BaseView, self._parent)
         )
 
     @discord.ui.button(
@@ -501,13 +476,8 @@ class _RoleSelectView(BaseView):
     )
     async def cancel(self, inter: discord.Interaction, _: discord.ui.Button) -> None:
         await inter.response.edit_message(
-            embed=self._parent._embed(), view=self._parent
+            embed=self._parent._embed(), view=cast(BaseView, self._parent)
         )
-
-
-# ---------------------------------------------------------------------------
-# Main setup panel
-# ---------------------------------------------------------------------------
 
 
 class SetupView(BaseView):
@@ -527,14 +497,12 @@ class SetupView(BaseView):
     async def _reload_gdata(self) -> None:
         self.gdata = await self.bot.storage.get_guild(self.guild.id)
 
-    async def _refresh(self, inter: discord.Interaction) -> None:
-        """Redraw the main panel."""
+    async def _redraw(self, inter: discord.Interaction) -> None:
         await self._reload_gdata()
         await inter.response.edit_message(
             embed=_build_summary(self.gdata, self.guild), view=self
         )
 
-    # --- section buttons ---
     @discord.ui.button(
         label="Welcome", emoji=Emoji.WELCOME, style=discord.ButtonStyle.primary, row=0
     )
@@ -558,7 +526,6 @@ class SetupView(BaseView):
         sub = _MuteView(self)
         await inter.response.edit_message(embed=sub._embed(), view=sub)
 
-    # --- bot protection toggle ---
     @discord.ui.button(
         label="Bot Protection",
         emoji=Emoji.LOCK,
@@ -568,12 +535,10 @@ class SetupView(BaseView):
     async def btn_bot_protection(
         self, inter: discord.Interaction, _: discord.ui.Button
     ) -> None:
-        g = self.gdata
-        new_val = not g.bot_lock
+        new_val = not self.gdata.bot_lock
         await self.bot.storage.update_setup(self.guild.id, bot_lock=new_val)
-        await self._refresh(inter)
+        await self._redraw(inter)
 
-    # --- done ---
     @discord.ui.button(
         label="Done", emoji=Emoji.SUCCESS, style=discord.ButtonStyle.success, row=2
     )
@@ -586,17 +551,11 @@ class SetupView(BaseView):
         self.stop()
 
 
-# ---------------------------------------------------------------------------
-# Permission sync helper
-# ---------------------------------------------------------------------------
-
-
 async def _apply_role_overwrite(
     guild: discord.Guild,
     role: discord.Role,
     overwrite: discord.PermissionOverwrite,
 ) -> None:
-    """Apply overwrite to every text channel in every category."""
     tasks = []
     for channel in guild.channels:
         if isinstance(channel, (discord.TextChannel, discord.VoiceChannel)):
@@ -605,14 +564,12 @@ async def _apply_role_overwrite(
                     role, overwrite=overwrite, reason="Pushie /setup sync"
                 )
             )
-    # Run in chunks to avoid rate limits
     for i in range(0, len(tasks), 5):
         await asyncio.gather(*tasks[i : i + 5])
         await asyncio.sleep(0.5)
 
 
 async def _sync_all(guild: discord.Guild, gdata: GuildData) -> dict[str, int]:
-    """Re-apply all mute/jail overrides. Returns counts per role."""
     counts: dict[str, int] = {}
 
     role_map = {
@@ -622,7 +579,7 @@ async def _sync_all(guild: discord.Guild, gdata: GuildData) -> dict[str, int]:
     }
 
     for field, (name, overwrite) in role_map.items():
-        role_id: int | None = getattr(gdata, field)  # still dynamic key, getattr needed
+        role_id: int | None = getattr(gdata, field)
         if not role_id:
             continue
         role = guild.get_role(role_id)
@@ -631,7 +588,6 @@ async def _sync_all(guild: discord.Guild, gdata: GuildData) -> dict[str, int]:
         await _apply_role_overwrite(guild, role, overwrite)
         counts[name] = len(guild.channels)
 
-    # Jail channel perms — deny @everyone read in jail channel, allow jailed
     if gdata.jail_channel:
         jail_ch = guild.get_channel(gdata.jail_channel)
         if isinstance(jail_ch, discord.TextChannel):
@@ -649,18 +605,10 @@ async def _sync_all(guild: discord.Guild, gdata: GuildData) -> dict[str, int]:
     return counts
 
 
-# ---------------------------------------------------------------------------
-# Cog
-# ---------------------------------------------------------------------------
-
-
 class Setup(commands.Cog):
-    """Interactive server setup wizard."""
-
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # Guard — only guild admins or sudo
     async def _can_setup(self, inter: discord.Interaction) -> bool:
         if not inter.guild or not isinstance(inter.user, discord.Member):
             await inter.response.send_message(
@@ -677,7 +625,6 @@ class Setup(commands.Cog):
         )
         return False
 
-    # /setup
     @app_commands.command(
         name="setup", description="Open the interactive server setup wizard"
     )
@@ -694,7 +641,6 @@ class Setup(commands.Cog):
         )
         view.message = await inter.original_response()
 
-    # /setup sync
     @app_commands.command(
         name="setup-sync",
         description="Re-apply all mute/jail permission overrides to every channel",

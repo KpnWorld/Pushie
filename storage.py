@@ -69,6 +69,9 @@ class GuildData:
     # embed templates { name -> embed_dict }
     embed_templates: dict[str, Any] = field(default_factory=dict)
 
+    # warnings { user_id -> [{"reason": str, "timestamp": float}] }
+    warnings: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+
     def to_dict(self) -> dict:
         return asdict(self)
 

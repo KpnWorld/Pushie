@@ -50,11 +50,10 @@ class Pushie(commands.Bot):
         super().__init__(
             command_prefix=self._get_prefix,
             intents=intents,
-            help_command=None,  # custom help in main commands below
+            help_command=None,
             case_insensitive=True,
         )
 
-    # dynamic prefix per guild
     async def _get_prefix(self, bot: "Pushie", message: discord.Message) -> list[str]:
         if not message.guild:
             return commands.when_mentioned_or("!")(bot, message)
@@ -63,9 +62,12 @@ class Pushie(commands.Bot):
         return commands.when_mentioned_or(prefix)(bot, message)
 
     async def get_context(
-        self, message: discord.Message, *, cls=PushieContext
+        self,
+        message: discord.Message | discord.Interaction,
+        *,
+        cls: type[commands.Context] = PushieContext,
     ) -> PushieContext:
-        return await super().get_context(message, cls=cls)
+        return await super().get_context(message, cls=cls)  # type: ignore[return-value]
 
     async def setup_hook(self) -> None:
         self._uptime = datetime.datetime.now(datetime.UTC)
@@ -107,7 +109,6 @@ class Pushie(commands.Bot):
                 type=discord.ActivityType.watching, name="over the server 🐱"
             )
         )
-        # Auto-sync slash commands on startup
         try:
             synced = await self.tree.sync()
             log.info("Synced %d slash commands", len(synced))
@@ -121,7 +122,6 @@ class Pushie(commands.Bot):
             return
         await self.storage.get_guild(guild.id)
         log.info("Joined guild %s (%s)", guild.name, guild.id)
-        # Send welcome message to first available text channel
         for channel in guild.text_channels:
             if channel.permissions_for(guild.me).send_messages:
                 try:
@@ -131,10 +131,7 @@ class Pushie(commands.Bot):
                 break
 
     async def _send_welcome_message(self, channel: discord.TextChannel) -> None:
-        """Send welcome message with components v2 format."""
-
         class WelcomeView(discord.ui.LayoutView):
-            # Container with all content
             container = (
                 discord.ui.Container()
                 .add_item(
@@ -180,9 +177,8 @@ class Pushie(commands.Bot):
             await self.process_commands(message)
             return
 
-        # bot mention prefix cmd
         if self.user and message.mentions and self.user in message.mentions:
-            if len(message.content.split()) == 1:  # only the mention
+            if len(message.content.split()) == 1:
                 g = self.storage.get_guild_sync(message.guild.id)
                 current_prefix = g.prefix if g else "!"
                 view = PrefixView(bot=self, guild_id=message.guild.id)
@@ -191,21 +187,17 @@ class Pushie(commands.Bot):
                 )
                 return
 
-        # global banned user check
         if self.storage.is_banned_user(message.author.id):
             return
 
-        # guild banned user check
         g = self.storage.get_guild_sync(message.guild.id)
         if g:
             if message.author.id in g.user_blacklist:
                 return
             if g.bot_lock and message.author.id not in g.bot_whitelist:
-                # still allow sudo users through
                 if not self.storage.is_sudo(message.author.id):
                     return
 
-        # afk check — if someone mentions an afk user notify
         if message.mentions and g:
             for user in message.mentions:
                 afk = g.afks.get(str(user.id))
@@ -219,7 +211,6 @@ class Pushie(commands.Bot):
                         delete_after=10,
                     )
 
-        # clear invoker's afk if they send a message
         if g and str(message.author.id) in g.afks:
             await self.storage.clear_afk(message.guild.id, message.author.id)
             await message.channel.send(
@@ -231,10 +222,9 @@ class Pushie(commands.Bot):
 
         await self.process_commands(message)
 
-    async def on_command_error(
-        self, ctx: PushieContext, error: commands.CommandError
+    async def on_command_error(  # type: ignore[override]
+        self, ctx: commands.Context["Pushie"], error: commands.CommandError
     ) -> None:
-        # let cog/command handlers take it first
         if hasattr(ctx.command, "on_error"):
             return
         if ctx.cog and ctx.cog.has_error_handler():
@@ -245,12 +235,11 @@ class Pushie(commands.Bot):
         if isinstance(error, commands.NotOwner):
             return
 
-        # reset cooldown on non-cooldown errors
         if not isinstance(error, commands.CommandOnCooldown) and ctx.command:
             ctx.command.reset_cooldown(ctx)
 
         if isinstance(error, commands.CommandInvokeError):
-            error = error.original  # type: ignore
+            error = error.original  # type: ignore[assignment]
 
         msg: str
 
@@ -302,10 +291,8 @@ def _setup_checks(bot: Pushie) -> None:
 
 def is_sudo():
     async def predicate(ctx: PushieContext) -> bool:
-        # Check storage first
         if ctx.bot.storage.is_sudo(ctx.author.id):
             return True
-        # Check env variable for hardcoded sudo user
         sudo_user_env = os.getenv("SUDO_USER")
         if sudo_user_env and str(ctx.author.id) == sudo_user_env:
             return True
@@ -383,14 +370,12 @@ def in_voice():
 
 def _setup_commands(bot: Pushie) -> None:
 
-    # ping
     @bot.hybrid_command(name="ping", description="Check bot latency")
     async def ping(ctx: PushieContext) -> None:
         await ctx.send(
             embed=UI.info(f"`{Emoji.PING}` *Pong! `{round(bot.latency * 1000)}ms`*")
         )
 
-    # afk
     @bot.hybrid_command(name="afk", description="Set your AFK status")
     async def afk(ctx: PushieContext, *, reason: str = "AFK") -> None:
         if not ctx.guild:
@@ -400,7 +385,6 @@ def _setup_commands(bot: Pushie) -> None:
         await bot.storage.set_afk(ctx.guild.id, ctx.author.id, reason, time.time())
         await ctx.send(embed=UI.afk(f"*{ctx.author.mention} is now AFK — {reason}*"))
 
-    # help
     @bot.hybrid_command(name="help", description="Show help")
     async def help_cmd(ctx: PushieContext, *, command: str | None = None) -> None:
         if command:
@@ -408,7 +392,6 @@ def _setup_commands(bot: Pushie) -> None:
             if not cmd:
                 await ctx.err(f"Command `{command}` not found.")
                 return
-            # Build syntax
             syntax = (
                 f"/{command}"
                 if any(str(c) == command for c in bot.tree._get_all_commands())
@@ -420,7 +403,6 @@ def _setup_commands(bot: Pushie) -> None:
                 )
             )
             return
-        # basic cog listing — full paginated help will be a cog
         cog_names = ", ".join(f"`{name}`" for name in bot.cogs)
         help_text = (
             f"*Loaded modules: {cog_names or 'none'}*\n\n"
@@ -430,14 +412,12 @@ def _setup_commands(bot: Pushie) -> None:
         )
         await ctx.send(embed=UI.info(help_text))
 
-    # prefix
     @bot.hybrid_command(name="prefix", description="Show or change server prefix")
     async def prefix_cmd(ctx: PushieContext, *, new_prefix: str | None = None) -> None:
         if not ctx.guild:
             return
 
         if new_prefix:
-            # Only admins can change prefix
             if not (
                 ctx.guild
                 and isinstance(ctx.author, discord.Member)
@@ -450,13 +430,11 @@ def _setup_commands(bot: Pushie) -> None:
             await ctx.ok(f"Prefix changed to `{new_prefix}`")
             return
 
-        # Show current prefix with change button
         g = bot.storage.get_guild_sync(ctx.guild.id)
         current_prefix = g.prefix if g else "!"
         view = PrefixView(bot=bot, guild_id=ctx.guild.id)
         await ctx.send(embed=UI.info(f"Current prefix: `{current_prefix}`"), view=view)
 
-    # sudo group
     @bot.group(name="sudo", invoke_without_command=True)
     @is_sudo()
     async def sudo_group(ctx: PushieContext) -> None:

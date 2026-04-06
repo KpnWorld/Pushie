@@ -452,6 +452,9 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.has_guild_permissions(manage_messages=True)
     async def purge(self, ctx: "PushieContext", limit: int = 10) -> None:
         """Bulk delete messages from the current channel."""
+        if ctx.interaction:
+            await ctx.interaction.response.defer(ephemeral=True)
+
         if not isinstance(ctx.channel, discord.TextChannel):
             await ctx.err("*This command can only be used in text channels.*")
             return
@@ -459,9 +462,6 @@ class Moderation(commands.Cog, name="Moderation"):
         if limit < 1 or limit > 100:
             await ctx.err("*Limit must be between `1` and `100`.*")
             return
-
-        if ctx.interaction:
-            await ctx.interaction.response.defer(ephemeral=True)
 
         async def _reply(embed: discord.Embed) -> None:
             if ctx.interaction:

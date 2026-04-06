@@ -16,13 +16,13 @@ log = logging.getLogger(__name__)
 
 
 class Voice(commands.Cog, name="Voice"):
-    """Voice channel management and VoiceCenter system."""
+    """Voice channel management and VoiceCenter temp-channel system."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
     # =========================================================================
-    # VOICECENTER EVENT — join-to-create, auto-delete, voice-join role
+    # VOICECENTER EVENT LISTENER
     # =========================================================================
 
     @commands.Cog.listener()
@@ -41,8 +41,8 @@ class Voice(commands.Cog, name="Voice"):
         if g.voicecenter_rolejoin:
             role = guild.get_role(g.voicecenter_rolejoin)
             if role:
-                joined_voice = after.channel and not before.channel
-                left_voice = before.channel and not after.channel
+                joined_voice = bool(after.channel and not before.channel)
+                left_voice = bool(before.channel and not after.channel)
                 try:
                     if joined_voice and role not in member.roles:
                         await member.add_roles(role, reason="VoiceCenter: joined voice")
@@ -61,39 +61,35 @@ class Voice(commands.Cog, name="Voice"):
 
         # ── Auto-delete empty temp channels ──────────────────────────────────
         if before.channel:
-            ch_id_str = str(before.channel.id)
-            if ch_id_str in g.voicecenter_temp_channels:
-                live_ch = guild.get_channel(before.channel.id)
-                if not live_ch or (
-                    isinstance(live_ch, discord.VoiceChannel)
-                    and len(live_ch.members) == 0
+            ch_str = str(before.channel.id)
+            if ch_str in g.voicecenter_temp_channels:
+                live = guild.get_channel(before.channel.id)
+                if not live or (
+                    isinstance(live, discord.VoiceChannel)
+                    and len(live.members) == 0
                 ):
-                    if live_ch:
+                    if live:
                         try:
-                            await live_ch.delete(
-                                reason="VoiceCenter: empty temp channel"
-                            )
+                            await live.delete(reason="VoiceCenter: empty temp channel")
                         except (discord.Forbidden, discord.HTTPException):
                             pass
-                    g.voicecenter_temp_channels.pop(ch_id_str, None)
+                    g.voicecenter_temp_channels.pop(ch_str, None)
                     await self.bot.storage.save_guild(g)
 
     async def _create_temp_channel(
         self,
         member: discord.Member,
         guild: discord.Guild,
-        g: "GuildData",  # type: ignore[name-defined]
+        g: object,
     ) -> None:
-        """Create a temporary voice channel and move the member into it."""
-        defaults = g.voicecenter_defaults or {}
+        defaults = getattr(g, "voicecenter_defaults", None) or {}
         raw_name: str = defaults.get("name", "{username}'s vc")
         name = raw_name.replace("{username}", member.display_name)
-        bitrate = int(defaults.get("bitrate", 64000))
-        bitrate = min(bitrate, guild.bitrate_limit)
+        bitrate = min(int(defaults.get("bitrate", 64000)), guild.bitrate_limit)
 
         category: discord.CategoryChannel | None = None
-        if g.voicecenter_category:
-            cat = guild.get_channel(g.voicecenter_category)
+        if getattr(g, "voicecenter_category", None):
+            cat = guild.get_channel(g.voicecenter_category)  # type: ignore[attr-defined]
             if isinstance(cat, discord.CategoryChannel):
                 category = cat
 
@@ -108,185 +104,274 @@ class Voice(commands.Cog, name="Voice"):
                 member,
                 manage_channels=True,
                 connect=True,
-                reason="VoiceCenter: channel owner permissions",
+                reason="VoiceCenter: owner permissions",
             )
             await member.move_to(new_ch, reason="VoiceCenter: moved to temp channel")
-
-            g.voicecenter_temp_channels[str(new_ch.id)] = {
-                "owner_id": member.id,
-                "name": name,
-            }
-            await self.bot.storage.save_guild(g)
-            log.info(
-                "VoiceCenter: created %r (id=%s) for %s in guild %s",
-                name,
-                new_ch.id,
-                member,
-                guild.id,
-            )
+            g.voicecenter_temp_channels[str(new_ch.id)] = {"owner_id": member.id}  # type: ignore[attr-defined]
+            await self.bot.storage.save_guild(g)  # type: ignore[arg-type]
+            log.info("VoiceCenter: created %r for %s in guild %s", name, member, guild.id)
         except discord.Forbidden:
-            log.warning(
-                "VoiceCenter: missing permissions in guild %s — cannot create channel",
-                guild.id,
-            )
+            log.warning("VoiceCenter: missing permissions in guild %s", guild.id)
         except discord.HTTPException as e:
             log.error("VoiceCenter: failed to create temp channel: %s", e)
 
     # =========================================================================
-    # VOICE-SETUP SUBCOMMANDS
+    # HELPER
+    # =========================================================================
+
+    def _in_voice(self, ctx: "PushieContext") -> discord.VoiceChannel | None:
+        """Return the VoiceChannel the command author is in, or None."""
+        member = cast(discord.Member, ctx.author)
+        if not isinstance(member.voice, discord.VoiceState) or not member.voice.channel:
+            return None
+        ch = member.voice.channel
+        return ch if isinstance(ch, discord.VoiceChannel) else None
+
+    # =========================================================================
+    # ROOT: voice  (alias: vc)
     # =========================================================================
 
     @commands.hybrid_group(
-        name="voice-setup", description="Configure VoiceCenter (temp voice channels)"
+        name="voice",
+        aliases=["vc"],
+        description="Voice channel commands",
+        invoke_without_command=True,
     )
     @commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
-    async def voice_setup(self, ctx: "PushieContext") -> None:
-        """VoiceCenter configuration commands."""
-        pass
-
-    @voice_setup.command(
-        name="channel", description="Set the join-to-create voice channel"
-    )
-    @commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
-    async def voice_setup_channel(
-        self, ctx: "PushieContext", channel: discord.VoiceChannel
-    ) -> None:
-        """Set which voice channel users join to create temporary channels."""
-        assert ctx.guild is not None
-        await ctx.bot.storage.set_voicecenter_channel(ctx.guild.id, channel.id)
-        await ctx.ok(
-            f"`{Emoji.CHANNEL}` *Join-to-create channel set to {channel.mention}.*"
+    async def voice_group(self, ctx: "PushieContext") -> None:
+        """Voice channel management. Join a voice channel, then run a subcommand."""
+        prefix = ctx.prefix or "!"
+        await ctx.send(
+            embed=UI.info(
+                f"`{Emoji.CHANNEL}` *Voice commands:*\n"
+                f"```\n"
+                f"{prefix}voice lock / unlock\n"
+                f"{prefix}voice limit <n>   (0 = unlimited)\n"
+                f"{prefix}voice name <name>\n"
+                f"{prefix}voice bitrate <bps>\n"
+                f"{prefix}voice ghost\n"
+                f"{prefix}voice admit @user\n"
+                f"{prefix}voice reject @user\n"
+                f"{prefix}voice info\n"
+                f"{prefix}voice cleanup\n"
+                f"{prefix}voice setup ...\n"
+                f"```"
+            )
         )
 
-    @voice_setup.command(
-        name="category", description="Set category for temporary voice channels"
-    )
-    @commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
-    async def setup_category(
-        self, ctx: "PushieContext", category: discord.CategoryChannel
-    ) -> None:
-        """Set which category temporary voice channels are created in."""
-        assert ctx.guild is not None
-        await ctx.bot.storage.set_voicecenter_category(ctx.guild.id, category.id)
-        await ctx.ok(
-            f"`{Emoji.CHANNEL}` *Temp channels will be created in **{category.name}**.*"
-        )
+    # ── LOCK / UNLOCK ─────────────────────────────────────────────────────────
 
-    @voice_setup.command(
-        name="name",
-        description="Default name for temp channels. Use {username} as placeholder.",
-    )
+    @voice_group.command(name="lock", aliases=["l", "close"])
     @commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
-    async def setup_name(self, ctx: "PushieContext", *, name: str) -> None:
-        """Set the default name format. `{username}` is replaced with the creator's display name."""
+    async def voice_lock(self, ctx: "PushieContext") -> None:
+        """Lock your current voice channel — no new members can join."""
         assert ctx.guild is not None
-        await ctx.bot.storage.set_voicecenter_default(ctx.guild.id, "name", name)
-        await ctx.ok(f"`{Emoji.CHANNEL}` *Temp channel name set to `{name}`.*")
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            await ch.set_permissions(ctx.guild.default_role, connect=False)
+            await ctx.ok(f"`{Emoji.LOCK}` ***{ch.name}** locked.*")
+        except discord.Forbidden:
+            await ctx.err("*Missing permission to lock this channel.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed: `{e}`*")
 
-    @voice_setup.command(
-        name="bitrate", description="Default bitrate (bps) for temp channels"
-    )
+    @voice_group.command(name="unlock", aliases=["ul", "open"])
     @commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
-    async def setup_bitrate(self, ctx: "PushieContext", bitrate: int) -> None:
-        """Set the default bitrate (8000–384000 bps) for temporary voice channels."""
-        if bitrate < 8000 or bitrate > 384000:
+    async def voice_unlock(self, ctx: "PushieContext") -> None:
+        """Unlock your current voice channel."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            await ch.set_permissions(ctx.guild.default_role, connect=None)
+            await ctx.ok(f"`{Emoji.UNLOCK}` ***{ch.name}** unlocked.*")
+        except discord.Forbidden:
+            await ctx.err("*Missing permission to unlock this channel.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    # ── LIMIT ─────────────────────────────────────────────────────────────────
+
+    @voice_group.command(name="limit", aliases=["lm", "cap", "size"])
+    @commands.guild_only()
+    async def voice_limit(self, ctx: "PushieContext", limit: int = 0) -> None:
+        """Set or remove the user limit for your voice channel (0 = unlimited)."""
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        if not (0 <= limit <= 99):
+            await ctx.err("*Limit must be between `0` (unlimited) and `99`.*")
+            return
+        try:
+            await ch.edit(user_limit=limit)
+            msg = "*User limit removed.*" if limit == 0 else f"*Limit set to `{limit}`.*"
+            await ctx.ok(f"`{Emoji.CHANNEL}` {msg}")
+        except discord.Forbidden:
+            await ctx.err("*Missing permission to edit this channel.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    # ── NAME ──────────────────────────────────────────────────────────────────
+
+    @voice_group.command(name="name", aliases=["n", "rename", "rn"])
+    @commands.guild_only()
+    async def voice_name(self, ctx: "PushieContext", *, new_name: str) -> None:
+        """Rename your current voice channel."""
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        if len(new_name) > 100:
+            await ctx.err("*Name must be 100 characters or fewer.*")
+            return
+        try:
+            await ch.edit(name=new_name)
+            await ctx.ok(f"`{Emoji.CHANNEL}` *Renamed to **{new_name}**.*")
+        except discord.Forbidden:
+            await ctx.err("*Missing permission to rename this channel.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    # ── BITRATE ───────────────────────────────────────────────────────────────
+
+    @voice_group.command(name="bitrate", aliases=["br", "kbps", "quality"])
+    @commands.guild_only()
+    async def voice_bitrate(self, ctx: "PushieContext", bitrate: int) -> None:
+        """Set the bitrate for your voice channel (8000–384000 bps)."""
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        if not (8000 <= bitrate <= 384000):
             await ctx.err("*Bitrate must be between `8000` and `384000`.*")
             return
-        assert ctx.guild is not None
-        await ctx.bot.storage.set_voicecenter_default(ctx.guild.id, "bitrate", bitrate)
-        await ctx.ok(f"`{Emoji.CHANNEL}` *Default bitrate set to `{bitrate}` bps.*")
+        try:
+            await ch.edit(bitrate=bitrate)
+            await ctx.ok(f"`{Emoji.CHANNEL}` *Bitrate set to `{bitrate}` bps.*")
+        except discord.Forbidden:
+            await ctx.err("*Missing permission to edit this channel.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed: `{e}`*")
 
-    @voice_setup.command(
-        name="rolejoin", description="Role given when joining any voice channel"
-    )
-    @commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
-    async def setup_rolejoin(
-        self, ctx: "PushieContext", role: discord.Role | None = None
-    ) -> None:
-        """Assign a role when users join voice; omit `role` to disable."""
-        assert ctx.guild is not None
-        if role:
-            await ctx.bot.storage.set_voicecenter_rolejoin(ctx.guild.id, role.id)
-            await ctx.ok(
-                f"`{Emoji.ROLE}` *Users will receive {role.mention} when joining voice.*"
-            )
-        else:
-            g = await ctx.bot.storage.get_guild(ctx.guild.id)
-            g.voicecenter_rolejoin = None
-            await ctx.bot.storage.save_guild(g)
-            await ctx.ok(f"`{Emoji.ROLE}` *Voice join role disabled.*")
+    # ── GHOST ─────────────────────────────────────────────────────────────────
 
-    @voice_setup.command(
-        name="panel", description="Post VoiceCenter control panel in a text channel"
-    )
+    @voice_group.command(name="ghost", aliases=["g", "hide", "invisible"])
     @commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
-    async def setup_panel(
-        self, ctx: "PushieContext", channel: discord.TextChannel
-    ) -> None:
-        """Post the VoiceCenter control panel embed in a text channel."""
+    async def voice_ghost(self, ctx: "PushieContext") -> None:
+        """Hide your voice channel from everyone outside it."""
         assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            await ch.set_permissions(ctx.guild.default_role, view_channel=False)
+            await ctx.ok(f"`{Emoji.HIDE}` ***{ch.name}** is now hidden.*")
+        except discord.Forbidden:
+            await ctx.err("*Missing permission to edit this channel.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    # ── ADMIT ─────────────────────────────────────────────────────────────────
+
+    @voice_group.command(name="admit", aliases=["ad", "allow", "permit"])
+    @commands.guild_only()
+    async def voice_admit(self, ctx: "PushieContext", user: discord.User) -> None:
+        """Allow a specific user to connect to your locked/hidden channel."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            member = await ctx.guild.fetch_member(user.id)
+            await ch.set_permissions(member, connect=True, view_channel=True)
+            await ctx.ok(f"`{Emoji.WHITELIST}` *{user.mention} admitted to **{ch.name}**.*")
+        except discord.NotFound:
+            await ctx.err("*That user is not in this server.*")
+        except (discord.Forbidden, discord.HTTPException) as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    # ── REJECT ────────────────────────────────────────────────────────────────
+
+    @voice_group.command(name="reject", aliases=["rj", "block", "kick"])
+    @commands.guild_only()
+    async def voice_reject(self, ctx: "PushieContext", user: discord.User) -> None:
+        """Block a user from your voice channel (kicks them if present)."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            member = await ctx.guild.fetch_member(user.id)
+            await ch.set_permissions(member, connect=False)
+            if member.voice and member.voice.channel == ch:
+                await member.move_to(None, reason="VoiceCenter: rejected")
+            await ctx.ok(f"`{Emoji.BLACKLIST}` *{user.mention} blocked from **{ch.name}**.*")
+        except discord.NotFound:
+            await ctx.err("*That user is not in this server.*")
+        except (discord.Forbidden, discord.HTTPException) as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    # ── INFO ──────────────────────────────────────────────────────────────────
+
+    @voice_group.command(name="info", aliases=["i", "stats", "details"])
+    @commands.guild_only()
+    async def voice_info(self, ctx: "PushieContext") -> None:
+        """Show information about your current voice channel."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+
         g = self.bot.storage.get_guild_sync(ctx.guild.id)
-        prefix = g.prefix if g else "!"
+        owner_id: int | None = None
+        if g:
+            data = g.voicecenter_temp_channels.get(str(ch.id))
+            if data:
+                owner_id = data.get("owner_id")
+
+        members_text = "\n".join(
+            f"> `{i+1}.` {m.mention}" for i, m in enumerate(ch.members[:8])
+        )
+        extra = f"\n> *+{len(ch.members) - 8} more...*" if len(ch.members) > 8 else ""
 
         embed = discord.Embed(
-            title=f"{Emoji.CHANNEL} VoiceCenter Controls",
-            description=(
-                "> *Join the **join-to-create** channel to get your own*\n"
-                "> *temporary voice channel. Use these commands to manage it.*"
-            ),
+            description=f"`{Emoji.CHANNEL}` ***{ch.name}***",
             color=0xFAB9EC,
         )
         embed.add_field(
-            name=f"{Emoji.LOCK} Channel",
+            name="Details",
             value=(
-                f"`{prefix}voice-lock` — Lock your channel\n"
-                f"`{prefix}voice-unlock` — Unlock your channel\n"
-                f"`{prefix}voice-limit <n>` — Set user limit (0 = unlimited)\n"
-                f"`{prefix}voice-name <name>` — Rename your channel\n"
-                f"`{prefix}voice-bitrate <bps>` — Set bitrate\n"
-                f"`{prefix}ghost` — Hide channel from others"
+                f"> **ID** — `{ch.id}`\n"
+                f"> **Bitrate** — `{ch.bitrate // 1000}` kbps\n"
+                f"> **Limit** — `{ch.user_limit or 'unlimited'}`\n"
+                + (f"> **Owner** — <@{owner_id}>" if owner_id else "> **Type** — Regular voice")
             ),
-            inline=True,
+            inline=False,
         )
         embed.add_field(
-            name=f"{Emoji.ROLE} Members",
-            value=(
-                f"`{prefix}admit @user` — Allow a user to join\n"
-                f"`{prefix}reject @user` — Block a user from joining\n"
-                f"`{prefix}info` — Show channel info"
-            ),
-            inline=True,
+            name=f"Members ({len(ch.members)})",
+            value=(members_text + extra) or "*Empty*",
+            inline=False,
         )
-        embed.set_footer(text="VoiceCenter · Pushie")
+        await ctx.send(embed=embed)
 
-        try:
-            await channel.send(embed=embed)
-            await ctx.ok(
-                f"`{Emoji.CHANNEL}` *Control panel posted in {channel.mention}.*"
-            )
-        except discord.Forbidden:
-            await ctx.err(f"*I can't send messages in {channel.mention}.*")
-        except discord.HTTPException as e:
-            await ctx.err(f"*Failed to post panel: `{e}`*")
+    # ── CLEANUP ───────────────────────────────────────────────────────────────
 
-    # =========================================================================
-    # CLEANUP
-    # =========================================================================
-
-    @commands.hybrid_command(
-        name="cleanup", description="Delete empty/abandoned VoiceCenter channels"
-    )
+    @voice_group.command(name="cleanup", aliases=["cl", "clean", "purge"])
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    async def cleanup(self, ctx: "PushieContext") -> None:
-        """Delete all empty tracked temp channels and clear stale records."""
+    async def voice_cleanup(self, ctx: "PushieContext") -> None:
+        """Delete empty/abandoned VoiceCenter temp channels and clear stale records."""
         assert ctx.guild is not None
         g = self.bot.storage.get_guild_sync(ctx.guild.id)
         if not g:
@@ -324,244 +409,157 @@ class Voice(commands.Cog, name="Voice"):
         await ctx.ok(f"`{Emoji.CHANNEL}` *Cleanup complete — {summary}.*")
 
     # =========================================================================
-    # CHANNEL CONTROLS (owner / mod)
+    # voice setup  (alias: s)
     # =========================================================================
 
-    def _get_voice_channel(
-        self, ctx: "PushieContext"
-    ) -> discord.VoiceChannel | None:
-        """Return the VoiceChannel the author is currently in, or None."""
-        author = cast(discord.Member, ctx.author)
-        if not isinstance(author.voice, discord.VoiceState) or not author.voice.channel:
-            return None
-        ch = author.voice.channel
-        return ch if isinstance(ch, discord.VoiceChannel) else None
-
-    @commands.hybrid_command(
-        name="voice-lock", description="Lock your current voice channel"
+    @voice_group.group(
+        name="setup",
+        aliases=["s", "config", "cfg"],
+        description="Configure VoiceCenter settings",
+        invoke_without_command=True,
     )
     @commands.guild_only()
-    async def voice_lock(self, ctx: "PushieContext") -> None:
-        """Lock your current voice channel — no new members can join."""
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_setup(self, ctx: "PushieContext") -> None:
+        """VoiceCenter setup subcommands: channel, category, name, bitrate, rolejoin, panel."""
+        prefix = ctx.prefix or "!"
+        await ctx.send(
+            embed=UI.info(
+                f"`{Emoji.CHANNEL}` *VoiceCenter setup:*\n"
+                f"```\n"
+                f"{prefix}voice setup channel <vc>     — join-to-create channel\n"
+                f"{prefix}voice setup category <cat>   — temp channel category\n"
+                f"{prefix}voice setup name <template>  — default name (use {{username}})\n"
+                f"{prefix}voice setup bitrate <bps>    — default bitrate\n"
+                f"{prefix}voice setup rolejoin [@role]  — role on voice join\n"
+                f"{prefix}voice setup panel <#channel>  — post control panel\n"
+                f"```"
+            )
+        )
+
+    @voice_setup.command(name="channel", aliases=["ch", "jtc", "join"])
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_setup_channel(
+        self, ctx: "PushieContext", channel: discord.VoiceChannel
+    ) -> None:
+        """Set the join-to-create voice channel."""
         assert ctx.guild is not None
-        channel = self._get_voice_channel(ctx)
-        if not channel:
-            await ctx.err("*You must be in a voice channel.*")
-            return
-        try:
-            await channel.set_permissions(ctx.guild.default_role, connect=False)
-            await ctx.ok(f"`{Emoji.LOCK}` ***{channel.name}** has been locked.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to lock this channel.*")
-        except discord.HTTPException as e:
-            await ctx.err(f"*Failed to lock channel: `{e}`*")
+        await ctx.bot.storage.set_voicecenter_channel(ctx.guild.id, channel.id)
+        await ctx.ok(
+            f"`{Emoji.CHANNEL}` *Join-to-create channel set to {channel.mention}.*"
+        )
 
-    @commands.hybrid_command(
-        name="voice-unlock", description="Unlock your current voice channel"
-    )
+    @voice_setup.command(name="category", aliases=["cat", "folder"])
     @commands.guild_only()
-    async def voice_unlock(self, ctx: "PushieContext") -> None:
-        """Unlock your current voice channel."""
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_setup_category(
+        self, ctx: "PushieContext", category: discord.CategoryChannel
+    ) -> None:
+        """Set which category temp channels are created in."""
         assert ctx.guild is not None
-        channel = self._get_voice_channel(ctx)
-        if not channel:
-            await ctx.err("*You must be in a voice channel.*")
-            return
-        try:
-            await channel.set_permissions(ctx.guild.default_role, connect=None)
-            await ctx.ok(f"`{Emoji.UNLOCK}` ***{channel.name}** has been unlocked.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to unlock this channel.*")
-        except discord.HTTPException as e:
-            await ctx.err(f"*Failed to unlock channel: `{e}`*")
+        await ctx.bot.storage.set_voicecenter_category(ctx.guild.id, category.id)
+        await ctx.ok(
+            f"`{Emoji.CHANNEL}` *Temp channels will be created in **{category.name}**.*"
+        )
 
-    @commands.hybrid_command(
-        name="voice-limit", description="Set user limit for your voice channel (0 = off)"
-    )
+    @voice_setup.command(name="name", aliases=["nm", "template", "fmt"])
     @commands.guild_only()
-    async def voice_limit(self, ctx: "PushieContext", limit: int = 0) -> None:
-        """Set or remove the user limit for your current voice channel."""
-        channel = self._get_voice_channel(ctx)
-        if not channel:
-            await ctx.err("*You must be in a voice channel.*")
-            return
-        if limit < 0 or limit > 99:
-            await ctx.err("*Limit must be between `0` (unlimited) and `99`.*")
-            return
-        try:
-            await channel.edit(user_limit=limit)
-            msg = "*User limit removed.*" if limit == 0 else f"*User limit set to `{limit}`.*"
-            await ctx.ok(f"`{Emoji.CHANNEL}` {msg}")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to edit this channel.*")
-        except discord.HTTPException as e:
-            await ctx.err(f"*Failed to set limit: `{e}`*")
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_setup_name(self, ctx: "PushieContext", *, name: str) -> None:
+        """Set the default temp channel name. Use `{username}` as a placeholder."""
+        assert ctx.guild is not None
+        await ctx.bot.storage.set_voicecenter_default(ctx.guild.id, "name", name)
+        await ctx.ok(f"`{Emoji.CHANNEL}` *Default name set to `{name}`.*")
 
-    @commands.hybrid_command(
-        name="voice-name", description="Rename your current voice channel"
-    )
+    @voice_setup.command(name="bitrate", aliases=["br", "kbps"])
     @commands.guild_only()
-    async def voice_name(self, ctx: "PushieContext", *, new_name: str) -> None:
-        """Rename your current voice channel."""
-        channel = self._get_voice_channel(ctx)
-        if not channel:
-            await ctx.err("*You must be in a voice channel.*")
-            return
-        if len(new_name) > 100:
-            await ctx.err("*Channel name must be 100 characters or less.*")
-            return
-        try:
-            await channel.edit(name=new_name)
-            await ctx.ok(f"`{Emoji.CHANNEL}` *Renamed to **{new_name}**.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to rename this channel.*")
-        except discord.HTTPException as e:
-            await ctx.err(f"*Failed to rename: `{e}`*")
-
-    @commands.hybrid_command(
-        name="voice-bitrate", description="Set bitrate for your voice channel"
-    )
-    @commands.guild_only()
-    async def voice_bitrate(self, ctx: "PushieContext", bitrate: int) -> None:
-        """Set the bitrate for your current voice channel."""
-        channel = self._get_voice_channel(ctx)
-        if not channel:
-            await ctx.err("*You must be in a voice channel.*")
-            return
-        if bitrate < 8000 or bitrate > 384000:
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_setup_bitrate(self, ctx: "PushieContext", bitrate: int) -> None:
+        """Set the default bitrate for temp channels (8000–384000 bps)."""
+        assert ctx.guild is not None
+        if not (8000 <= bitrate <= 384000):
             await ctx.err("*Bitrate must be between `8000` and `384000`.*")
             return
-        try:
-            await channel.edit(bitrate=bitrate)
-            await ctx.ok(f"`{Emoji.CHANNEL}` *Bitrate set to `{bitrate}` bps.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to edit this channel.*")
-        except discord.HTTPException as e:
-            await ctx.err(f"*Failed to set bitrate: `{e}`*")
+        await ctx.bot.storage.set_voicecenter_default(ctx.guild.id, "bitrate", bitrate)
+        await ctx.ok(f"`{Emoji.CHANNEL}` *Default bitrate set to `{bitrate}` bps.*")
 
-    @commands.hybrid_command(
-        name="ghost", description="Hide your voice channel from non-members"
-    )
+    @voice_setup.command(name="rolejoin", aliases=["rj", "role", "joinrole"])
     @commands.guild_only()
-    async def ghost(self, ctx: "PushieContext") -> None:
-        """Make your current voice channel invisible to everyone outside it."""
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_setup_rolejoin(
+        self, ctx: "PushieContext", role: discord.Role | None = None
+    ) -> None:
+        """Set a role given when joining voice. Omit to disable."""
         assert ctx.guild is not None
-        channel = self._get_voice_channel(ctx)
-        if not channel:
-            await ctx.err("*You must be in a voice channel.*")
-            return
-        try:
-            await channel.set_permissions(ctx.guild.default_role, view_channel=False)
-            await ctx.ok(f"`{Emoji.HIDE}` ***{channel.name}** is now hidden.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to edit this channel.*")
-        except discord.HTTPException as e:
-            await ctx.err(f"*Failed to hide channel: `{e}`*")
-
-    @commands.hybrid_command(
-        name="admit", description="Admit a user to a locked/hidden voice channel"
-    )
-    @commands.guild_only()
-    async def admit(self, ctx: "PushieContext", user: discord.User) -> None:
-        """Allow a specific user to connect to your locked or hidden voice channel."""
-        assert ctx.guild is not None
-        channel = self._get_voice_channel(ctx)
-        if not channel:
-            await ctx.err("*You must be in a voice channel.*")
-            return
-        try:
-            member = await ctx.guild.fetch_member(user.id)
-            await channel.set_permissions(member, connect=True, view_channel=True)
+        if role:
+            await ctx.bot.storage.set_voicecenter_rolejoin(ctx.guild.id, role.id)
             await ctx.ok(
-                f"`{Emoji.WHITELIST}` *{user.mention} admitted to **{channel.name}**.*"
+                f"`{Emoji.ROLE}` *Users get {role.mention} when they join voice.*"
             )
-        except discord.NotFound:
-            await ctx.err("*That user is not in this server.*")
-        except (discord.Forbidden, discord.HTTPException) as e:
-            await ctx.err(f"*Failed to admit user: `{e}`*")
+        else:
+            g = await ctx.bot.storage.get_guild(ctx.guild.id)
+            g.voicecenter_rolejoin = None
+            await ctx.bot.storage.save_guild(g)
+            await ctx.ok(f"`{Emoji.ROLE}` *Voice join role disabled.*")
 
-    @commands.hybrid_command(
-        name="reject", description="Block a user from your voice channel"
-    )
+    @voice_setup.command(name="panel", aliases=["p", "post", "embed"])
     @commands.guild_only()
-    async def reject(self, ctx: "PushieContext", user: discord.User) -> None:
-        """Prevent a specific user from joining your voice channel."""
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_setup_panel(
+        self, ctx: "PushieContext", channel: discord.TextChannel
+    ) -> None:
+        """Post the VoiceCenter control panel embed in a text channel."""
         assert ctx.guild is not None
-        channel = self._get_voice_channel(ctx)
-        if not channel:
-            await ctx.err("*You must be in a voice channel.*")
-            return
-        try:
-            member = await ctx.guild.fetch_member(user.id)
-            await channel.set_permissions(member, connect=False)
-            if member.voice and member.voice.channel == channel:
-                await member.move_to(None, reason="VoiceCenter: rejected from channel")
-            await ctx.ok(
-                f"`{Emoji.BLACKLIST}` *{user.mention} blocked from **{channel.name}**.*"
-            )
-        except discord.NotFound:
-            await ctx.err("*That user is not in this server.*")
-        except (discord.Forbidden, discord.HTTPException) as e:
-            await ctx.err(f"*Failed to block user: `{e}`*")
-
-    @commands.hybrid_command(
-        name="info", description="Show info about your current voice channel"
-    )
-    @commands.guild_only()
-    async def info(self, ctx: "PushieContext") -> None:
-        """Show information about your current voice channel."""
-        assert ctx.guild is not None
-        channel = self._get_voice_channel(ctx)
-        if not channel:
-            await ctx.err("*You must be in a voice channel.*")
-            return
-
         g = self.bot.storage.get_guild_sync(ctx.guild.id)
-        owner_id: int | None = None
-        if g:
-            data = g.voicecenter_temp_channels.get(str(channel.id))
-            if data:
-                owner_id = data.get("owner_id")
-
-        members_text = "\n".join(
-            f"> `{i+1}.` {m.mention}" for i, m in enumerate(channel.members[:8])
-        )
-        extra = (
-            f"\n> *+{len(channel.members) - 8} more...*"
-            if len(channel.members) > 8
-            else ""
-        )
+        prefix = g.prefix if g else (ctx.prefix or "!")
 
         embed = discord.Embed(
-            description=f"`{Emoji.CHANNEL}` ***{channel.name}***",
+            title=f"{Emoji.CHANNEL} VoiceCenter Controls",
+            description=(
+                "> *Join the **join-to-create** channel to get your own*\n"
+                "> *temporary voice channel, then use these commands:*"
+            ),
             color=0xFAB9EC,
         )
         embed.add_field(
-            name="Channel Info",
+            name=f"{Emoji.LOCK} Channel",
             value=(
-                f"> **ID** — `{channel.id}`\n"
-                f"> **Bitrate** — `{channel.bitrate // 1000}` kbps\n"
-                f"> **Limit** — `{channel.user_limit or 'unlimited'}`\n"
-                + (
-                    f"> **Owner** — <@{owner_id}>"
-                    if owner_id
-                    else f"> **Type** — Regular voice"
-                )
+                f"`{prefix}voice lock` — Lock channel\n"
+                f"`{prefix}voice unlock` — Unlock channel\n"
+                f"`{prefix}voice limit <n>` — Set user limit\n"
+                f"`{prefix}voice name <name>` — Rename channel\n"
+                f"`{prefix}voice bitrate <bps>` — Set bitrate\n"
+                f"`{prefix}voice ghost` — Hide channel"
             ),
-            inline=False,
+            inline=True,
         )
         embed.add_field(
-            name=f"Members ({len(channel.members)})",
-            value=(members_text + extra) or "*No members.*",
-            inline=False,
+            name=f"{Emoji.ROLE} Members",
+            value=(
+                f"`{prefix}voice admit @user` — Allow user\n"
+                f"`{prefix}voice reject @user` — Block user\n"
+                f"`{prefix}voice info` — Channel details"
+            ),
+            inline=True,
         )
-        await ctx.send(embed=embed)
+        embed.set_footer(text="VoiceCenter · Pushie")
+
+        try:
+            await channel.send(embed=embed)
+            await ctx.ok(f"`{Emoji.CHANNEL}` *Panel posted in {channel.mention}.*")
+        except discord.Forbidden:
+            await ctx.err(f"*I can't send messages in {channel.mention}.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed: `{e}`*")
 
     # =========================================================================
     # ERROR HANDLER
     # =========================================================================
 
-    async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
+    async def cog_command_error(
+        self, ctx: commands.Context, error: Exception
+    ) -> None:
         if isinstance(error, commands.HybridCommandError):
             error = error.original
         if isinstance(error, commands.CommandInvokeError):
@@ -581,7 +579,9 @@ class Voice(commands.Cog, name="Voice"):
         elif isinstance(error, commands.BadArgument):
             await ctx.send(embed=UI.error(f"*Bad argument: {error}*"))
         elif isinstance(error, commands.NoPrivateMessage):
-            await ctx.send(embed=UI.error("*This command can only be used in a server.*"))
+            await ctx.send(
+                embed=UI.error("*This command can only be used in a server.*")
+            )
         else:
             raise error
 

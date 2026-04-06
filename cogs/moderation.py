@@ -143,14 +143,15 @@ class Moderation(commands.Cog, name="Moderation"):
             await _reply(UI.error("*I don't have permission to view bans.*"))
 
     @commands.hybrid_command(
-        name="mute", description="Mute a member (remove Send Messages permission)"
+        name="mute", description="Mute a member via the configured mute role"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def mute(
         self, ctx: "PushieContext", member: discord.Member, *, reason: str | None = None
     ) -> None:
-        """Mute a member by removing their ability to send messages."""
+        """Mute a member by assigning the configured mute role."""
+        assert ctx.guild is not None
         author = cast(discord.Member, ctx.author)
         if member.id == ctx.author.id:
             await ctx.err("*You cannot mute yourself.*")
@@ -159,11 +160,23 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err("*You cannot mute someone with a higher role.*")
             return
 
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g or not g.mute_role:
+            await ctx.err("*No mute role configured. Use `/setup` to set one up.*")
+            return
+        mute_role = ctx.guild.get_role(g.mute_role)
+        if not mute_role:
+            await ctx.err("*Mute role not found. Please reconfigure it in `/setup`.*")
+            return
+        if mute_role in member.roles:
+            await ctx.err(f"*{member.mention} is already muted.*")
+            return
+
         try:
-            await member.edit(timed_out_until=None)
+            await member.add_roles(mute_role, reason=reason or "Muted via /mute")
             await ctx.ok(f"`{Emoji.MUTE}` *{member.mention} has been muted.*")
         except discord.Forbidden:
-            await ctx.err("*I don't have permission to mute this member.*")
+            await ctx.err("*I don't have permission to assign the mute role.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to mute: `{e}`*")
 
@@ -171,12 +184,26 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def unmute(self, ctx: "PushieContext", member: discord.Member) -> None:
-        """Unmute a member."""
+        """Unmute a member by removing the configured mute role."""
+        assert ctx.guild is not None
+
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g or not g.mute_role:
+            await ctx.err("*No mute role configured. Use `/setup` to set one up.*")
+            return
+        mute_role = ctx.guild.get_role(g.mute_role)
+        if not mute_role:
+            await ctx.err("*Mute role not found. Please reconfigure it in `/setup`.*")
+            return
+        if mute_role not in member.roles:
+            await ctx.err(f"*{member.mention} is not muted.*")
+            return
+
         try:
-            await member.edit(timed_out_until=None)
+            await member.remove_roles(mute_role, reason="Unmuted via /unmute")
             await ctx.ok(f"`{Emoji.UNMUTE}` *{member.mention} has been unmuted.*")
         except discord.Forbidden:
-            await ctx.err("*I don't have permission to unmute this member.*")
+            await ctx.err("*I don't have permission to remove the mute role.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to unmute: `{e}`*")
 
@@ -541,15 +568,42 @@ class Moderation(commands.Cog, name="Moderation"):
     # =========================================================================
 
     @commands.hybrid_command(
-        name="imute", description="Ignore mute (prevent image/attachment sending)"
+        name="imute", description="Image mute a member (prevent image/attachment sending)"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def imute(
         self, ctx: "PushieContext", member: discord.Member, *, reason: str | None = None
     ) -> None:
-        """Ignore mute a member (prevent sending images/attachments)."""
-        await ctx.ok(f"`{Emoji.IMUTE}` *{member.mention} has been image muted.*")
+        """Image mute a member by assigning the configured imute role."""
+        assert ctx.guild is not None
+        author = cast(discord.Member, ctx.author)
+        if member.id == ctx.author.id:
+            await ctx.err("*You cannot image mute yourself.*")
+            return
+        if member.top_role >= author.top_role:
+            await ctx.err("*You cannot image mute someone with a higher role.*")
+            return
+
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g or not g.imute_role:
+            await ctx.err("*No image mute role configured. Use `/setup` to set one up.*")
+            return
+        imute_role = ctx.guild.get_role(g.imute_role)
+        if not imute_role:
+            await ctx.err("*Image mute role not found. Please reconfigure it in `/setup`.*")
+            return
+        if imute_role in member.roles:
+            await ctx.err(f"*{member.mention} is already image muted.*")
+            return
+
+        try:
+            await member.add_roles(imute_role, reason=reason or "Image muted via /imute")
+            await ctx.ok(f"`{Emoji.IMUTE}` *{member.mention} has been image muted.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to assign the image mute role.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed to image mute: `{e}`*")
 
     @commands.hybrid_command(
         name="rmute", description="Role-based mute (mute via role assignment)"

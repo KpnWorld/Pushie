@@ -156,15 +156,23 @@ class Misc(commands.Cog, name="Miscellaneous"):
         role: discord.Role,
     ) -> None:
         """Bind an emoji to a role for reaction roles."""
-        try:
-            await ctx.message.add_reaction(emoji)
-            await ctx.message.remove_reaction(emoji, ctx.me)
-        except discord.HTTPException:
-            await ctx.err("*Invalid emoji.*")
-            return
+        # Validate emoji: prefix commands can test via add_reaction; slash commands
+        # cannot add reactions to their own interaction message, so validate by parsing.
+        if ctx.interaction:
+            try:
+                discord.PartialEmoji.from_str(emoji)
+            except Exception:
+                await ctx.err("*Invalid emoji.*")
+                return
+        else:
+            try:
+                await ctx.message.add_reaction(emoji)
+                await ctx.message.remove_reaction(emoji, ctx.me)
+            except discord.HTTPException:
+                await ctx.err("*Invalid emoji.*")
+                return
 
         author = cast(discord.Member, ctx.author)
-
         if role >= author.top_role:
             await ctx.err("*You cannot assign a role higher than your own.*")
             return
@@ -206,15 +214,11 @@ class Misc(commands.Cog, name="Miscellaneous"):
         """Create a custom embed from JSON data."""
         try:
             data = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            await ctx.err(f"*Invalid JSON: `{e}`*")
-            return
-
-        try:
-            data = json.loads(json_str)
             embed = discord.Embed.from_dict(data)
             embed.color = embed.color or discord.Color(0xFAB9EC)
             await ctx.send(embed=embed)
+        except json.JSONDecodeError as e:
+            await ctx.err(f"*Invalid JSON: `{e}`*")
         except (KeyError, ValueError) as e:
             await ctx.err(f"*Invalid embed data: `{e}`*")
 

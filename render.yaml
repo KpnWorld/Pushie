@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: pushie
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    healthCheckPath: /health
+    envVars:
+      - key: TOKEN
+        sync: false
+      - key: PORT
+        value: 10000

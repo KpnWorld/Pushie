@@ -481,13 +481,14 @@ class Info(commands.Cog, name="Info"):
         view = DownloadView(ctx.author, url, "↓ Download")
         await ctx.send(embed=embed, view=view)
 
-    @commands.hybrid_group(
+    @commands.group(
         name="icon",
         aliases=["ic"],
-        description="View or set the server icon",
+        invoke_without_command=True,
     )
     @commands.guild_only()
     async def icon(self, ctx: "PushieContext") -> None:
+        """View the server icon. Use `!icon set` to change it."""
         g = ctx.guild
         assert g is not None
 
@@ -505,10 +506,11 @@ class Info(commands.Cog, name="Info"):
         view = DownloadView(ctx.author, url, "↓ Download")
         await ctx.send(embed=embed, view=view)
 
-    @icon.command(name="set", description="Set the server icon (link or attachment)")
+    @icon.command(name="set")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def icon_set(self, ctx: "PushieContext", *, link: str | None = None) -> None:
+        """Set the server icon. Attach an image or pass a URL."""
         g = ctx.guild
         assert g is not None
 
@@ -517,57 +519,31 @@ class Info(commands.Cog, name="Info"):
         if ctx.message.attachments:
             image_bytes = await ctx.message.attachments[0].read()
         elif link:
-            if ctx.interaction:
-                await ctx.interaction.response.defer()
             try:
                 image_bytes = await _fetch_bytes(self.bot.session, link)
             except Exception:
                 await ctx.send(embed=UI.error("*Could not fetch image from that URL.*"))
                 return
         else:
-            modal = _AssetLinkModal("Set Server Icon")
-            (
-                await ctx.interaction.response.send_modal(modal)
-                if ctx.interaction
-                else None
-            )
-            if not ctx.interaction:
-                await ctx.send(embed=UI.error("*Provide a link or attach an image.*"))
-                return
-            await modal.wait()
-            if not modal.value:
-                return
-            try:
-                image_bytes = await _fetch_bytes(self.bot.session, modal.value)
-            except Exception:
-                await ctx.send(embed=UI.error("*Could not fetch image from that URL.*"))
-                return
+            await ctx.send(embed=UI.error("*Attach an image or provide a URL: `!icon set <url>`*"))
+            return
 
         try:
             await g.edit(icon=image_bytes)
-            if ctx.interaction and ctx.interaction.response.is_done():
-                try:
-                    await ctx.interaction.followup.send(
-                        embed=UI.success("*Server icon updated!*")
-                    )
-                except (discord.NotFound, discord.HTTPException):
-                    pass
-            else:
-                await ctx.send(embed=UI.success("*Server icon updated!*"))
+            await ctx.send(embed=UI.success("*Server icon updated!*"))
         except discord.Forbidden:
-            await ctx.send(
-                embed=UI.error("*I don't have permission to change the server icon.*")
-            )
+            await ctx.send(embed=UI.error("*I don't have permission to change the server icon.*"))
         except discord.HTTPException as e:
             await ctx.send(embed=UI.error(f"*Failed to update icon: `{e}`*"))
 
-    @commands.hybrid_group(
+    @commands.group(
         name="gbanner",
         aliases=["gbn"],
-        description="View or set the server banner",
+        invoke_without_command=True,
     )
     @commands.guild_only()
     async def gbanner(self, ctx: "PushieContext") -> None:
+        """View the server banner. Use `!gbanner set` to change it."""
         g = ctx.guild
         assert g is not None
 
@@ -588,14 +564,13 @@ class Info(commands.Cog, name="Info"):
         view = DownloadView(ctx.author, url, "↓ Download")
         await ctx.send(embed=embed, view=view)
 
-    @gbanner.command(
-        name="set", description="Set the server banner (requires boost level 2)"
-    )
+    @gbanner.command(name="set")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def gbanner_set(
         self, ctx: "PushieContext", *, link: str | None = None
     ) -> None:
+        """Set the server banner. Attach an image or pass a URL."""
         g = ctx.guild
         assert g is not None
 
@@ -610,52 +585,30 @@ class Info(commands.Cog, name="Info"):
         if ctx.message.attachments:
             image_bytes = await ctx.message.attachments[0].read()
         elif link:
-            if ctx.interaction:
-                await ctx.interaction.response.defer()
             try:
                 image_bytes = await _fetch_bytes(self.bot.session, link)
             except Exception:
                 await ctx.send(embed=UI.error("*Could not fetch image from that URL.*"))
                 return
         else:
-            if not ctx.interaction:
-                await ctx.send(embed=UI.error("*Provide a link or attach an image.*"))
-                return
-            modal = _AssetLinkModal("Set Server Banner")
-            await ctx.interaction.response.send_modal(modal)
-            await modal.wait()
-            if not modal.value:
-                return
-            try:
-                image_bytes = await _fetch_bytes(self.bot.session, modal.value)
-            except Exception:
-                await ctx.send(embed=UI.error("*Could not fetch image from that URL.*"))
-                return
+            await ctx.send(embed=UI.error("*Attach an image or provide a URL: `!gbanner set <url>`*"))
+            return
 
         try:
             await g.edit(banner=image_bytes)
-            if ctx.interaction and ctx.interaction.response.is_done():
-                try:
-                    await ctx.interaction.followup.send(
-                        embed=UI.success("*Server banner updated!*")
-                    )
-                except (discord.NotFound, discord.HTTPException):
-                    pass
-            else:
-                await ctx.send(embed=UI.success("*Server banner updated!*"))
+            await ctx.send(embed=UI.success("*Server banner updated!*"))
         except discord.Forbidden:
-            await ctx.send(
-                embed=UI.error("*I don't have permission to change the server banner.*")
-            )
+            await ctx.send(embed=UI.error("*I don't have permission to change the server banner.*"))
         except discord.HTTPException as e:
             await ctx.send(embed=UI.error(f"*Failed to update banner: `{e}`*"))
 
-    @commands.hybrid_group(
+    @commands.group(
         name="image",
         aliases=["img"],
-        description="Image processing tools",
+        invoke_without_command=True,
     )
     async def image(self, ctx: "PushieContext") -> None:
+        """Image tools (prefix-only — attach an image): darken, lighten, round."""
         await ctx.send(
             embed=UI.info(
                 f"*Image tools:*\n"
@@ -680,20 +633,19 @@ class Info(commands.Cog, name="Info"):
         )
         return None
 
-    @image.command(name="darken", description="Darken an attached image")
+    @image.command(name="darken")
     async def image_darken(
         self,
         ctx: "PushieContext",
         factor: float = 0.4,
     ) -> None:
+        """Darken an attached image (factor 0.0–1.0, default 0.4)."""
         url = await self._get_image_url(ctx)
         if not url:
             return
         if not (0.0 < factor <= 1.0):
             await ctx.send(embed=UI.error("*Factor must be between `0.0` and `1.0`.*"))
             return
-        if ctx.interaction:
-            await ctx.interaction.response.defer()
         async with ctx.typing():
             file = await _process_image(self.bot.session, url, "darken", factor)
         embed = discord.Embed(
@@ -701,25 +653,21 @@ class Info(commands.Cog, name="Info"):
             color=0xFAB9EC,
         )
         embed.set_image(url="attachment://image.png")
-        if ctx.interaction and ctx.interaction.response.is_done():
-            await ctx.interaction.followup.send(embed=embed, file=file)
-        else:
-            await ctx.send(embed=embed, file=file)
+        await ctx.send(embed=embed, file=file)
 
-    @image.command(name="lighten", description="Lighten an attached image")
+    @image.command(name="lighten")
     async def image_lighten(
         self,
         ctx: "PushieContext",
         factor: float = 0.4,
     ) -> None:
+        """Lighten an attached image (factor 0.0–1.0, default 0.4)."""
         url = await self._get_image_url(ctx)
         if not url:
             return
         if not (0.0 < factor <= 1.0):
             await ctx.send(embed=UI.error("*Factor must be between `0.0` and `1.0`.*"))
             return
-        if ctx.interaction:
-            await ctx.interaction.response.defer()
         async with ctx.typing():
             file = await _process_image(self.bot.session, url, "lighten", factor)
         embed = discord.Embed(
@@ -727,18 +675,14 @@ class Info(commands.Cog, name="Info"):
             color=0xFAB9EC,
         )
         embed.set_image(url="attachment://image.png")
-        if ctx.interaction and ctx.interaction.response.is_done():
-            await ctx.interaction.followup.send(embed=embed, file=file)
-        else:
-            await ctx.send(embed=embed, file=file)
+        await ctx.send(embed=embed, file=file)
 
-    @image.command(name="round", description="Round-crop an attached image")
+    @image.command(name="round")
     async def image_round(self, ctx: "PushieContext") -> None:
+        """Round-crop an attached image."""
         url = await self._get_image_url(ctx)
         if not url:
             return
-        if ctx.interaction:
-            await ctx.interaction.response.defer()
         async with ctx.typing():
             file = await _process_image(self.bot.session, url, "round")
         embed = discord.Embed(
@@ -746,10 +690,7 @@ class Info(commands.Cog, name="Info"):
             color=0xFAB9EC,
         )
         embed.set_image(url="attachment://image.png")
-        if ctx.interaction and ctx.interaction.response.is_done():
-            await ctx.interaction.followup.send(embed=embed, file=file)
-        else:
-            await ctx.send(embed=embed, file=file)
+        await ctx.send(embed=embed, file=file)
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.HybridCommandError):

@@ -314,11 +314,11 @@ def _setup_flask() -> Flask:
     """Create and configure Flask app for Render health checks."""
     app = Flask(__name__)
 
-    @app.route("/health", methods=["GET"])
+    @app.route("/health", methods=["HEAD"])
     def health() -> typing.Any:
         return jsonify({"status": "ok"})
 
-    @app.route("/", methods=["GET"])
+    @app.route("/", methods=["HEAD"])
     def index() -> typing.Any:
         return jsonify({"bot": "Pushie", "status": "running"})
 

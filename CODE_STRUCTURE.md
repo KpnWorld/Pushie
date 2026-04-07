@@ -5,7 +5,7 @@
 **Last Updated:** April 07, 2026
 
 ---
-
+```
 ## Directory Structure
 Pushie/
 ├── main.py                  # Bot Entry Point
@@ -60,7 +60,7 @@ Pushie/
 ├── baisic.txt
 ├── componentsv2.txt
 └── markdown.txt
-text---
+```
 
 ## Code Organization Patterns
 

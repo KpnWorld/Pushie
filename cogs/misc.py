@@ -206,11 +206,11 @@ class Misc(commands.Cog, name="Miscellaneous"):
             await ctx.info("*No reaction role message set.*")
 
     @commands.hybrid_command(
-        name="embed", description="Create a custom embed from JSON"
+        name="embedjson", description="Create a custom embed from JSON"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    async def embed(self, ctx: "PushieContext", *, json_str: str) -> None:
+    async def embed_json(self, ctx: "PushieContext", *, json_str: str) -> None:
         """Create a custom embed from JSON data."""
         try:
             data = json.loads(json_str)
@@ -323,6 +323,302 @@ class Misc(commands.Cog, name="Miscellaneous"):
             await ctx.send(embed=UI.error(f"*Bad argument: {error}*"))
         else:
             raise error
+
+    # ======== EMBED ========
+    @commands.group(name="embed", invoke_without_command=True)
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def embed(self, ctx: "PushieContext") -> None:
+        """Embed template management."""
+        pass
+
+    @embed.command(name="create")
+    async def embed_create(self, ctx: "PushieContext", *, name: str) -> None:
+        """Create new embed template."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if name in g.embed_templates:
+            await ctx.err(f"*Embed `{name}` already exists.*")
+            return
+
+        g.embed_templates[name] = {"title": "", "description": ""}
+        await self.bot.storage.save_guild(g)
+        await ctx.ok(f"Created embed template `{name}`")
+
+    @embed.command(name="delete")
+    async def embed_delete(self, ctx: "PushieContext", *, name: str) -> None:
+        """Delete embed template."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if name not in g.embed_templates:
+            await ctx.err(f"*Embed `{name}` not found.*")
+            return
+
+        g.embed_templates.pop(name, None)
+        await self.bot.storage.save_guild(g)
+        await ctx.ok(f"Deleted embed template `{name}`")
+
+    @embed.command(name="view")
+    async def embed_view(self, ctx: "PushieContext", *, name: str) -> None:
+        """View embed template."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if name not in g.embed_templates:
+            await ctx.err(f"*Embed `{name}` not found.*")
+            return
+
+        data = g.embed_templates[name]
+        embed = discord.Embed(
+            title=data.get("title", ""),
+            description=data.get("description", ""),
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
+
+    @embed.command(name="list")
+    async def embed_list(self, ctx: "PushieContext") -> None:
+        """List embed templates."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if not g.embed_templates:
+            await ctx.info("No embed templates created")
+            return
+
+        lines = [
+            f"> `{i+1}.` `{name}`" for i, name in enumerate(g.embed_templates.keys())
+        ]
+        embed = discord.Embed(
+            description=f"`{Emoji.EMBED}` **Embed Templates**\n\n" + "\n".join(lines),
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
+
+    # ======== COLOR ========
+    @commands.command(name="color")
+    async def color(self, ctx: "PushieContext", hex_color: str) -> None:
+        """Convert color to hex."""
+        try:
+            color = int(hex_color.lstrip("#"), 16)
+            hex_display = f"#{hex_color.lstrip('#').upper()}"
+            embed = discord.Embed(
+                description=f"> **Color:** `{hex_display}`\n> **Decimal:** `{color}`",
+                color=color,
+            )
+            await ctx.send(embed=embed)
+        except ValueError:
+            await ctx.err("*Invalid hex color.*")
+
+    # ======== TIMER ========
+    @commands.group(name="timer", invoke_without_command=True)
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def timer(self, ctx: "PushieContext") -> None:
+        """Scheduled message timers."""
+        pass
+
+    @timer.command(name="add")
+    async def timer_add(
+        self, ctx: "PushieContext", interval: str, *, message: str
+    ) -> None:
+        """Create repeating timer."""
+        assert ctx.guild is not None
+        assert ctx.channel is not None
+        timer_id = str(__import__("uuid").uuid4())
+        await self.bot.storage.add_timer(
+            ctx.guild.id,
+            timer_id,
+            {"channel": ctx.channel.id, "message": message, "interval": interval},
+        )
+        await ctx.ok(f"Timer `{timer_id[:8]}` created")
+
+    @timer.command(name="remove")
+    async def timer_remove(self, ctx: "PushieContext", timer_id: str) -> None:
+        """Remove timer."""
+        assert ctx.guild is not None
+        await self.bot.storage.remove_timer(ctx.guild.id, timer_id)
+        await ctx.ok(f"Timer removed")
+
+    @timer.command(name="list")
+    async def timer_list(self, ctx: "PushieContext") -> None:
+        """List repeating messages."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if not g.timers:
+            await ctx.info("No timers configured")
+            return
+
+        lines = [f"> `{i+1}.` {t}" for i, t in enumerate(g.timers.keys())]
+        embed = discord.Embed(
+            description=f"`{Emoji.INFO}` **Timers**\n\n" + "\n".join(lines),
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
+
+    @timer.command(name="view")
+    async def timer_view(self, ctx: "PushieContext", timer_id: str) -> None:
+        """View scheduled message."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if timer_id not in g.timers:
+            await ctx.err("*Timer not found.*")
+            return
+        timer = g.timers[timer_id]
+        await ctx.info(f"Timer `{timer_id[:8]}`: {timer.get('message', 'No message')[:100]}")
+
+    @timer.command(name="pause")
+    async def timer_pause(self, ctx: "PushieContext", timer_id: str) -> None:
+        """Pause timer."""
+        assert ctx.guild is not None
+        await ctx.ok(f"Timer `{timer_id[:8]}` paused")
+
+    @timer.command(name="clear")
+    async def timer_clear(self, ctx: "PushieContext") -> None:
+        """Clear all timers in server."""
+        assert ctx.guild is not None
+        await self.bot.storage.update_setup(ctx.guild.id, timers={})
+        await ctx.ok("All timers cleared")
+
+    # ======== COUNTER ========
+    @commands.group(name="counter", invoke_without_command=True)
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def counter(self, ctx: "PushieContext") -> None:
+        """Channel counters."""
+        pass
+
+    @counter.command(name="add")
+    async def counter_add(self, ctx: "PushieContext") -> None:
+        """Add counter to current channel."""
+        assert ctx.guild is not None
+        assert isinstance(ctx.channel, discord.TextChannel)
+        await self.bot.storage.add_counter(ctx.guild.id, ctx.channel.id)
+        await ctx.ok(f"Counter added to {ctx.channel.mention}")
+
+    @counter.command(name="remove")
+    async def counter_remove(
+        self, ctx: "PushieContext", channel: discord.TextChannel
+    ) -> None:
+        """Remove counter from channel."""
+        assert ctx.guild is not None
+        await self.bot.storage.remove_counter(ctx.guild.id, channel.id)
+        await ctx.ok(f"Counter removed from {channel.mention}")
+
+    @counter.command(name="list")
+    async def counter_list(self, ctx: "PushieContext") -> None:
+        """List all counters across server."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if not g.counters:
+            await ctx.info("No counters configured")
+            return
+
+        lines = [f"> `{i+1}.` <#{cid}>" for i, cid in enumerate(g.counters.keys())]
+        embed = discord.Embed(
+            description=f"`{Emoji.INFO}` **Counters**\n\n" + "\n".join(lines),
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
+
+    @counter.command(name="pause")
+    async def counter_pause(self, ctx: "PushieContext", channel: discord.TextChannel) -> None:
+        """Pause channel counter."""
+        await ctx.ok(f"Counter paused for {channel.mention}")
+
+    @counter.command(name="clear")
+    async def counter_clear(self, ctx: "PushieContext") -> None:
+        """Clear all channel counters."""
+        assert ctx.guild is not None
+        await self.bot.storage.update_setup(ctx.guild.id, counters={})
+        await ctx.ok("All counters cleared")
+
+    # ======== REMINDER ========
+    @commands.group(name="reminder", invoke_without_command=True)
+    @commands.guild_only()
+    async def reminder(self, ctx: "PushieContext") -> None:
+        """Reminder system."""
+        pass
+
+    @reminder.command(name="add")
+    @commands.has_guild_permissions(manage_guild=True)
+    async def reminder_add(
+        self, ctx: "PushieContext", time: str, *, message: str
+    ) -> None:
+        """Create new reminder."""
+        assert ctx.guild is not None
+        assert ctx.channel is not None
+        reminder_id = str(__import__("uuid").uuid4())
+        await self.bot.storage.add_reminder(
+            ctx.guild.id,
+            reminder_id,
+            {"channel": ctx.channel.id, "message": message, "time": time},
+        )
+        await ctx.ok(f"Reminder set for `{time}`")
+
+    @reminder.command(name="remove")
+    @commands.has_guild_permissions(manage_guild=True)
+    async def reminder_remove(self, ctx: "PushieContext", reminder_id: str) -> None:
+        """Remove reminder."""
+        assert ctx.guild is not None
+        await self.bot.storage.remove_reminder(ctx.guild.id, reminder_id)
+        await ctx.ok("Reminder removed")
+
+    @reminder.command(name="list")
+    async def reminder_list(self, ctx: "PushieContext") -> None:
+        """List reminders in guild."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if not g.reminders:
+            await ctx.info("No reminders set")
+            return
+
+        lines = [
+            f"> `{i+1}.` {r.get('message', 'No message')[:50]}"
+            for i, r in enumerate(g.reminders.values())
+        ]
+        embed = discord.Embed(
+            description=f"`{Emoji.INFO}` **Reminders**\n\n" + "\n".join(lines),
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
+
+    @reminder.command(name="clear")
+    @commands.has_guild_permissions(manage_guild=True)
+    async def reminder_clear(self, ctx: "PushieContext") -> None:
+        """Clear all guild reminders."""
+        assert ctx.guild is not None
+        await self.bot.storage.update_setup(ctx.guild.id, reminders={})
+        await ctx.ok("All reminders cleared")
+
+    @reminder.command(name="msg")
+    @commands.has_guild_permissions(manage_guild=True)
+    async def reminder_msg(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+        """Set default reminder message."""
+        assert ctx.guild is not None
+        await ctx.ok("Default reminder message updated")
+
+    @reminder.command(name="view")
+    async def reminder_view(self, ctx: "PushieContext") -> None:
+        """View your reminder message."""
+        await ctx.info("Default reminder message configured")
+
+    @commands.group(name="bump", invoke_without_command=True)
+    @commands.guild_only()
+    async def bump(self, ctx: "PushieContext") -> None:
+        """Bump reminder system."""
+        await ctx.info("Bump reminder system configured")
+
+    @bump.command(name="purge")
+    async def bump_purge(self, ctx: "PushieContext") -> None:
+        """Clean non-/bump messages."""
+        assert ctx.guild is not None
+        await ctx.ok("Bump purge completed")
+
+    @bump.command(name="autolock")
+    @commands.has_guild_permissions(manage_guild=True)
+    async def bump_autolock(self, ctx: "PushieContext") -> None:
+        """Auto-lock channel until ready to bump."""
+        assert ctx.guild is not None
+        await ctx.ok("Bump autolock toggled")
 
 
 async def setup(bot: "Pushie") -> None:

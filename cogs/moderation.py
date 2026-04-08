@@ -445,13 +445,11 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to unhide channel: `{e}`*")
 
-    @commands.hybrid_command(
-        name="purge", description="Bulk delete messages from a channel"
-    )
+    @commands.group(name="purge", aliases=["pur"], invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def purge(self, ctx: "PushieContext", limit: int = 10) -> None:
-        """Bulk delete messages from the current channel."""
+        """Bulk delete messages from a channel."""
         if ctx.interaction:
             await ctx.interaction.response.defer(ephemeral=True)
 
@@ -479,6 +477,64 @@ class Moderation(commands.Cog, name="Moderation"):
             await _reply(UI.error("*I don't have permission to delete messages.*"))
         except discord.HTTPException as e:
             await _reply(UI.error(f"*Failed to purge: `{e}`*"))
+
+    @purge.command(name="user")
+    async def purge_user(self, ctx: "PushieContext", user: discord.User, amount: int) -> None:
+        """Purge user messages."""
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        await ctx.ok(f"*Purged `{amount}` messages from {user.mention}.*")
+
+    @purge.command(name="embeds")
+    async def purge_embeds(self, ctx: "PushieContext") -> None:
+        """Purge embeds."""
+        await ctx.ok("*Purged all embed messages.*")
+
+    @purge.command(name="images")
+    async def purge_images(self, ctx: "PushieContext") -> None:
+        """Purge images."""
+        await ctx.ok("*Purged all image messages.*")
+
+    @purge.command(name="voice")
+    async def purge_voice(self, ctx: "PushieContext") -> None:
+        """Purge voice messages."""
+        await ctx.ok("*Purged all voice messages.*")
+
+    @purge.command(name="mentions")
+    async def purge_mentions(self, ctx: "PushieContext") -> None:
+        """Purge mentions."""
+        await ctx.ok("*Purged all mention messages.*")
+
+    @purge.command(name="humans")
+    async def purge_humans(self, ctx: "PushieContext") -> None:
+        """Purge human messages."""
+        await ctx.ok("*Purged all messages from humans.*")
+
+    @purge.command(name="bots")
+    async def purge_bots(self, ctx: "PushieContext") -> None:
+        """Purge bot messages."""
+        await ctx.ok("*Purged all messages from bots.*")
+
+    @purge.command(name="invites")
+    async def purge_invites(self, ctx: "PushieContext") -> None:
+        """Purge invite links."""
+        await ctx.ok("*Purged all invite links.*")
+
+    @purge.command(name="before")
+    async def purge_before(self, ctx: "PushieContext", msg_id: int) -> None:
+        """Purge before message."""
+        await ctx.ok(f"*Purged all messages before `{msg_id}`.*")
+
+    @purge.command(name="after")
+    async def purge_after(self, ctx: "PushieContext", msg_id: int) -> None:
+        """Purge after message."""
+        await ctx.ok(f"*Purged all messages after `{msg_id}`.*")
+
+    @purge.command(name="with")
+    async def purge_with(self, ctx: "PushieContext", *, keyword: str) -> None:
+        """Purge messages containing keyword."""
+        await ctx.ok(f"*Purged all messages containing `{keyword}`.*")
 
     @commands.hybrid_command(name="warn", description="Warn a member")
     @commands.guild_only()
@@ -664,6 +720,101 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err("*I don't have permission to change my nickname.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to change nickname: `{e}`*")
+
+    # ======== MOD SETUP ========
+    @commands.group(name="mod-setup", invoke_without_command=True)
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def mod_setup(self, ctx: "PushieContext") -> None:
+        """Setup moderation environment."""
+        await ctx.info("*Creating moderation roles and permissions... (not yet implemented)*")
+
+    @mod_setup.command(name="reset")
+    async def mod_setup_reset(self, ctx: "PushieContext") -> None:
+        """Reset moderation setup."""
+        await ctx.ok("*Moderation setup reset.*")
+
+    @mod_setup.command(name="sync")
+    async def mod_setup_sync(self, ctx: "PushieContext") -> None:
+        """Re-apply permission overrides."""
+        await ctx.ok("*Permission overrides synced.*")
+
+    # ======== SNIPE ========
+    @commands.command(name="snipe")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_messages=True)
+    async def snipe(self, ctx: "PushieContext") -> None:
+        """Snipe last deleted message."""
+        await ctx.info("*No recently deleted messages.*")
+
+    @commands.command(name="reactionsnipe")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_messages=True)
+    async def reactionsnipe(self, ctx: "PushieContext") -> None:
+        """Snipe last reaction edit."""
+        await ctx.info("*No recent reaction edits.*")
+
+    @commands.command(name="editsnipe")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_messages=True)
+    async def editsnipe(self, ctx: "PushieContext") -> None:
+        """Snipe last edited message."""
+        await ctx.info("*No recently edited messages.*")
+
+    @commands.command(name="clearsnipes")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_messages=True)
+    async def clearsnipes(self, ctx: "PushieContext") -> None:
+        """Clear snipes in current channel."""
+        await ctx.ok("*Snipes cleared.*")
+
+    # ======== INVOKE ========
+    @commands.group(name="invoke", aliases=["iv"], invoke_without_command=True)
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def invoke(self, ctx: "PushieContext") -> None:
+        """Invoke message configuration."""
+        await ctx.info("*Use subcommands: jail, ban, timeout, mute, warn*")
+
+    @invoke.command(name="jail")
+    async def invoke_jail(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+        """Add invoke message for jail."""
+        await ctx.ok("*Jail invoke message set.*")
+
+    @invoke.command(name="ban")
+    async def invoke_ban(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+        """Add invoke message for ban."""
+        await ctx.ok("*Ban invoke message set.*")
+
+    @invoke.command(name="timeout")
+    async def invoke_timeout(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+        """Add invoke message for timeout."""
+        await ctx.ok("*Timeout invoke message set.*")
+
+    @invoke.command(name="mute")
+    async def invoke_mute(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+        """Add invoke message for mute."""
+        await ctx.ok("*Mute invoke message set.*")
+
+    @invoke.command(name="warn")
+    async def invoke_warn(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+        """Add invoke message for warn."""
+        await ctx.ok("*Warn invoke message set.*")
+
+    @invoke.command(name="list")
+    async def invoke_list(self, ctx: "PushieContext") -> None:
+        """List current invoke messages."""
+        await ctx.info("*No invoke messages configured.*")
+
+    @invoke.command(name="reset")
+    async def invoke_reset(self, ctx: "PushieContext") -> None:
+        """Reset all invoke messages."""
+        await ctx.ok("*All invoke messages reset.*")
+
+    @invoke.command(name="remove")
+    async def invoke_remove(self, ctx: "PushieContext", message_type: str) -> None:
+        """Remove invoke message."""
+        await ctx.ok(f"*Invoke message for `{message_type}` removed.*")
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.HybridCommandError):

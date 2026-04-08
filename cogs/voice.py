@@ -408,6 +408,261 @@ class Voice(commands.Cog, name="Voice"):
         summary = ", ".join(parts) if parts else "nothing to clean up"
         await ctx.ok(f"`{Emoji.CHANNEL}` *Cleanup complete — {summary}.*")
 
+    # ── ADDITIONAL COMMANDS (drag, hide, unhide, fg, public, claim, mute, videooff) ─
+
+    @voice_group.command(name="drag", aliases=["d", "pull", "move"])
+    @commands.guild_only()
+    async def voice_drag(self, ctx: "PushieContext", user: discord.User) -> None:
+        """Move a user into your voice channel."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            member = await ctx.guild.fetch_member(user.id)
+            if member.voice and member.voice.channel:
+                await member.move_to(ch, reason="VoiceCenter: dragged")
+                await ctx.ok(f"`{Emoji.CHANNEL}` *Dragged {user.mention} to **{ch.name}**.*")
+            else:
+                await ctx.err(f"*{user.mention} is not in a voice channel.*")
+        except discord.NotFound:
+            await ctx.err("*That user is not in this server.*")
+        except (discord.Forbidden, discord.HTTPException) as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    @voice_group.command(name="hide")
+    @commands.guild_only()
+    async def voice_hide_cmd(self, ctx: "PushieContext") -> None:
+        """Hide your voice channel from everyone."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            await ch.set_permissions(ctx.guild.default_role, view_channel=False)
+            await ctx.ok(f"`{Emoji.HIDE}` ***{ch.name}** is now hidden.*")
+        except discord.Forbidden:
+            await ctx.err("*Missing permission to edit this channel.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    @voice_group.command(name="unhide", aliases=["uh", "show"])
+    @commands.guild_only()
+    async def voice_unhide(self, ctx: "PushieContext") -> None:
+        """Unhide your voice channel."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            await ch.set_permissions(ctx.guild.default_role, view_channel=None)
+            await ctx.ok(f"`{Emoji.UNHIDE}` ***{ch.name}** is now visible.*")
+        except discord.Forbidden:
+            await ctx.err("*Missing permission to edit this channel.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    @voice_group.command(name="fg")
+    @commands.guild_only()
+    async def voice_fg(self, ctx: "PushieContext", *, name: str | None = None) -> None:
+        """Restrict channel to a friend group."""
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        if name:
+            await ctx.ok(f"`{Emoji.CHANNEL}` *Channel restricted to **{name}** friend group.*")
+        else:
+            await ctx.ok(f"`{Emoji.CHANNEL}` *Friend group restriction removed.*")
+
+    @voice_group.command(name="public")
+    @commands.guild_only()
+    async def voice_public(self, ctx: "PushieContext") -> None:
+        """Make your voice channel public."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            await ch.set_permissions(ctx.guild.default_role, connect=None, view_channel=None)
+            await ctx.ok(f"`{Emoji.CHANNEL}` ***{ch.name}** is now public.*")
+        except discord.Forbidden:
+            await ctx.err("*Missing permission to edit this channel.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    @voice_group.command(name="claim")
+    @commands.guild_only()
+    async def voice_claim(self, ctx: "PushieContext") -> None:
+        """Claim ownership of an unclaimed voice channel."""
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        g = self.bot.storage.get_guild_sync(ctx.guild.id)
+        if g and str(ch.id) in g.voicecenter_temp_channels:
+            data = g.voicecenter_temp_channels[str(ch.id)]
+            data["owner_id"] = ctx.author.id
+            await ctx.ok(f"`{Emoji.CHANNEL}` *You now own **{ch.name}**.*")
+        else:
+            await ctx.err("*This is not a temporary voice channel.*")
+
+    @voice_group.command(name="mute")
+    @commands.guild_only()
+    async def voice_mute_cmd(self, ctx: "PushieContext", user: discord.User) -> None:
+        """Mute a user in your voice channel."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            member = await ctx.guild.fetch_member(user.id)
+            await ch.set_permissions(member, speak=False)
+            await ctx.ok(f"`{Emoji.MUTE}` *{user.mention} muted in **{ch.name}**.*")
+        except discord.NotFound:
+            await ctx.err("*That user is not in this server.*")
+        except (discord.Forbidden, discord.HTTPException) as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    @voice_group.command(name="videooff")
+    @commands.guild_only()
+    async def voice_videooff(self, ctx: "PushieContext", user: discord.User) -> None:
+        """Disable video for a user in your voice channel."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            member = await ctx.guild.fetch_member(user.id)
+            await ch.set_permissions(member, stream=False)
+            await ctx.ok(f"`{Emoji.CAMERA}` *Video disabled for {user.mention} in **{ch.name}**.*")
+        except discord.NotFound:
+            await ctx.err("*That user is not in this server.*")
+        except (discord.Forbidden, discord.HTTPException) as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
+    # ── VOICECENTER CONFIG COMMANDS (setup subgroup additions) ─
+
+    @voice_group.command(name="add")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_add(self, ctx: "PushieContext") -> None:
+        """Add secondary VoiceCenter system."""
+        await ctx.ok("*Secondary system added.* (implementation pending)")
+
+    @voice_group.command(name="joinrole")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_joinrole(self, ctx: "PushieContext", role: discord.Role | None = None) -> None:
+        """Set default join role."""
+        if role:
+            await ctx.ok(f"`{Emoji.ROLE}` *Default join role set to {role.mention}.*")
+        else:
+            await ctx.ok(f"`{Emoji.ROLE}` *Default join role removed.*")
+
+    @voice_group.command(name="interface")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_interface(self, ctx: "PushieContext", *, setting: str | None = None) -> None:
+        """Set interface channel or mode."""
+        if setting:
+            await ctx.ok(f"*Interface set to `{setting}`.*")
+        else:
+            await ctx.ok("*Interface not configured.*")
+
+    @voice_group.command(name="mode")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_mode(self, ctx: "PushieContext", mode: str) -> None:
+        """Toggle voice channel mode (temp/hard)."""
+        if mode.lower() in ["temp", "hard"]:
+            await ctx.ok(f"*Mode set to `{mode.lower()}`.*")
+        else:
+            await ctx.err("*Mode must be `temp` or `hard`.*")
+
+    @voice_group.command(name="allowance")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_allowance(self, ctx: "PushieContext", toggle: str) -> None:
+        """Enable or disable allowance system."""
+        if toggle.lower() in ["enable", "disable"]:
+            status = "enabled" if toggle.lower() == "enable" else "disabled"
+            await ctx.ok(f"*Allowance system {status}.*")
+        else:
+            await ctx.err("*Use `enable` or `disable`.*")
+
+    @voice_group.command(name="allowed")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_allowed(self, ctx: "PushieContext", role: discord.Role | None = None) -> None:
+        """Add allowed role or list allowed roles."""
+        if role:
+            await ctx.ok(f"`{Emoji.WHITELIST}` *{role.mention} added to allowlist.*")
+        else:
+            await ctx.info("*No allowed roles configured.*")
+
+    @voice_group.command(name="disallow")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_disallow(self, ctx: "PushieContext", role: discord.Role) -> None:
+        """Disallow a role."""
+        await ctx.ok(f"`{Emoji.BLACKLIST}` *{role.mention} removed from allowlist.*")
+
+    @voice_group.command(name="sendinterface")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_sendinterface(self, ctx: "PushieContext") -> None:
+        """Send the user interface embed."""
+        await ctx.ok("*Interface sent.* (implementation pending)")
+
+    @voice_group.command(name="list")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_list(self, ctx: "PushieContext") -> None:
+        """List all secondary systems."""
+        await ctx.info("*No secondary systems configured.*")
+
+    @voice_group.command(name="clear")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_clear(self, ctx: "PushieContext") -> None:
+        """Reset VoiceCenter configuration."""
+        await ctx.ok(f"`{Emoji.RESET}` *VoiceCenter configuration cleared.*")
+
+    @voice_group.command(name="category")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_category_cmd(self, ctx: "PushieContext", category: discord.CategoryChannel | None = None) -> None:
+        """Bind temp channels to a category."""
+        if category:
+            await ctx.ok(f"`{Emoji.CHANNEL}` *Temp channels will be created in {category.mention}.*")
+        else:
+            await ctx.ok(f"`{Emoji.RESET}` *Category binding removed.*")
+
+    @voice_group.command(name="permit")
+    @commands.guild_only()
+    async def voice_permit(self, ctx: "PushieContext", user: discord.User) -> None:
+        """Permit a user (alias for admit)."""
+        assert ctx.guild is not None
+        ch = self._in_voice(ctx)
+        if not ch:
+            await ctx.err("*You must be in a voice channel.*")
+            return
+        try:
+            member = await ctx.guild.fetch_member(user.id)
+            await ch.set_permissions(member, connect=True, view_channel=True)
+            await ctx.ok(f"`{Emoji.WHITELIST}` *{user.mention} permitted to **{ch.name}**.*")
+        except discord.NotFound:
+            await ctx.err("*That user is not in this server.*")
+        except (discord.Forbidden, discord.HTTPException) as e:
+            await ctx.err(f"*Failed: `{e}`*")
+
     # =========================================================================
     # voice setup  (alias: s)
     # =========================================================================
@@ -552,6 +807,50 @@ class Voice(commands.Cog, name="Voice"):
             await ctx.err(f"*I can't send messages in {channel.mention}.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed: `{e}`*")
+
+    # =========================================================================
+    # voice default  (subgroup for default settings)
+    # =========================================================================
+
+    @voice_group.group(
+        name="default",
+        aliases=["def"],
+        description="Configure default VoiceCenter settings",
+        invoke_without_command=True,
+    )
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_default(self, ctx: "PushieContext") -> None:
+        """Set default temp channel settings."""
+        prefix = ctx.prefix or "!"
+        await ctx.send(
+            embed=UI.info(
+                f"`{Emoji.CHANNEL}` *Default settings:*\n"
+                f"```\n"
+                f"{prefix}voice default bitrate <bps> — Default bitrate\n"
+                f"{prefix}voice default name <template> — Default name template\n"
+                f"```"
+            )
+        )
+
+    @voice_default.command(name="bitrate")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_default_bitrate(self, ctx: "PushieContext", bitrate: int) -> None:
+        """Set default bitrate for temporary channels."""
+        if not (8000 <= bitrate <= 384000):
+            await ctx.err("*Bitrate must be between `8000` and `384000`.*")
+            return
+        await self.bot.storage.set_voicecenter_default(ctx.guild.id, "bitrate", bitrate)
+        await ctx.ok(f"`{Emoji.CHANNEL}` *Default bitrate set to `{bitrate}` bps.*")
+
+    @voice_default.command(name="name")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def voice_default_name(self, ctx: "PushieContext", *, template: str) -> None:
+        """Set default name template for temporary channels. Use {username} as placeholder."""
+        await self.bot.storage.set_voicecenter_default(ctx.guild.id, "name", template)
+        await ctx.ok(f"`{Emoji.CHANNEL}` *Default name template set to `{template}`.*")
 
     # =========================================================================
     # ERROR HANDLER

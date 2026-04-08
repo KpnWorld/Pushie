@@ -19,47 +19,140 @@ class GuildData:
     id: int = 0
     prefix: str = "!"
 
+    # Logging
     log_channel: int | None = None
     log_events: list[str] = field(default_factory=list)
+    log_color: int = 0xFAB9EC
+    log_mod_ticket: bool = False
+    log_reports_channel: int | None = None
 
+    # Jail/Blacklist
     jail_channel: int | None = None
     jail_role: int | None = None
     jailed: list[int] = field(default_factory=list)
     user_blacklist: list[int] = field(default_factory=list)
     user_whitelist: list[int] = field(default_factory=list)
 
+    # Welcome/Gate
     welcome_channel: int | None = None
     welcome_role: int | None = None
     welcome_role_bot: int | None = None
     welcome_msg: str | None = None
 
+    greet_enabled: bool = False
+    greet_channel: int | None = None
+    greet_msg: str | None = None
+
+    leave_enabled: bool = False
+    leave_channel: int | None = None
+    leave_msg: str | None = None
+
+    ping_enabled: bool = False
+    ping_assignments: dict[int, dict[str, Any]] = field(default_factory=dict)
+
+    # Bot Protection
     bot_lock: bool = False
     bot_whitelist: list[int] = field(default_factory=list)
     bot_blacklist: list[int] = field(default_factory=list)
 
+    # Mute Roles
     mute_role: int | None = None
     imute_role: int | None = None
     rmute_role: int | None = None
 
+    # Roles Assignment
     reaction_roles: dict[str, int] = field(default_factory=dict)
-    booster_roles: list[int] = field(default_factory=list)
+    button_roles: dict[str, int] = field(default_factory=dict)
+    autoroles: list[int] = field(default_factory=list)
+    autoroles_human: list[int] = field(default_factory=list)
+    autoroles_bot: list[int] = field(default_factory=list)
 
+    # Booster Roles
+    booster_setup_enabled: bool = False
+    booster_base_role: int | None = None
+    booster_limit: int = 5
+    booster_filters: list[str] = field(default_factory=list)
+    booster_shares_limit: int = 3
+    booster_hoist: bool = True
+    booster_roles: dict[int, dict[str, Any]] = field(
+        default_factory=dict
+    )  # user_id -> role_info
+
+    # Friend Groups
+    fg_setup_enabled: bool = False
+    fg_list: dict[str, dict[str, Any]] = field(
+        default_factory=dict
+    )  # name -> group_info
+    fg_base_role: int | None = None
+    fg_limit: int = 5
+    fg_filters: list[str] = field(default_factory=list)
+    fg_manager_role: int | None = None
+    fg_vc_bindings: dict[str, int] = field(default_factory=dict)  # group_name -> vc_id
+    fg_role_bindings: dict[str, int] = field(
+        default_factory=dict
+    )  # group_name -> role_id
+
+    # Ticket System
+    ticket_enabled: bool = False
+    ticket_channel: int | None = None
+    ticket_panel_msg_id: int | None = None
+    ticket_report_enabled: bool = False
+    ticket_reports_channel: int | None = None
+    ticket_managers: list[int] = field(default_factory=list)
+
+    # Levels
+    levels_enabled: bool = False
+    levels_channel: int | None = None
+    levels_msg: str | None = None
+    levels_xp_leaderboard: dict[int, int] = field(default_factory=dict)  # user_id -> xp
+    levels_list: list[dict[str, Any]] = field(
+        default_factory=list
+    )  # [{level, role_id}, ...]
+
+    # User AFK
     afks: dict[str, Any] = field(default_factory=dict)
 
+    # Sticky Messages
     sticky_messages: dict[str, Any] = field(default_factory=dict)
 
+    # Autoresponders
     autoresponders: dict[str, Any] = field(default_factory=dict)
 
+    # Embed Templates
     embed_templates: dict[str, Any] = field(default_factory=dict)
 
+    # Warnings & Moderation
     warnings: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    warn_strikes: dict[int, dict[str, Any]] = field(
+        default_factory=dict
+    )  # user_id -> {count, action}
 
+    # Voice Centre
     voicecenter_channel: int | None = None
     voicecenter_category: int | None = None
     voicecenter_defaults: dict[str, Any] = field(default_factory=dict)
     voicecenter_rolejoin: int | None = None
     voicecenter_temp_channels: dict[int, dict[str, Any]] = field(default_factory=dict)
 
+    # Timers (scheduled messages)
+    timers: dict[str, dict[str, Any]] = field(
+        default_factory=dict
+    )  # timer_id -> {channel, msg, interval}
+
+    # Counters
+    counters: dict[int, dict[str, Any]] = field(
+        default_factory=dict
+    )  # channel_id -> {count, paused}
+
+    # Reminders
+    reminders: dict[str, dict[str, Any]] = field(
+        default_factory=dict
+    )  # reminder_id -> {channel, msg, time}
+    bump_reminder_msg: str | None = None
+    bump_thankyou_msg: str | None = None
+    bump_autolock: bool = False
+
+    # Role Backup
     role_backup: dict[int, dict[str, Any]] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -273,4 +366,188 @@ class StorageManager:
         for key, value in kwargs.items():
             if hasattr(g, key):
                 setattr(g, key, value)
+        await self.save_guild(g)
+
+    # Ticket System Methods
+    async def set_ticket_channel(self, guild_id: int, channel_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.ticket_channel = channel_id
+        await self.save_guild(g)
+
+    async def add_ticket_manager(self, guild_id: int, user_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        if user_id not in g.ticket_managers:
+            g.ticket_managers.append(user_id)
+            await self.save_guild(g)
+
+    async def remove_ticket_manager(self, guild_id: int, user_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        if user_id in g.ticket_managers:
+            g.ticket_managers.remove(user_id)
+            await self.save_guild(g)
+
+    # Autorole Methods
+    async def add_autorole(
+        self, guild_id: int, role_id: int, target: str = "all"
+    ) -> None:
+        g = await self.get_guild(guild_id)
+        if target == "human":
+            if role_id not in g.autoroles_human:
+                g.autoroles_human.append(role_id)
+        elif target == "bot":
+            if role_id not in g.autoroles_bot:
+                g.autoroles_bot.append(role_id)
+        else:  # all
+            if role_id not in g.autoroles:
+                g.autoroles.append(role_id)
+        await self.save_guild(g)
+
+    async def remove_autorole(
+        self, guild_id: int, role_id: int, target: str = "all"
+    ) -> None:
+        g = await self.get_guild(guild_id)
+        if target == "human":
+            if role_id in g.autoroles_human:
+                g.autoroles_human.remove(role_id)
+        elif target == "bot":
+            if role_id in g.autoroles_bot:
+                g.autoroles_bot.remove(role_id)
+        else:  # all
+            if role_id in g.autoroles:
+                g.autoroles.remove(role_id)
+        await self.save_guild(g)
+
+    # Button Roles Methods
+    async def add_button_role(self, guild_id: int, key: str, role_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.button_roles[key] = role_id
+        await self.save_guild(g)
+
+    async def remove_button_role(self, guild_id: int, key: str) -> None:
+        g = await self.get_guild(guild_id)
+        g.button_roles.pop(key, None)
+        await self.save_guild(g)
+
+    # Booster Role Methods
+    async def add_booster_role(
+        self, guild_id: int, user_id: int, role_info: dict[str, Any]
+    ) -> None:
+        g = await self.get_guild(guild_id)
+        g.booster_roles[user_id] = role_info
+        await self.save_guild(g)
+
+    async def remove_booster_role(self, guild_id: int, user_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.booster_roles.pop(user_id, None)
+        await self.save_guild(g)
+
+    # Friend Group Methods
+    async def add_friend_group(
+        self, guild_id: int, name: str, group_info: dict[str, Any]
+    ) -> None:
+        g = await self.get_guild(guild_id)
+        g.fg_list[name] = group_info
+        await self.save_guild(g)
+
+    async def remove_friend_group(self, guild_id: int, name: str) -> None:
+        g = await self.get_guild(guild_id)
+        g.fg_list.pop(name, None)
+        await self.save_guild(g)
+
+    # Greet/Leave Methods
+    async def set_greet_config(self, guild_id: int, channel_id: int, msg: str) -> None:
+        g = await self.get_guild(guild_id)
+        g.greet_channel = channel_id
+        g.greet_msg = msg
+        g.greet_enabled = True
+        await self.save_guild(g)
+
+    async def set_leave_config(self, guild_id: int, channel_id: int, msg: str) -> None:
+        g = await self.get_guild(guild_id)
+        g.leave_channel = channel_id
+        g.leave_msg = msg
+        g.leave_enabled = True
+        await self.save_guild(g)
+
+    # Ping on Join Methods
+    async def add_ping_assignment(
+        self, guild_id: int, channel_id: int, config: dict[str, Any]
+    ) -> None:
+        g = await self.get_guild(guild_id)
+        g.ping_assignments[channel_id] = config
+        await self.save_guild(g)
+
+    async def remove_ping_assignment(self, guild_id: int, channel_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.ping_assignments.pop(channel_id, None)
+        await self.save_guild(g)
+
+    # Level Methods
+    async def add_level(self, guild_id: int, level: int, role_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.levels_list.append({"level": level, "role_id": role_id})
+        await self.save_guild(g)
+
+    async def remove_level(self, guild_id: int, level: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.levels_list = [l for l in g.levels_list if l.get("level") != level]
+        await self.save_guild(g)
+
+    async def add_xp(self, guild_id: int, user_id: int, amount: int) -> None:
+        g = await self.get_guild(guild_id)
+        current = g.levels_xp_leaderboard.get(user_id, 0)
+        g.levels_xp_leaderboard[user_id] = current + amount
+        await self.save_guild(g)
+
+    # Timer Methods
+    async def add_timer(
+        self, guild_id: int, timer_id: str, config: dict[str, Any]
+    ) -> None:
+        g = await self.get_guild(guild_id)
+        g.timers[timer_id] = config
+        await self.save_guild(g)
+
+    async def remove_timer(self, guild_id: int, timer_id: str) -> None:
+        g = await self.get_guild(guild_id)
+        g.timers.pop(timer_id, None)
+        await self.save_guild(g)
+
+    # Counter Methods
+    async def add_counter(self, guild_id: int, channel_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.counters[channel_id] = {"count": 0, "paused": False}
+        await self.save_guild(g)
+
+    async def remove_counter(self, guild_id: int, channel_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.counters.pop(channel_id, None)
+        await self.save_guild(g)
+
+    # Reminder Methods
+    async def add_reminder(
+        self, guild_id: int, reminder_id: str, config: dict[str, Any]
+    ) -> None:
+        g = await self.get_guild(guild_id)
+        g.reminders[reminder_id] = config
+        await self.save_guild(g)
+
+    async def remove_reminder(self, guild_id: int, reminder_id: str) -> None:
+        g = await self.get_guild(guild_id)
+        g.reminders.pop(reminder_id, None)
+        await self.save_guild(g)
+
+    # Warning Methods
+    async def add_warning(
+        self, guild_id: int, user_id: int, warning_info: dict[str, Any]
+    ) -> None:
+        g = await self.get_guild(guild_id)
+        key = str(user_id)
+        if key not in g.warnings:
+            g.warnings[key] = []
+        g.warnings[key].append(warning_info)
+        await self.save_guild(g)
+
+    async def clear_warnings(self, guild_id: int, user_id: int) -> None:
+        g = await self.get_guild(guild_id)
+        g.warnings.pop(str(user_id), None)
         await self.save_guild(g)

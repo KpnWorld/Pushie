@@ -719,27 +719,6 @@ class Moderation(commands.Cog, name="Moderation"):
             f"`{Emoji.IMAGE}` *Image permissions toggled for {member.mention}.*"
         )
 
-    @commands.hybrid_command(
-        name="nickname", description="Change the bot's nickname in this server"
-    )
-    @commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
-    async def nickname(
-        self, ctx: "PushieContext", *, new_nick: str | None = None
-    ) -> None:
-        """Change the bot's nickname in the current server."""
-        assert ctx.guild is not None
-        try:
-            assert ctx.guild.me is not None
-            await ctx.guild.me.edit(nick=new_nick)
-            if new_nick:
-                await ctx.ok(f"`{Emoji.NICK}` *My nickname is now `{new_nick}`.*")
-            else:
-                await ctx.ok(f"`{Emoji.RESET}` *My nickname has been reset.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to change my nickname.*")
-        except discord.HTTPException as e:
-            await ctx.err(f"*Failed to change nickname: `{e}`*")
 
     # ======== MOD SETUP ========
     @commands.group(name="mod-setup", invoke_without_command=True)

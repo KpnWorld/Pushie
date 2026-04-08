@@ -1305,37 +1305,6 @@ class Server(commands.Cog, name="Server"):
         await ch.send(embed=embed)
         await ctx.ok("*Report submitted to moderation.*")
 
-    # ======== REACTION ROLES ========
-    @commands.group(name="reactionrole", aliases=["rr"], invoke_without_command=True)
-    @commands.guild_only()
-    @commands.has_guild_permissions(manage_guild=True)
-    async def reactionrole(self, ctx: "PushieContext") -> None:
-        """Reaction role management."""
-        await ctx.info("*Use subcommands: add, remove, list, clear*")
-
-    @reactionrole.command(name="add")
-    async def reactionrole_add(
-        self, ctx: "PushieContext", msg_id: int, emoji: str, role: discord.Role
-    ) -> None:
-        """Add reaction role binding."""
-        assert ctx.guild is not None
-        await ctx.ok(f"Reaction role added: {emoji} → {role.mention}")
-
-    @reactionrole.command(name="remove")
-    async def reactionrole_remove(self, ctx: "PushieContext", channel: discord.TextChannel, emoji: str) -> None:
-        """Remove reaction role."""
-        await ctx.ok(f"Reaction role removed: {emoji}")
-
-    @reactionrole.command(name="list")
-    async def reactionrole_list(self, ctx: "PushieContext") -> None:
-        """List by channel."""
-        await ctx.info("*No reaction roles configured.*")
-
-    @reactionrole.command(name="clear")
-    async def reactionrole_clear(self, ctx: "PushieContext") -> None:
-        """Clear all reaction roles in server."""
-        await ctx.ok("*Reaction roles cleared.*")
-
     # ======== BUTTON ROLES ========
     @commands.group(name="buttonrole", aliases=["butr"], invoke_without_command=True)
     @commands.guild_only()

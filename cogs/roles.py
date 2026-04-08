@@ -465,11 +465,11 @@ class Roles(commands.Cog, name="Roles"):
         await ctx.ok(f"`{Emoji.ROLE}` *{role.mention} removed from `{count}` members.*")
 
     @commands.hybrid_command(
-        name="strip", description="Remove dangerous permissions from a role"
+        name="rolestrip", description="Remove dangerous permissions from a role"
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
-    async def strip(self, ctx: "PushieContext", role: discord.Role) -> None:
+    async def rolestrip(self, ctx: "PushieContext", role: discord.Role) -> None:
         """Remove dangerous permissions from a role."""
         author = cast(discord.Member, ctx.author)
         if role >= author.top_role:
@@ -499,132 +499,6 @@ class Roles(commands.Cog, name="Roles"):
             await ctx.err("*I don't have permission to edit this role.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to strip permissions: `{e}`*")
-
-    @commands.hybrid_group(
-        name="fakepermissions",
-        aliases=["fakeperms", "fp"],
-        description="Manage fake permissions",
-    )
-    @commands.guild_only()
-    async def fakepermissions(self, ctx: "PushieContext") -> None:
-        """Manage fake (display-only) permissions for roles."""
-        pass
-
-    @fakepermissions.command(name="add", description="Add a fake permission to a role")
-    @commands.guild_only()
-    @commands.has_guild_permissions(manage_roles=True)
-    async def fakepermissions_add(
-        self, ctx: "PushieContext", role: discord.Role, perm: str
-    ) -> None:
-        """Add a fake permission to a role."""
-        assert ctx.guild is not None
-        g = self.bot.storage.get_guild_sync(ctx.guild.id)
-        if not g:
-            await ctx.err("*Server data not initialized.*")
-            return
-
-        if not hasattr(g, "fake_permissions"):
-            g.fake_permissions = {}  # type: ignore[attr-defined]
-
-        role_key = str(role.id)
-        if role_key not in g.fake_permissions:  # type: ignore[attr-defined]
-            g.fake_permissions[role_key] = []  # type: ignore[attr-defined]
-
-        if perm not in g.fake_permissions[role_key]:  # type: ignore[attr-defined]
-            g.fake_permissions[role_key].append(perm)  # type: ignore[attr-defined]
-            await self.bot.storage.save_guild(g)
-            await ctx.ok(
-                f"`{Emoji.SUCCESS}` *Fake permission `{perm}` added to {role.mention}.*"
-            )
-        else:
-            await ctx.warn(f"*{role.mention} already has permission `{perm}`.*")
-
-    @fakepermissions.command(name="remove", description="Remove a fake permission")
-    @commands.guild_only()
-    @commands.has_guild_permissions(manage_roles=True)
-    async def fakepermissions_remove(
-        self, ctx: "PushieContext", role: discord.Role, perm: str
-    ) -> None:
-        """Remove a fake permission from a role."""
-        assert ctx.guild is not None
-        g = self.bot.storage.get_guild_sync(ctx.guild.id)
-        if not g or not hasattr(g, "fake_permissions"):
-            await ctx.info("*No fake permissions set.*")
-            return
-
-        role_key = str(role.id)
-        if role_key not in g.fake_permissions or perm not in g.fake_permissions[role_key]:  # type: ignore[attr-defined]
-            await ctx.warn(f"*{role.mention} does not have permission `{perm}`.*")
-            return
-
-        g.fake_permissions[role_key].remove(perm)  # type: ignore[attr-defined]
-        if not g.fake_permissions[role_key]:  # type: ignore[attr-defined]
-            del g.fake_permissions[role_key]  # type: ignore[attr-defined]
-
-        await self.bot.storage.save_guild(g)
-        await ctx.ok(
-            f"`{Emoji.SUCCESS}` *Fake permission `{perm}` removed from {role.mention}.*"
-        )
-
-    @fakepermissions.command(name="list", description="List fake permissions")
-    @commands.guild_only()
-    async def fakepermissions_list(
-        self, ctx: "PushieContext", role: discord.Role | None = None
-    ) -> None:
-        """List all fake permissions."""
-        assert ctx.guild is not None
-        g = self.bot.storage.get_guild_sync(ctx.guild.id)
-
-        if not g or not hasattr(g, "fake_permissions") or not g.fake_permissions:  # type: ignore[attr-defined]
-            await ctx.info("*No fake permissions set for this server.*")
-            return
-
-        perms_dict = g.fake_permissions  # type: ignore[attr-defined]
-        result_lines = []
-
-        for role_id, perms in perms_dict.items():
-            r = ctx.guild.get_role(int(role_id))
-            if r:
-                perm_str = ", ".join(f"`{p}`" for p in perms)
-                result_lines.append(f"> {r.mention}: {perm_str}")
-
-        if result_lines:
-            await ctx.send(
-                embed=UI.info(
-                    f"`{Emoji.ROLE}` **Fake Permissions**\n\n" + "\n".join(result_lines)
-                )
-            )
-        else:
-            await ctx.info("*No fake permissions set for this server.*")
-
-    @fakepermissions.command(name="reset", description="Reset all fake permissions")
-    @commands.guild_only()
-    @commands.has_guild_permissions(manage_roles=True)
-    async def fakepermissions_reset(
-        self, ctx: "PushieContext", role: discord.Role | None = None
-    ) -> None:
-        """Reset all fake permissions."""
-        assert ctx.guild is not None
-        g = self.bot.storage.get_guild_sync(ctx.guild.id)
-        if not g:
-            await ctx.err("*Server data not found.*")
-            return
-
-        if role:
-            role_key = str(role.id)
-            if hasattr(g, "fake_permissions") and role_key in g.fake_permissions:  # type: ignore[attr-defined]
-                del g.fake_permissions[role_key]  # type: ignore[attr-defined]
-                await self.bot.storage.save_guild(g)
-                await ctx.ok(
-                    f"`{Emoji.SUCCESS}` *Fake permissions reset for {role.mention}.*"
-                )
-            else:
-                await ctx.info(f"*No fake permissions set for {role.mention}.*")
-        else:
-            if hasattr(g, "fake_permissions"):
-                g.fake_permissions = {}  # type: ignore[attr-defined]
-            await self.bot.storage.save_guild(g)
-            await ctx.ok(f"`{Emoji.SUCCESS}` *All fake permissions reset.*")
 
     # =========================================================================
     # ERROR HANDLING

@@ -1,0 +1,168 @@
+[2026-04-08 22:44:13] INFO pushie: Flask health endpoint started on port 5000
+[2026-04-08 22:44:13] WARNING discord.client: PyNaCl is not installed, voice will NOT be supported
+[2026-04-08 22:44:13] WARNING discord.client: davey is not installed, voice will NOT be supported
+[2026-04-08 22:44:13] INFO discord.client: logging in using static token
+ * Serving Flask app 'main'
+ * Debug mode: off
+Address already in use
+Port 5000 is in use by another program. Either identify and stop that program, or start the server with a different port.
+                                                                                [2026-04-08 22:44:13] INFO storage: Storage loaded: 4 guild(s)
+[2026-04-08 22:44:13] ERROR pushie: Failed to load cogs.core
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 974, in _load_from_module_spec
+    await setup(self)
+  File "/home/runner/workspace/cogs/core.py", line 168, in setup
+    await bot.add_cog(Core(bot))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 810, in add_cog
+    cog = await cog._inject(self, override=override, guild=guild, guilds=guilds)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/cog.py", line 729, in _inject
+    raise e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/cog.py", line 720, in _inject
+    bot.add_command(command)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 264, in add_command
+    super().add_command(command)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/core.py", line 1391, in add_command
+    raise CommandRegistrationError(command.name)
+discord.ext.commands.errors.CommandRegistrationError: The command prefix is already an existing command or alias.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 91, in _load_cogs
+    await self.load_extension(ext)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 1040, in load_extension
+    await self._load_from_module_spec(spec, name)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 979, in _load_from_module_spec
+    raise errors.ExtensionFailed(key, e) from e
+discord.ext.commands.errors.ExtensionFailed: Extension 'cogs.core' raised an error: CommandRegistrationError: The command prefix is already an existing command or alias.
+
+[2026-04-08 22:44:13] INFO pushie: Loaded cogs.gate
+[2026-04-08 22:44:13] INFO pushie: Loaded cogs.level
+[2026-04-08 22:44:13] INFO pushie: Loaded cogs.logz
+[2026-04-08 22:44:13] INFO pushie: Loaded cogs.roles
+[2026-04-08 22:44:13] ERROR pushie: Failed to load cogs.security
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 974, in _load_from_module_spec
+    await setup(self)
+  File "/home/runner/workspace/cogs/security.py", line 369, in setup
+    await bot.add_cog(Security(bot))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 810, in add_cog
+    cog = await cog._inject(self, override=override, guild=guild, guilds=guilds)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/cog.py", line 729, in _inject
+    raise e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/cog.py", line 720, in _inject
+    bot.add_command(command)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 264, in add_command
+    super().add_command(command)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/core.py", line 1391, in add_command
+    raise CommandRegistrationError(command.name)
+discord.ext.commands.errors.CommandRegistrationError: The command fakepermissions is already an existing command or alias.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 91, in _load_cogs
+    await self.load_extension(ext)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 1040, in load_extension
+    await self._load_from_module_spec(spec, name)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 979, in _load_from_module_spec
+    raise errors.ExtensionFailed(key, e) from e
+discord.ext.commands.errors.ExtensionFailed: Extension 'cogs.security' raised an error: CommandRegistrationError: The command fakepermissions is already an existing command or alias.
+
+[2026-04-08 22:44:13] ERROR pushie: Failed to load cogs.sudo
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 974, in _load_from_module_spec
+    await setup(self)
+  File "/home/runner/workspace/cogs/sudo.py", line 271, in setup
+    await bot.add_cog(Sudo(bot))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 810, in add_cog
+    cog = await cog._inject(self, override=override, guild=guild, guilds=guilds)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/cog.py", line 729, in _inject
+    raise e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/cog.py", line 720, in _inject
+    bot.add_command(command)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 264, in add_command
+    super().add_command(command)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/core.py", line 1391, in add_command
+    raise CommandRegistrationError(command.name)
+discord.ext.commands.errors.CommandRegistrationError: The command sudo is already an existing command or alias.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 91, in _load_cogs
+    await self.load_extension(ext)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 1040, in load_extension
+    await self._load_from_module_spec(spec, name)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 979, in _load_from_module_spec
+    raise errors.ExtensionFailed(key, e) from e
+discord.ext.commands.errors.ExtensionFailed: Extension 'cogs.sudo' raised an error: CommandRegistrationError: The command sudo is already an existing command or alias.
+
+[2026-04-08 22:44:13] ERROR pushie: Failed to load cogs.moderation
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 974, in _load_from_module_spec
+    await setup(self)
+  File "/home/runner/workspace/cogs/moderation.py", line 1082, in setup
+    await bot.add_cog(Moderation(bot))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 810, in add_cog
+    cog = await cog._inject(self, override=override, guild=guild, guilds=guilds)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/cog.py", line 729, in _inject
+    raise e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/cog.py", line 720, in _inject
+    bot.add_command(command)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 264, in add_command
+    super().add_command(command)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/core.py", line 1391, in add_command
+    raise CommandRegistrationError(command.name)
+discord.ext.commands.errors.CommandRegistrationError: The command nickname is already an existing command or alias.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 91, in _load_cogs
+    await self.load_extension(ext)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 1040, in load_extension
+    await self._load_from_module_spec(spec, name)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 979, in _load_from_module_spec
+    raise errors.ExtensionFailed(key, e) from e
+discord.ext.commands.errors.ExtensionFailed: Extension 'cogs.moderation' raised an error: CommandRegistrationError: The command nickname is already an existing command or alias.
+
+[2026-04-08 22:44:13] INFO pushie: Loaded cogs.server
+[2026-04-08 22:44:13] ERROR pushie: Failed to load cogs.misc
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 974, in _load_from_module_spec
+    await setup(self)
+  File "/home/runner/workspace/cogs/misc.py", line 653, in setup
+    await bot.add_cog(Misc(bot))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 810, in add_cog
+    cog = await cog._inject(self, override=override, guild=guild, guilds=guilds)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/cog.py", line 729, in _inject
+    raise e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/cog.py", line 720, in _inject
+    bot.add_command(command)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 264, in add_command
+    super().add_command(command)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/core.py", line 1391, in add_command
+    raise CommandRegistrationError(command.name)
+discord.ext.commands.errors.CommandRegistrationError: The command reactionrole is already an existing command or alias.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 91, in _load_cogs
+    await self.load_extension(ext)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 1040, in load_extension
+    await self._load_from_module_spec(spec, name)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 979, in _load_from_module_spec
+    raise errors.ExtensionFailed(key, e) from e
+discord.ext.commands.errors.ExtensionFailed: Extension 'cogs.misc' raised an error: CommandRegistrationError: The command reactionrole is already an existing command or alias.
+
+[2026-04-08 22:44:13] INFO pushie: Loaded cogs.voice
+[2026-04-08 22:44:14] INFO discord.gateway: Shard ID None has connected to Gateway (Session ID: 318b642a20fee0cb112668f4d2df5c62).
+[2026-04-08 22:44:16] INFO pushie: Ready — CodeCore#3163 (1474894008160616478) | 2 guilds
+[2026-04-08 22:44:16] INFO pushie: Synced 21 slash commands

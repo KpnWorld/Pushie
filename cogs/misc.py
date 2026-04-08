@@ -620,6 +620,34 @@ class Misc(commands.Cog, name="Miscellaneous"):
         assert ctx.guild is not None
         await ctx.ok("Bump autolock toggled")
 
+    @bump.group(name="msg", invoke_without_command=True)
+    @commands.has_guild_permissions(manage_guild=True)
+    async def bump_msg(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+        """Set the bump reminder message."""
+        if message:
+            await ctx.ok(f"*Bump reminder message set.*")
+        else:
+            await ctx.info("*Use: `reminder bump msg <message>` or `reminder bump msg view`*")
+
+    @bump_msg.command(name="view")
+    async def bump_msg_view(self, ctx: "PushieContext") -> None:
+        """View the current bump reminder message."""
+        await ctx.info("*Bump reminder message:* (default)")
+
+    @bump.group(name="thankyou", invoke_without_command=True)
+    @commands.has_guild_permissions(manage_guild=True)
+    async def bump_thankyou(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+        """Set the bump thank you response."""
+        if message:
+            await ctx.ok("*Bump thank you message set.*")
+        else:
+            await ctx.info("*Use: `reminder bump thankyou <message>` or `reminder bump thankyou view`*")
+
+    @bump_thankyou.command(name="view")
+    async def bump_thankyou_view(self, ctx: "PushieContext") -> None:
+        """View the current bump thank you message."""
+        await ctx.info("*Bump thank you message:* (default)")
+
 
 async def setup(bot: "Pushie") -> None:
     await bot.add_cog(Misc(bot))

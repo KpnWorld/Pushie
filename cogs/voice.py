@@ -132,29 +132,29 @@ class Voice(commands.Cog, name="Voice"):
     # ROOT: voice  (alias: vc)
     # =========================================================================
 
-    @commands.hybrid_group(
-        name="voice",
-        aliases=["vc"],
-        description="Voice channel commands",
+    @commands.group(
+        name="voicecentre",
+        aliases=["vc", "voice"],
+        invoke_without_command=True,
     )
     @commands.guild_only()
     async def voice_group(self, ctx: "PushieContext") -> None:
-        """Voice channel management. Join a voice channel, then run a subcommand."""
+        """Voice centre management. Join a voice channel, then run a subcommand."""
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.CHANNEL}` *Voice commands:*\n"
+                f"`{Emoji.CHANNEL}` *Voice centre commands:*\n"
                 f"```\n"
-                f"{prefix}voice lock / unlock\n"
-                f"{prefix}voice limit <n>   (0 = unlimited)\n"
-                f"{prefix}voice name <name>\n"
-                f"{prefix}voice bitrate <bps>\n"
-                f"{prefix}voice ghost\n"
-                f"{prefix}voice admit @user\n"
-                f"{prefix}voice reject @user\n"
-                f"{prefix}voice info\n"
-                f"{prefix}voice cleanup\n"
-                f"{prefix}voice setup ...\n"
+                f"{prefix}voicecentre lock / unlock\n"
+                f"{prefix}voicecentre limit <n>   (0 = unlimited)\n"
+                f"{prefix}voicecentre name <name>\n"
+                f"{prefix}voicecentre bitrate <bps>\n"
+                f"{prefix}voicecentre hide / unhide\n"
+                f"{prefix}voicecentre drag @user\n"
+                f"{prefix}voicecentre permit @user\n"
+                f"{prefix}voicecentre reject @user\n"
+                f"{prefix}voicecentre claim\n"
+                f"{prefix}voicecentre setup ...\n"
                 f"```"
             )
         )
@@ -261,7 +261,7 @@ class Voice(commands.Cog, name="Voice"):
 
     # ── GHOST ─────────────────────────────────────────────────────────────────
 
-    @voice_group.command(name="ghost", aliases=["g", "hide", "invisible"])
+    @voice_group.command(name="ghost", aliases=["g", "invisible"])
     @commands.guild_only()
     async def voice_ghost(self, ctx: "PushieContext") -> None:
         """Hide your voice channel from everyone outside it."""
@@ -280,7 +280,7 @@ class Voice(commands.Cog, name="Voice"):
 
     # ── ADMIT ─────────────────────────────────────────────────────────────────
 
-    @voice_group.command(name="admit", aliases=["ad", "allow", "permit"])
+    @voice_group.command(name="admit", aliases=["ad", "allow"])
     @commands.guild_only()
     async def voice_admit(self, ctx: "PushieContext", user: discord.User) -> None:
         """Allow a specific user to connect to your locked/hidden channel."""

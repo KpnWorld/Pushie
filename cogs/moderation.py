@@ -273,73 +273,72 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to remove timeout: `{e}`*")
 
-    @commands.hybrid_group(name="nick", description="Manage member nicknames")
-    @commands.guild_only()
-    async def nick(self, ctx: "PushieContext") -> None:
-        """Commands for managing member nicknames."""
-        pass
-
-    @nick.command(name="reset", description="Reset a member's nickname")
+    @commands.group(name="nick", aliases=["nickname"], invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_nicknames=True)
-    async def nick_reset(self, ctx: "PushieContext", member: discord.Member) -> None:
-        """Reset a member's nickname to their username."""
-        try:
-            await member.edit(nick=None)
-            await ctx.ok(
-                f"`{Emoji.RESET}` *{member.mention}'s nickname has been reset.*"
-            )
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to change this member's nickname.*")
-        except discord.HTTPException as e:
-            await ctx.err(f"*Failed to reset nickname: `{e}`*")
-
-    @commands.hybrid_command(
-        name="force-nick", description="Force change a member's nickname"
-    )
-    @commands.guild_only()
-    @commands.has_guild_permissions(manage_nicknames=True)
-    async def force_nick(
-        self,
-        ctx: "PushieContext",
-        member: discord.Member,
-        *,
-        new_nick: str,
-    ) -> None:
-        """Force change a member's nickname."""
-        if len(new_nick) > 32:
+    async def nick(self, ctx: "PushieContext", member: discord.Member | None = None, *, nickname: str | None = None) -> None:
+        """Set a member's nickname."""
+        if member is None:
+            await ctx.info("*Use: `nick <user> <nickname>` or `nick remove <user>`*")
+            return
+        if nickname is None:
+            await ctx.err("*Please provide a nickname.*")
+            return
+        if len(nickname) > 32:
             await ctx.err("*Nickname must be 32 characters or less.*")
             return
-
         try:
-            await member.edit(nick=new_nick)
-            await ctx.ok(
-                f"`{Emoji.NICK}` *{member.mention}'s nickname is now `{new_nick}`.*"
-            )
+            await member.edit(nick=nickname)
+            await ctx.ok(f"`{Emoji.NICK}` *{member.mention}'s nickname set to `{nickname}`.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to change this member's nickname.*")
         except discord.HTTPException as e:
-            await ctx.err(f"*Failed to change nickname: `{e}`*")
+            await ctx.err(f"*Failed to set nickname: `{e}`*")
 
-    @commands.hybrid_command(
-        name="force-nick-reset",
-        description="Force reset a member's nickname",
-    )
+    @nick.command(name="remove")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_nicknames=True)
-    async def force_nick_reset(
-        self, ctx: "PushieContext", member: discord.Member
-    ) -> None:
-        """Force reset a member's nickname."""
+    async def nick_remove(self, ctx: "PushieContext", member: discord.Member) -> None:
+        """Remove a member's nickname."""
         try:
             await member.edit(nick=None)
-            await ctx.ok(
-                f"`{Emoji.RESET}` *{member.mention}'s nickname has been reset.*"
-            )
+            await ctx.ok(f"`{Emoji.RESET}` *{member.mention}'s nickname has been removed.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to change this member's nickname.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed to remove nickname: `{e}`*")
+
+    @commands.group(name="forcenick", aliases=["fn"], invoke_without_command=True)
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_nicknames=True)
+    async def forcenick(self, ctx: "PushieContext", member: discord.Member | None = None, *, nickname: str | None = None) -> None:
+        """Force a nickname on a member."""
+        if member is None or nickname is None:
+            await ctx.info("*Use: `forcenick <user> <nickname>` or `forcenick cancel <user>`*")
+            return
+        if len(nickname) > 32:
+            await ctx.err("*Nickname must be 32 characters or less.*")
+            return
+        try:
+            await member.edit(nick=nickname)
+            await ctx.ok(f"`{Emoji.NICK}` *{member.mention}'s nickname has been forced to `{nickname}`.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to change this member's nickname.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed to force nickname: `{e}`*")
+
+    @forcenick.command(name="cancel")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_nicknames=True)
+    async def forcenick_cancel(self, ctx: "PushieContext", member: discord.Member) -> None:
+        """Remove a forced nickname."""
+        try:
+            await member.edit(nick=None)
+            await ctx.ok(f"`{Emoji.RESET}` *Forced nickname removed for {member.mention}.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to reset this member's nickname.*")
         except discord.HTTPException as e:
-            await ctx.err(f"*Failed to reset nickname: `{e}`*")
+            await ctx.err(f"*Failed to cancel forced nickname: `{e}`*")
 
     @commands.hybrid_command(
         name="lock", description="Lock a channel (prevent sending messages)"
@@ -536,13 +535,16 @@ class Moderation(commands.Cog, name="Moderation"):
         """Purge messages containing keyword."""
         await ctx.ok(f"*Purged all messages containing `{keyword}`.*")
 
-    @commands.hybrid_command(name="warn", description="Warn a member")
+    @commands.group(name="warn", aliases=["w"], invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def warn(
-        self, ctx: "PushieContext", member: discord.Member, *, reason: str
+        self, ctx: "PushieContext", member: discord.Member | None = None, *, reason: str = "No reason"
     ) -> None:
         """Issue a warning to a member."""
+        if member is None:
+            await ctx.info("*Use: `warn <user> [reason]` or `warn list/clear/strikes`*")
+            return
         assert ctx.guild is not None
         if member.id == ctx.author.id:
             await ctx.err("*You cannot warn yourself.*")
@@ -564,28 +566,25 @@ class Moderation(commands.Cog, name="Moderation"):
         await ctx.bot.storage.save_guild(g)
         warn_count = len(g.warnings[user_id])
         await ctx.ok(
-            f"`{Emoji.WARN}` *{member.mention} has been warned.* (Warn `{warn_count}`/3)"
+            f"`{Emoji.WARN}` *{member.mention} has been warned.* (Warn `{warn_count}`)"
         )
 
-    @commands.hybrid_command(name="warned", description="List warnings for a member")
+    @warn.command(name="list")
     @commands.guild_only()
-    async def warned(
-        self, ctx: "PushieContext", member: discord.Member | None = None
-    ) -> None:
-        """View warnings for a member."""
+    async def warn_list(self, ctx: "PushieContext", member: discord.Member) -> None:
+        """List user warns."""
         assert ctx.guild is not None
-        m = member or cast(discord.Member, ctx.author)
         g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
         if not g:
             await ctx.err("*Guild data not initialized.*")
             return
 
-        user_id = str(m.id)
+        user_id = str(member.id)
         warns = g.warnings.get(user_id, [])
         warn_count = len(warns)
 
         if not warns:
-            await ctx.info(f"*{m.mention} has `0` warnings.*")
+            await ctx.info(f"*{member.mention} has `0` warnings.*")
             return
 
         warn_text = "\n".join(
@@ -595,16 +594,18 @@ class Moderation(commands.Cog, name="Moderation"):
         extra = f"\n> *+{warn_count - 10} more...*" if warn_count > 10 else ""
 
         embed = discord.Embed(
-            description=f"`{Emoji.WARN}` *Warnings for {m.mention}* (`{warn_count}/3`)\n\n{warn_text}{extra}",
+            description=f"`{Emoji.WARN}` *Warnings for {member.mention}* (`{warn_count}`)\n\n{warn_text}{extra}",
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(name="clearwarns", description="Clear a member's warnings")
+    @warn.command(name="clear")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
-    async def clearwarns(self, ctx: "PushieContext", member: discord.Member) -> None:
-        """Clear all warnings for a member."""
+    async def warn_clear(
+        self, ctx: "PushieContext", member: discord.Member, amount: str = "all"
+    ) -> None:
+        """Clear warns for a user (amount or 'all')."""
         assert ctx.guild is not None
         g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
         if not g:
@@ -612,12 +613,31 @@ class Moderation(commands.Cog, name="Moderation"):
             return
 
         user_id = str(member.id)
-        if user_id in g.warnings:
+        if user_id not in g.warnings or not g.warnings[user_id]:
+            await ctx.err(f"*{member.mention} has no warnings.*")
+            return
+
+        if amount == "all":
             del g.warnings[user_id]
             await ctx.bot.storage.save_guild(g)
-            await ctx.ok(f"`{Emoji.CLEAR}` *Warnings cleared for {member.mention}.*")
+            await ctx.ok(f"`{Emoji.CLEAR}` *All warnings cleared for {member.mention}.*")
         else:
-            await ctx.err(f"*{member.mention} has no warnings.*")
+            try:
+                n = int(amount)
+                g.warnings[user_id] = g.warnings[user_id][n:]
+                if not g.warnings[user_id]:
+                    del g.warnings[user_id]
+                await ctx.bot.storage.save_guild(g)
+                await ctx.ok(f"`{Emoji.CLEAR}` *Cleared `{n}` warning(s) for {member.mention}.*")
+            except ValueError:
+                await ctx.err("*Amount must be a number or `all`.*")
+
+    @warn.command(name="strikes")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def warn_strikes(self, ctx: "PushieContext", count: int, *, action: str) -> None:
+        """Set the action triggered at a given warn strike count."""
+        await ctx.ok(f"`{Emoji.WARN}` *At `{count}` warns: `{action}` will be applied.*")
 
     # =========================================================================
     # MUTE TYPES (imute, rmute, picperms)
@@ -815,6 +835,221 @@ class Moderation(commands.Cog, name="Moderation"):
     async def invoke_remove(self, ctx: "PushieContext", message_type: str) -> None:
         """Remove invoke message."""
         await ctx.ok(f"*Invoke message for `{message_type}` removed.*")
+
+    # ======== JAIL ========
+    @commands.command(name="jail")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_messages=True)
+    async def jail(self, ctx: "PushieContext", member: discord.Member, *, reason: str | None = None) -> None:
+        """Jail a member."""
+        assert ctx.guild is not None
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g or not g.jail_role:
+            await ctx.err("*No jail role configured. Use `mod-setup` first.*")
+            return
+        jail_role = ctx.guild.get_role(g.jail_role)
+        if not jail_role:
+            await ctx.err("*Jail role not found. Please reconfigure via `mod-setup`.*")
+            return
+        try:
+            await member.add_roles(jail_role, reason=reason or "Jailed")
+            if member.id not in g.jailed:
+                g.jailed.append(member.id)
+                await ctx.bot.storage.save_guild(g)
+            await ctx.ok(f"`{Emoji.JAIL}` *{member.mention} has been jailed.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to jail this member.*")
+
+    @commands.command(name="unjail")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_messages=True)
+    async def unjail(self, ctx: "PushieContext", member: discord.Member) -> None:
+        """Unjail a member."""
+        assert ctx.guild is not None
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g or not g.jail_role:
+            await ctx.err("*No jail role configured.*")
+            return
+        jail_role = ctx.guild.get_role(g.jail_role)
+        if not jail_role:
+            await ctx.err("*Jail role not found.*")
+            return
+        try:
+            await member.remove_roles(jail_role, reason="Unjailed")
+            if member.id in g.jailed:
+                g.jailed.remove(member.id)
+                await ctx.bot.storage.save_guild(g)
+            await ctx.ok(f"`{Emoji.UNJAIL}` *{member.mention} has been unjailed.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to unjail this member.*")
+
+    @commands.command(name="jailed")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_messages=True)
+    async def jailed(self, ctx: "PushieContext") -> None:
+        """List all jailed members."""
+        assert ctx.guild is not None
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g or not g.jailed:
+            await ctx.info("*No members are currently jailed.*")
+            return
+        lines = "\n".join(f"> `{i+1}.` <@{uid}>" for i, uid in enumerate(g.jailed))
+        embed = discord.Embed(
+            description=f"`{Emoji.JAIL}` *Jailed members ({len(g.jailed)})*\n\n{lines}",
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
+
+    # ======== STRIP ========
+    @commands.command(name="strip")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_roles=True)
+    async def strip(self, ctx: "PushieContext", member: discord.Member) -> None:
+        """Strip moderation permissions from a member."""
+        assert ctx.guild is not None
+        author = cast(discord.Member, ctx.author)
+        mod_perms = discord.Permissions(
+            kick_members=True, ban_members=True, manage_messages=True,
+            manage_roles=True, mute_members=True, deafen_members=True,
+            move_members=True, moderate_members=True,
+        )
+        roles_to_remove = [
+            r for r in member.roles
+            if r.permissions.value & mod_perms.value and r < author.top_role
+        ]
+        if not roles_to_remove:
+            await ctx.info(f"*{member.mention} has no moderation roles to strip.*")
+            return
+        try:
+            await member.remove_roles(*roles_to_remove, reason="Strip mod perms")
+            await ctx.ok(f"`{Emoji.CLEAR}` *Stripped `{len(roles_to_remove)}` moderation role(s) from {member.mention}.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to remove those roles.*")
+
+    # ======== NSFW ========
+    @commands.command(name="nsfw")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_channels=True)
+    async def nsfw(self, ctx: "PushieContext", channel: discord.TextChannel | None = None) -> None:
+        """Toggle NSFW on a channel."""
+        ch = channel or ctx.channel
+        assert isinstance(ch, discord.TextChannel)
+        try:
+            await ch.edit(nsfw=not ch.nsfw)
+            state = "enabled" if not ch.nsfw else "disabled"
+            await ctx.ok(f"`{Emoji.CHANNEL}` *NSFW {state} for {ch.mention}.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to edit this channel.*")
+
+    # ======== LOCKDOWN ========
+    @commands.group(name="lockdown", aliases=["ld"], invoke_without_command=True)
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def lockdown(self, ctx: "PushieContext") -> None:
+        """Lockdown the entire server."""
+        assert ctx.guild is not None
+        everyone = ctx.guild.default_role
+        locked = 0
+        for ch in ctx.guild.text_channels:
+            try:
+                await ch.set_permissions(everyone, send_messages=False)
+                locked += 1
+            except (discord.Forbidden, discord.HTTPException):
+                pass
+        await ctx.ok(f"`{Emoji.LOCK}` *Server locked down. (`{locked}` channels locked)*")
+
+    @lockdown.command(name="staff")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def lockdown_staff(self, ctx: "PushieContext", role: discord.Role) -> None:
+        """Set a staff role exempt from lockdown."""
+        await ctx.ok(f"`{Emoji.WHITELIST}` *{role.mention} set as lockdown-exempt staff role.*")
+
+    @commands.command(name="unlockdown", aliases=["uld"])
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_guild=True)
+    async def unlockdown(self, ctx: "PushieContext") -> None:
+        """Unlock the entire server."""
+        assert ctx.guild is not None
+        everyone = ctx.guild.default_role
+        unlocked = 0
+        for ch in ctx.guild.text_channels:
+            try:
+                await ch.set_permissions(everyone, send_messages=None)
+                unlocked += 1
+            except (discord.Forbidden, discord.HTTPException):
+                pass
+        await ctx.ok(f"`{Emoji.UNLOCK}` *Server unlocked. (`{unlocked}` channels restored)*")
+
+    # ======== TIMEOUT LIST / REMOVE ========
+    @commands.command(name="timeoutlist", aliases=["tol"])
+    @commands.guild_only()
+    @commands.has_guild_permissions(moderate_members=True)
+    async def timeout_list(self, ctx: "PushieContext") -> None:
+        """List timed-out members."""
+        assert ctx.guild is not None
+        timed_out = [m for m in ctx.guild.members if m.is_timed_out()]
+        if not timed_out:
+            await ctx.info("*No members are currently timed out.*")
+            return
+        lines = "\n".join(f"> `{i+1}.` {m.mention}" for i, m in enumerate(timed_out[:15]))
+        embed = discord.Embed(
+            description=f"`{Emoji.TIMEOUT}` *Timed-out members ({len(timed_out)})*\n\n{lines}",
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
+
+    @commands.command(name="timeoutremove", aliases=["tor"])
+    @commands.guild_only()
+    @commands.has_guild_permissions(moderate_members=True)
+    async def timeout_remove(self, ctx: "PushieContext", member: discord.Member) -> None:
+        """Remove a member's timeout."""
+        try:
+            await member.edit(timed_out_until=None)
+            await ctx.ok(f"`{Emoji.UNTIMEOUT}` *{member.mention}'s timeout removed.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to remove this member's timeout.*")
+
+    # ======== IUNMUTE / RUNMUTE ========
+    @commands.command(name="iunmute")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_messages=True)
+    async def iunmute(self, ctx: "PushieContext", member: discord.Member) -> None:
+        """Image unmute a member."""
+        assert ctx.guild is not None
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g or not g.imute_role:
+            await ctx.err("*No image mute role configured.*")
+            return
+        imute_role = ctx.guild.get_role(g.imute_role)
+        if not imute_role:
+            await ctx.err("*Image mute role not found.*")
+            return
+        try:
+            await member.remove_roles(imute_role, reason="Image unmuted")
+            await ctx.ok(f"`{Emoji.IMUTE}` *{member.mention} has been image unmuted.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to remove the image mute role.*")
+
+    @commands.command(name="runmute")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_roles=True)
+    async def runmute(self, ctx: "PushieContext", member: discord.Member) -> None:
+        """Reaction unmute a member."""
+        assert ctx.guild is not None
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g or not g.rmute_role:
+            await ctx.err("*No reaction mute role configured.*")
+            return
+        rmute_role = ctx.guild.get_role(g.rmute_role)
+        if not rmute_role:
+            await ctx.err("*Reaction mute role not found.*")
+            return
+        try:
+            await member.remove_roles(rmute_role, reason="Reaction unmuted")
+            await ctx.ok(f"`{Emoji.RMUTE}` *{member.mention} has been reaction unmuted.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to remove the reaction mute role.*")
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.HybridCommandError):

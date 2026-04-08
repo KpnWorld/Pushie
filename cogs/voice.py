@@ -85,7 +85,8 @@ class Voice(commands.Cog, name="Voice"):
         defaults = getattr(g, "voicecenter_defaults", None) or {}
         raw_name: str = defaults.get("name", "{username}'s vc")
         name = raw_name.replace("{username}", member.display_name)
-        bitrate = min(int(defaults.get("bitrate", 64000)), guild.bitrate_limit)
+        bitrate_default = int(float(defaults.get("bitrate", 64000)))
+        bitrate = min(bitrate_default, int(guild.bitrate_limit))
 
         category: discord.CategoryChannel | None = None
         if getattr(g, "voicecenter_category", None):
@@ -107,7 +108,7 @@ class Voice(commands.Cog, name="Voice"):
                 reason="VoiceCenter: owner permissions",
             )
             await member.move_to(new_ch, reason="VoiceCenter: moved to temp channel")
-            g.voicecenter_temp_channels[str(new_ch.id)] = {"owner_id": member.id}  # type: ignore[attr-defined]
+            g.voicecenter_temp_channels[new_ch.id] = {"owner_id": member.id}  # type: ignore[attr-defined]
             await self.bot.storage.save_guild(g)  # type: ignore[arg-type]
             log.info("VoiceCenter: created %r for %s in guild %s", name, member, guild.id)
         except discord.Forbidden:
@@ -135,7 +136,6 @@ class Voice(commands.Cog, name="Voice"):
         name="voice",
         aliases=["vc"],
         description="Voice channel commands",
-        invoke_without_command=True,
     )
     @commands.guild_only()
     async def voice_group(self, ctx: "PushieContext") -> None:
@@ -335,7 +335,7 @@ class Voice(commands.Cog, name="Voice"):
         g = self.bot.storage.get_guild_sync(ctx.guild.id)
         owner_id: int | None = None
         if g:
-            data = g.voicecenter_temp_channels.get(str(ch.id))
+            data = g.voicecenter_temp_channels.get(ch.id)
             if data:
                 owner_id = data.get("owner_id")
 
@@ -380,20 +380,20 @@ class Voice(commands.Cog, name="Voice"):
 
         deleted = 0
         stale = 0
-        to_remove: list[str] = []
+        to_remove: list[int] = []
 
-        for ch_id_str in list(g.voicecenter_temp_channels.keys()):
-            ch = ctx.guild.get_channel(int(ch_id_str))
+        for ch_id in list(g.voicecenter_temp_channels.keys()):
+            ch = ctx.guild.get_channel(ch_id)
             if not ch:
                 stale += 1
-                to_remove.append(ch_id_str)
+                to_remove.append(ch_id)
             elif isinstance(ch, discord.VoiceChannel) and len(ch.members) == 0:
                 try:
                     await ch.delete(reason="VoiceCenter: manual cleanup")
                     deleted += 1
                 except (discord.Forbidden, discord.HTTPException):
                     pass
-                to_remove.append(ch_id_str)
+                to_remove.append(ch_id)
 
         for key in to_remove:
             g.voicecenter_temp_channels.pop(key, None)
@@ -499,13 +499,14 @@ class Voice(commands.Cog, name="Voice"):
     @commands.guild_only()
     async def voice_claim(self, ctx: "PushieContext") -> None:
         """Claim ownership of an unclaimed voice channel."""
+        assert ctx.guild is not None
         ch = self._in_voice(ctx)
         if not ch:
             await ctx.err("*You must be in a voice channel.*")
             return
         g = self.bot.storage.get_guild_sync(ctx.guild.id)
-        if g and str(ch.id) in g.voicecenter_temp_channels:
-            data = g.voicecenter_temp_channels[str(ch.id)]
+        if g and ch.id in g.voicecenter_temp_channels:
+            data = g.voicecenter_temp_channels[ch.id]
             data["owner_id"] = ctx.author.id
             await ctx.ok(f"`{Emoji.CHANNEL}` *You now own **{ch.name}**.*")
         else:
@@ -541,7 +542,7 @@ class Voice(commands.Cog, name="Voice"):
         try:
             member = await ctx.guild.fetch_member(user.id)
             await ch.set_permissions(member, stream=False)
-            await ctx.ok(f"`{Emoji.CAMERA}` *Video disabled for {user.mention} in **{ch.name}**.*")
+            await ctx.ok(f"`{Emoji.MUTE}` *Video disabled for {user.mention} in **{ch.name}**.*")
         except discord.NotFound:
             await ctx.err("*That user is not in this server.*")
         except (discord.Forbidden, discord.HTTPException) as e:
@@ -671,7 +672,6 @@ class Voice(commands.Cog, name="Voice"):
         name="setup",
         aliases=["s", "config", "cfg"],
         description="Configure VoiceCenter settings",
-        invoke_without_command=True,
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -816,7 +816,6 @@ class Voice(commands.Cog, name="Voice"):
         name="default",
         aliases=["def"],
         description="Configure default VoiceCenter settings",
-        invoke_without_command=True,
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -838,6 +837,7 @@ class Voice(commands.Cog, name="Voice"):
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_default_bitrate(self, ctx: "PushieContext", bitrate: int) -> None:
         """Set default bitrate for temporary channels."""
+        assert ctx.guild is not None
         if not (8000 <= bitrate <= 384000):
             await ctx.err("*Bitrate must be between `8000` and `384000`.*")
             return
@@ -849,6 +849,7 @@ class Voice(commands.Cog, name="Voice"):
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_default_name(self, ctx: "PushieContext", *, template: str) -> None:
         """Set default name template for temporary channels. Use {username} as placeholder."""
+        assert ctx.guild is not None
         await self.bot.storage.set_voicecenter_default(ctx.guild.id, "name", template)
         await ctx.ok(f"`{Emoji.CHANNEL}` *Default name template set to `{template}`.*")
 

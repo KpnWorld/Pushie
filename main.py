@@ -12,7 +12,7 @@ import aiohttp
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify  # type: ignore
 
 from storage import StorageManager
 from ui import UI, PrefixView

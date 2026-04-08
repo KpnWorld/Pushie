@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 import discord
 from discord.ext import commands
@@ -586,6 +586,7 @@ class Server(commands.Cog, name="Server"):
     @commands.command(name="bi", aliases=["botinfo"])
     async def quick_bot_info(self, ctx: "PushieContext") -> None:
         """Bot info."""
+        assert self.bot.user is not None
         embed = discord.Embed(
             title=f"`{Emoji.HEART}` {self.bot.user.name}",
             description=(
@@ -676,10 +677,12 @@ class Server(commands.Cog, name="Server"):
             return
 
         try:
-            replied_msg = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+            assert ctx.message.reference is not None
+            msg_id: int = cast(int, ctx.message.reference.message_id)
+            replied_msg = await ctx.channel.fetch_message(msg_id)
             user = replied_msg.author
             embed = discord.Embed(
-                title=f"`{Emoji.USER}` {user.name}'s Avatar",
+                title=f"`{Emoji.PUSHEEN}` {user.name}'s Avatar",
                 color=0xFAB9EC,
             )
             if user.avatar:
@@ -697,11 +700,13 @@ class Server(commands.Cog, name="Server"):
             return
 
         try:
-            replied_msg = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+            assert ctx.message.reference is not None
+            msg_id: int = cast(int, ctx.message.reference.message_id)
+            replied_msg = await ctx.channel.fetch_message(msg_id)
             user = replied_msg.author
             user_obj = await self.bot.fetch_user(user.id)
             embed = discord.Embed(
-                title=f"`{Emoji.USER}` {user.name}'s Banner",
+                title=f"`{Emoji.PUSHEEN}` {user.name}'s Banner",
                 color=0xFAB9EC,
             )
             if user_obj.banner:

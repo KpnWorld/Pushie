@@ -14,12 +14,33 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+_MODULE_HELP: dict[str, str] = {
+    "core": "prefix, afk, ping, help",
+    "gate": "greet, leave, pingonjoin",
+    "levels": "levels setup/channel/msg/leaderboard/add/remove/list/reset",
+    "logz": "logz add/remove/view/color/test",
+    "moderation": "kick/ban/unban/mute/jail/warn/purge/lock/snipe/timeout/lockdown/invoke",
+    "roles": "role/channel/server/user/ticket/reactionrole/buttonrole/autorole/boosterrole/friendgroup/config",
+    "miscellaneous": "embed/color/timer/counter/reminder",
+    "security": "filter/antinuke/antiraid/fakepermissions",
+    "sudo": "sudo add/remove/ban/bot/cog/customize/guilds",
+    "voice": "voicecentre setup/lock/unlock/limit/name/drag/permit/claim",
+}
+
 
 class Core(commands.Cog, name="Core"):
-    """Core bot commands: prefix, AFK, and help."""
+    """Core bot commands: prefix, AFK, help, and ping."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
+
+    # ======================== PING ========================
+    @commands.hybrid_command(name="ping", description="Check bot latency")
+    async def ping(self, ctx: "PushieContext") -> None:
+        """Check the bot's response time."""
+        await ctx.send(
+            embed=UI.info(f"`{Emoji.PING}` *Pong! `{round(self.bot.latency * 1000)}ms`*")
+        )
 
     # ======================== PREFIX ========================
     @commands.group(name="prefix", aliases=["px"], invoke_without_command=True)
@@ -52,7 +73,7 @@ class Core(commands.Cog, name="Core"):
     # ======================== AFK ========================
     @commands.group(name="afk", aliases=["a"], invoke_without_command=True)
     async def afk(self, ctx: "PushieContext") -> None:
-        """Activate AFK status (set reason with subcommand)."""
+        """Activate AFK status."""
         assert ctx.guild is not None
         since = discord.utils.utcnow().timestamp()
         await self.bot.storage.set_afk(ctx.guild.id, ctx.author.id, "AFK", since)
@@ -83,65 +104,92 @@ class Core(commands.Cog, name="Core"):
 
     # ======================== HELP ========================
     @commands.group(name="help", aliases=["h"], invoke_without_command=True)
-    async def help(
-        self, ctx: "PushieContext", *, command_or_module: str | None = None
-    ) -> None:
-        """Show main help overview or help for specific command/module."""
-        if command_or_module is None:
-            # Main help overview
+    async def help(self, ctx: "PushieContext", *, query: str | None = None) -> None:
+        """Show help overview or help for a specific command/module."""
+        if query is None:
             prefix = ctx.prefix or "!"
-            await ctx.send(
-                embed=UI.info(
-                    f"`{Emoji.INFO}` **Help Overview**\n\n"
-                    f"> **Command Examples:**\n"
-                    f"```\n{prefix}help list — List all modules\n"
-                    f"{prefix}help <module> — Help for module (e.g., 'role', 'ticket')\n"
-                    f"{prefix}help <command> — Help for specific command\n"
-                    f"{prefix}help variables — Embed substitution variables\n```\n"
-                    f"> **Quick Start:**\n"
-                    f"```\n{prefix}prefix — Show current prefix\n"
-                    f"{prefix}afk — Mark as AFK\n{prefix}config — Server settings\n```"
-                )
+            lines = "\n".join(
+                f"> `{mod}` — {cmds}" for mod, cmds in _MODULE_HELP.items()
             )
-        elif command_or_module.lower() == "list":
-            # List all modules
-            cogs = [cog.qualified_name for cog in self.bot.cogs.values()]
-            cog_list = "\n".join(f"> `{c}`" for c in sorted(cogs)[:20])
-            extra = f"\n> *+{len(cogs) - 20} more...*" if len(cogs) > 20 else ""
-            await ctx.send(
-                embed=discord.Embed(
-                    description=f"`{Emoji.INFO}` **Available Modules**\n\n{cog_list}{extra}",
-                    color=0xFAB9EC,
-                )
+            embed = discord.Embed(
+                description=(
+                    f"`{Emoji.INFO}` **Pushie Help**\n\n"
+                    f"{lines}\n\n"
+                    f"> Use `{prefix}help <module>` for module detail\n"
+                    f"> Use `{prefix}help <command>` for command detail\n"
+                    f"> Use `{prefix}help variables` for embed vars"
+                ),
+                color=0xFAB9EC,
             )
-        elif command_or_module.lower() == "variables":
-            # List embed variables
+            await ctx.send(embed=embed)
+            return
+
+        q = query.lower()
+        if q == "variables":
             await ctx.send(
                 embed=UI.info(
                     f"`{Emoji.INFO}` **Embed Substitution Variables**\n\n"
                     f"> **User Variables:**\n"
-                    f"```\n$user.name — User's discord.py name\n"
+                    f"```\n$user.name — Display name\n"
                     f"$user.id — User ID\n"
-                    f"$user.mention — @user mention\n```\n"
+                    f"$user.mention — @mention\n"
+                    f"$user.discriminator — #tag\n```\n"
                     f"> **Server Variables:**\n"
                     f"```\n$guild.name — Server name\n"
                     f"$guild.id — Server ID\n"
                     f"$guild.members — Member count\n```"
                 )
             )
-        else:
-            # Help for specific command or module
-            await ctx.info(f"Help for `{command_or_module}` not yet implemented.")
+            return
+
+        # Check if it matches a cog name
+        for cog_name, cog in self.bot.cogs.items():
+            if cog_name.lower() == q:
+                cmds = [c for c in cog.get_commands() if not c.hidden]
+                prefix = ctx.prefix or "!"
+                cmd_lines = "\n".join(
+                    f"> `{prefix}{c.qualified_name}` — {c.short_doc or 'No description'}"
+                    for c in cmds[:20]
+                )
+                embed = discord.Embed(
+                    description=f"`{Emoji.INFO}` **{cog_name} Commands**\n\n{cmd_lines or '*No commands*'}",
+                    color=0xFAB9EC,
+                )
+                await ctx.send(embed=embed)
+                return
+
+        # Check if it matches a command
+        cmd = self.bot.get_command(q)
+        if cmd:
+            prefix = ctx.prefix or "!"
+            aliases = ", ".join(f"`{a}`" for a in cmd.aliases) if cmd.aliases else "*none*"
+            embed = discord.Embed(
+                description=(
+                    f"`{Emoji.INFO}` **`{prefix}{cmd.qualified_name}`**\n\n"
+                    f"> {cmd.help or cmd.short_doc or 'No description'}\n\n"
+                    f"> **Aliases:** {aliases}"
+                ),
+                color=0xFAB9EC,
+            )
+            if hasattr(cmd, 'commands'):
+                subs = "\n".join(
+                    f"> `{prefix}{s.qualified_name}` — {s.short_doc or ''}"
+                    for s in cmd.commands  # type: ignore
+                )
+                embed.add_field(name="Subcommands", value=subs or "*none*", inline=False)
+            await ctx.send(embed=embed)
+            return
+
+        await ctx.err(f"*No command or module found for `{query}`.*")
 
     @help.command(name="list")
     async def help_list(self, ctx: "PushieContext") -> None:
         """List all command modules."""
-        cogs = [cog.qualified_name for cog in self.bot.cogs.values()]
-        cog_list = "\n".join(f"> `{c}`" for c in sorted(cogs)[:20])
-        extra = f"\n> *+{len(cogs) - 20} more...*" if len(cogs) > 20 else ""
+        cogs = sorted(self.bot.cogs.keys())
+        lines = "\n".join(f"> `{c}`" for c in cogs)
         await ctx.send(
             embed=discord.Embed(
-                description=f"`{Emoji.INFO}` **Available Modules**\n\n{cog_list}{extra}",
+                description=f"`{Emoji.INFO}` **Available Modules**\n\n{lines}",
                 color=0xFAB9EC,
             )
         )
@@ -153,9 +201,9 @@ class Core(commands.Cog, name="Core"):
             embed=UI.info(
                 f"`{Emoji.INFO}` **Embed Substitution Variables**\n\n"
                 f"> **User Variables:**\n"
-                f"```\n$user.name — User's discord.py name\n"
+                f"```\n$user.name — Display name\n"
                 f"$user.id — User ID\n"
-                f"$user.mention — @user mention\n```\n"
+                f"$user.mention — @mention\n```\n"
                 f"> **Server Variables:**\n"
                 f"```\n$guild.name — Server name\n"
                 f"$guild.id — Server ID\n"

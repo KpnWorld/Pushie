@@ -22,6 +22,62 @@ class Moderation(commands.Cog, name="Moderation"):
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
+        # In-memory snipe caches keyed by channel_id
+        self._snipes: dict[int, dict] = {}
+        self._editsnipes: dict[int, dict] = {}
+        self._reactionsnipes: dict[int, dict] = {}
+        # Tracks running mass-role operations so they can be cancelled
+        self._mass_role_tasks: dict[int, bool] = {}
+
+    # ======== Snipe Listeners ========
+    @commands.Cog.listener()
+    async def on_message_delete(self, message: discord.Message) -> None:
+        if message.author.bot or not message.guild:
+            return
+        self._snipes[message.channel.id] = {
+            "author": message.author,
+            "content": message.content,
+            "attachments": [a.url for a in message.attachments],
+            "timestamp": message.created_at,
+        }
+
+    @commands.Cog.listener()
+    async def on_message_edit(self, before: discord.Message, after: discord.Message) -> None:
+        if before.author.bot or not before.guild:
+            return
+        if before.content == after.content:
+            return
+        self._editsnipes[before.channel.id] = {
+            "author": before.author,
+            "before": before.content,
+            "after": after.content,
+            "timestamp": before.created_at,
+        }
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
+        if payload.guild_id is None:
+            return
+        self._reactionsnipes[payload.channel_id] = {
+            "user_id": payload.user_id,
+            "emoji": str(payload.emoji),
+            "message_id": payload.message_id,
+        }
+
+    @commands.Cog.listener()
+    async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
+        """Re-apply forced nicks if changed."""
+        if before.nick == after.nick:
+            return
+        g = self.bot.storage.get_guild_sync(after.guild.id)
+        if not g:
+            return
+        forced = g.forced_nicks.get(str(after.id))
+        if forced and after.nick != forced:
+            try:
+                await after.edit(nick=forced, reason="Forced nick re-applied")
+            except (discord.Forbidden, discord.HTTPException):
+                pass
 
     @commands.hybrid_command(name="kick", description="Kick a member from the server")
     @commands.guild_only()
@@ -312,15 +368,19 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_nicknames=True)
     async def forcenick(self, ctx: "PushieContext", member: discord.Member | None = None, *, nickname: str | None = None) -> None:
-        """Force a nickname on a member."""
+        """Force a nickname on a member (persists across rejoins)."""
         if member is None or nickname is None:
             await ctx.info("*Use: `forcenick <user> <nickname>` or `forcenick cancel <user>`*")
             return
         if len(nickname) > 32:
             await ctx.err("*Nickname must be 32 characters or less.*")
             return
+        assert ctx.guild is not None
         try:
             await member.edit(nick=nickname)
+            g = await ctx.bot.storage.get_guild(ctx.guild.id)
+            g.forced_nicks[str(member.id)] = nickname
+            await ctx.bot.storage.save_guild(g)
             await ctx.ok(f"`{Emoji.NICK}` *{member.mention}'s nickname has been forced to `{nickname}`.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to change this member's nickname.*")
@@ -332,8 +392,12 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.has_guild_permissions(manage_nicknames=True)
     async def forcenick_cancel(self, ctx: "PushieContext", member: discord.Member) -> None:
         """Remove a forced nickname."""
+        assert ctx.guild is not None
         try:
             await member.edit(nick=None)
+            g = await ctx.bot.storage.get_guild(ctx.guild.id)
+            g.forced_nicks.pop(str(member.id), None)
+            await ctx.bot.storage.save_guild(g)
             await ctx.ok(f"`{Emoji.RESET}` *Forced nickname removed for {member.mention}.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to reset this member's nickname.*")
@@ -478,62 +542,149 @@ class Moderation(commands.Cog, name="Moderation"):
             await _reply(UI.error(f"*Failed to purge: `{e}`*"))
 
     @purge.command(name="user")
-    async def purge_user(self, ctx: "PushieContext", user: discord.User, amount: int) -> None:
-        """Purge user messages."""
+    async def purge_user(self, ctx: "PushieContext", user: discord.User, amount: int = 50) -> None:
+        """Purge messages from a specific user."""
         if not isinstance(ctx.channel, discord.TextChannel):
             await ctx.err("*This command can only be used in text channels.*")
             return
-        await ctx.ok(f"*Purged `{amount}` messages from {user.mention}.*")
+        try:
+            deleted = await ctx.channel.purge(limit=min(amount, 200), check=lambda m: m.author.id == user.id)
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages from {user.mention}.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @purge.command(name="embeds")
-    async def purge_embeds(self, ctx: "PushieContext") -> None:
-        """Purge embeds."""
-        await ctx.ok("*Purged all embed messages.*")
+    async def purge_embeds(self, ctx: "PushieContext", limit: int = 50) -> None:
+        """Purge messages with embeds."""
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        try:
+            deleted = await ctx.channel.purge(limit=min(limit, 200), check=lambda m: bool(m.embeds))
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` embed messages.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @purge.command(name="images")
-    async def purge_images(self, ctx: "PushieContext") -> None:
-        """Purge images."""
-        await ctx.ok("*Purged all image messages.*")
+    async def purge_images(self, ctx: "PushieContext", limit: int = 50) -> None:
+        """Purge messages with images/attachments."""
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        try:
+            deleted = await ctx.channel.purge(limit=min(limit, 200), check=lambda m: bool(m.attachments))
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` image messages.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @purge.command(name="voice")
-    async def purge_voice(self, ctx: "PushieContext") -> None:
+    async def purge_voice(self, ctx: "PushieContext", limit: int = 50) -> None:
         """Purge voice messages."""
-        await ctx.ok("*Purged all voice messages.*")
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        try:
+            deleted = await ctx.channel.purge(
+                limit=min(limit, 200),
+                check=lambda m: any(a.content_type and "audio" in a.content_type for a in m.attachments)
+            )
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` voice messages.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @purge.command(name="mentions")
-    async def purge_mentions(self, ctx: "PushieContext") -> None:
-        """Purge mentions."""
-        await ctx.ok("*Purged all mention messages.*")
+    async def purge_mentions(self, ctx: "PushieContext", limit: int = 50) -> None:
+        """Purge messages with user mentions."""
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        try:
+            deleted = await ctx.channel.purge(limit=min(limit, 200), check=lambda m: bool(m.mentions))
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` mention messages.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @purge.command(name="humans")
-    async def purge_humans(self, ctx: "PushieContext") -> None:
-        """Purge human messages."""
-        await ctx.ok("*Purged all messages from humans.*")
+    async def purge_humans(self, ctx: "PushieContext", limit: int = 50) -> None:
+        """Purge messages from humans only."""
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        try:
+            deleted = await ctx.channel.purge(limit=min(limit, 200), check=lambda m: not m.author.bot)
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages from humans.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @purge.command(name="bots")
-    async def purge_bots(self, ctx: "PushieContext") -> None:
-        """Purge bot messages."""
-        await ctx.ok("*Purged all messages from bots.*")
+    async def purge_bots(self, ctx: "PushieContext", limit: int = 50) -> None:
+        """Purge messages from bots only."""
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        try:
+            deleted = await ctx.channel.purge(limit=min(limit, 200), check=lambda m: m.author.bot)
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` bot messages.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @purge.command(name="invites")
-    async def purge_invites(self, ctx: "PushieContext") -> None:
-        """Purge invite links."""
-        await ctx.ok("*Purged all invite links.*")
+    async def purge_invites(self, ctx: "PushieContext", limit: int = 50) -> None:
+        """Purge messages containing Discord invite links."""
+        import re as _re
+        invite_pattern = _re.compile(r"discord\.gg/|discord\.com/invite/")
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        try:
+            deleted = await ctx.channel.purge(
+                limit=min(limit, 200),
+                check=lambda m: bool(invite_pattern.search(m.content))
+            )
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` invite messages.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @purge.command(name="before")
-    async def purge_before(self, ctx: "PushieContext", msg_id: int) -> None:
-        """Purge before message."""
-        await ctx.ok(f"*Purged all messages before `{msg_id}`.*")
+    async def purge_before(self, ctx: "PushieContext", msg_id: int, limit: int = 100) -> None:
+        """Purge messages before a specific message ID."""
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        try:
+            target = discord.Object(id=msg_id)
+            deleted = await ctx.channel.purge(limit=min(limit, 200), before=target)
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages before that message.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @purge.command(name="after")
-    async def purge_after(self, ctx: "PushieContext", msg_id: int) -> None:
-        """Purge after message."""
-        await ctx.ok(f"*Purged all messages after `{msg_id}`.*")
+    async def purge_after(self, ctx: "PushieContext", msg_id: int, limit: int = 100) -> None:
+        """Purge messages after a specific message ID."""
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        try:
+            target = discord.Object(id=msg_id)
+            deleted = await ctx.channel.purge(limit=min(limit, 200), after=target)
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages after that message.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @purge.command(name="with")
     async def purge_with(self, ctx: "PushieContext", *, keyword: str) -> None:
-        """Purge messages containing keyword."""
-        await ctx.ok(f"*Purged all messages containing `{keyword}`.*")
+        """Purge messages containing a keyword."""
+        if not isinstance(ctx.channel, discord.TextChannel):
+            await ctx.err("*This command can only be used in text channels.*")
+            return
+        try:
+            deleted = await ctx.channel.purge(
+                limit=200,
+                check=lambda m: keyword.lower() in m.content.lower()
+            )
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages containing `{keyword}`.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to delete messages.*")
 
     @commands.group(name="warn", aliases=["w"], invoke_without_command=True)
     @commands.guild_only()
@@ -725,47 +876,169 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def mod_setup(self, ctx: "PushieContext") -> None:
-        """Setup moderation environment."""
-        await ctx.info("*Creating moderation roles and permissions... (not yet implemented)*")
+        """Setup moderation environment (creates jail + mute roles)."""
+        assert ctx.guild is not None
+        msg = await ctx.send(embed=UI.loading("*Setting up moderation roles...*"))
+        created = []
+        try:
+            # Jail role
+            jail_role = discord.utils.get(ctx.guild.roles, name="Jailed")
+            if not jail_role:
+                jail_role = await ctx.guild.create_role(name="Jailed", reason="mod-setup")
+                created.append("Jailed role")
+            # Muted role
+            mute_role = discord.utils.get(ctx.guild.roles, name="Muted")
+            if not mute_role:
+                mute_role = await ctx.guild.create_role(name="Muted", reason="mod-setup")
+                created.append("Muted role")
+            # Image Muted role
+            imute_role = discord.utils.get(ctx.guild.roles, name="Image Muted")
+            if not imute_role:
+                imute_role = await ctx.guild.create_role(name="Image Muted", reason="mod-setup")
+                created.append("Image Muted role")
+            # Reaction Muted role
+            rmute_role = discord.utils.get(ctx.guild.roles, name="Reaction Muted")
+            if not rmute_role:
+                rmute_role = await ctx.guild.create_role(name="Reaction Muted", reason="mod-setup")
+                created.append("Reaction Muted role")
+            # Jail channel
+            jail_cat = discord.utils.get(ctx.guild.categories, name="Jail")
+            if not jail_cat:
+                overwrites = {
+                    ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False),
+                    jail_role: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+                    ctx.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+                }
+                jail_cat = await ctx.guild.create_category("Jail", overwrites=overwrites, reason="mod-setup")
+                created.append("Jail category")
+            jail_channel = discord.utils.get(ctx.guild.text_channels, name="jail")
+            if not jail_channel:
+                jail_channel = await jail_cat.create_text_channel("jail", reason="mod-setup")
+                created.append("jail channel")
+            # Apply mute overrides to all text channels
+            for ch in ctx.guild.text_channels:
+                try:
+                    await ch.set_permissions(mute_role, send_messages=False, reason="mod-setup")
+                    await ch.set_permissions(imute_role, attach_files=False, embed_links=False, reason="mod-setup")
+                    await ch.set_permissions(rmute_role, add_reactions=False, reason="mod-setup")
+                except (discord.Forbidden, discord.HTTPException):
+                    pass
+            await ctx.bot.storage.update_setup(
+                ctx.guild.id,
+                jail_role=jail_role.id,
+                jail_channel=jail_channel.id,
+                mute_role=mute_role.id,
+                imute_role=imute_role.id,
+                rmute_role=rmute_role.id,
+            )
+            summary = "\n".join(f"> `✓` {c}" for c in created) if created else "> *All roles already exist*"
+            await msg.edit(embed=UI.success(f"`{Emoji.SETUP}` *Moderation setup complete!*\n\n{summary}"))
+        except discord.Forbidden:
+            await msg.edit(embed=UI.error("*I don't have enough permissions to set up moderation.*"))
+        except discord.HTTPException as e:
+            await msg.edit(embed=UI.error(f"*Setup failed: `{e}`*"))
 
     @mod_setup.command(name="reset")
     async def mod_setup_reset(self, ctx: "PushieContext") -> None:
         """Reset moderation setup."""
+        assert ctx.guild is not None
+        await ctx.bot.storage.update_setup(
+            ctx.guild.id,
+            jail_role=None, jail_channel=None,
+            mute_role=None, imute_role=None, rmute_role=None,
+        )
         await ctx.ok("*Moderation setup reset.*")
 
     @mod_setup.command(name="sync")
     async def mod_setup_sync(self, ctx: "PushieContext") -> None:
-        """Re-apply permission overrides."""
-        await ctx.ok("*Permission overrides synced.*")
+        """Re-apply permission overrides for mute/jail roles."""
+        assert ctx.guild is not None
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g:
+            await ctx.err("*Guild data not available.*")
+            return
+        synced = 0
+        for role_attr, perm_kwargs in [
+            ("mute_role", {"send_messages": False}),
+            ("imute_role", {"attach_files": False, "embed_links": False}),
+            ("rmute_role", {"add_reactions": False}),
+        ]:
+            rid = getattr(g, role_attr)
+            if not rid:
+                continue
+            role = ctx.guild.get_role(rid)
+            if not role:
+                continue
+            for ch in ctx.guild.text_channels:
+                try:
+                    await ch.set_permissions(role, **perm_kwargs, reason="mod-setup sync")
+                    synced += 1
+                except (discord.Forbidden, discord.HTTPException):
+                    pass
+        await ctx.ok(f"`{Emoji.SYNC}` *Synced `{synced}` channel permission(s).*")
 
     # ======== SNIPE ========
-    @commands.command(name="snipe")
+    @commands.command(name="snipe", aliases=["s"])
     @commands.guild_only()
-    @commands.has_guild_permissions(manage_messages=True)
     async def snipe(self, ctx: "PushieContext") -> None:
-        """Snipe last deleted message."""
-        await ctx.info("*No recently deleted messages.*")
+        """Snipe last deleted message in this channel."""
+        data = self._snipes.get(ctx.channel.id)  # type: ignore
+        if not data:
+            await ctx.info("*No recently deleted messages in this channel.*")
+            return
+        author: discord.User | discord.Member = data["author"]
+        embed = discord.Embed(
+            description=data["content"] or "*[no text]*",
+            color=0xFAB9EC,
+            timestamp=data["timestamp"],
+        )
+        embed.set_author(name=str(author), icon_url=author.display_avatar.url)
+        embed.set_footer(text="Deleted")
+        if data.get("attachments"):
+            embed.set_image(url=data["attachments"][0])
+        await ctx.send(embed=embed)
 
-    @commands.command(name="reactionsnipe")
+    @commands.command(name="reactionsnipe", aliases=["rs"])
     @commands.guild_only()
-    @commands.has_guild_permissions(manage_messages=True)
     async def reactionsnipe(self, ctx: "PushieContext") -> None:
-        """Snipe last reaction edit."""
-        await ctx.info("*No recent reaction edits.*")
+        """Snipe last removed reaction in this channel."""
+        data = self._reactionsnipes.get(ctx.channel.id)  # type: ignore
+        if not data:
+            await ctx.info("*No recent reaction removals in this channel.*")
+            return
+        embed = discord.Embed(
+            description=f"<@{data['user_id']}> removed {data['emoji']} from [message](https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}/{data['message_id']})",  # type: ignore
+            color=0xFAB9EC,
+        )
+        embed.set_footer(text="Reaction Snipe")
+        await ctx.send(embed=embed)
 
-    @commands.command(name="editsnipe")
+    @commands.command(name="editsnipe", aliases=["es"])
     @commands.guild_only()
-    @commands.has_guild_permissions(manage_messages=True)
     async def editsnipe(self, ctx: "PushieContext") -> None:
-        """Snipe last edited message."""
-        await ctx.info("*No recently edited messages.*")
+        """Snipe last edited message in this channel."""
+        data = self._editsnipes.get(ctx.channel.id)  # type: ignore
+        if not data:
+            await ctx.info("*No recently edited messages in this channel.*")
+            return
+        author: discord.User | discord.Member = data["author"]
+        embed = discord.Embed(color=0xFAB9EC, timestamp=data["timestamp"])
+        embed.set_author(name=str(author), icon_url=author.display_avatar.url)
+        embed.add_field(name="Before", value=data["before"][:1000] or "*empty*", inline=False)
+        embed.add_field(name="After", value=data["after"][:1000] or "*empty*", inline=False)
+        embed.set_footer(text="Edit Snipe")
+        await ctx.send(embed=embed)
 
-    @commands.command(name="clearsnipes")
+    @commands.command(name="clearsnipes", aliases=["cs"])
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def clearsnipes(self, ctx: "PushieContext") -> None:
         """Clear snipes in current channel."""
-        await ctx.ok("*Snipes cleared.*")
+        ch_id = ctx.channel.id  # type: ignore
+        self._snipes.pop(ch_id, None)
+        self._editsnipes.pop(ch_id, None)
+        self._reactionsnipes.pop(ch_id, None)
+        await ctx.ok("*Snipes cleared for this channel.*")
 
     # ======== INVOKE ========
     @commands.group(name="invoke", aliases=["iv"], invoke_without_command=True)
@@ -773,47 +1046,102 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.has_guild_permissions(manage_guild=True)
     async def invoke(self, ctx: "PushieContext") -> None:
         """Invoke message configuration."""
-        await ctx.info("*Use subcommands: jail, ban, timeout, mute, warn*")
+        prefix = ctx.prefix or "!"
+        await ctx.send(
+            embed=UI.info(
+                f"`{Emoji.INFO}` **Invoke Messages**\n\n"
+                f"```\n{prefix}invoke jail {{channel/dm}} <message>\n"
+                f"{prefix}invoke ban {{channel/dm}} <message>\n"
+                f"{prefix}invoke timeout {{channel/dm}} <message>\n"
+                f"{prefix}invoke mute {{channel/dm}} <message>\n"
+                f"{prefix}invoke warn {{channel/dm}} <message>\n"
+                f"{prefix}invoke list\n"
+                f"{prefix}invoke reset\n"
+                f"{prefix}invoke remove {{type}}\n```"
+            )
+        )
+
+    async def _set_invoke(self, ctx: "PushieContext", action: str, delivery: str, message: str) -> None:
+        assert ctx.guild is not None
+        g = await ctx.bot.storage.get_guild(ctx.guild.id)
+        if action not in g.invoke_messages:
+            g.invoke_messages[action] = {}
+        g.invoke_messages[action][delivery] = message
+        await ctx.bot.storage.save_guild(g)
+        await ctx.ok(f"*Invoke message for `{action}` ({delivery}) set.*")
 
     @invoke.command(name="jail")
-    async def invoke_jail(self, ctx: "PushieContext", *, message: str | None = None) -> None:
-        """Add invoke message for jail."""
-        await ctx.ok("*Jail invoke message set.*")
+    async def invoke_jail(self, ctx: "PushieContext", delivery: str = "channel", *, message: str = "") -> None:
+        """Set invoke message for jail. Delivery: channel or dm."""
+        if not message:
+            await ctx.err("*Please provide a message.*")
+            return
+        await self._set_invoke(ctx, "jail", delivery, message)
 
     @invoke.command(name="ban")
-    async def invoke_ban(self, ctx: "PushieContext", *, message: str | None = None) -> None:
-        """Add invoke message for ban."""
-        await ctx.ok("*Ban invoke message set.*")
+    async def invoke_ban(self, ctx: "PushieContext", delivery: str = "channel", *, message: str = "") -> None:
+        """Set invoke message for ban."""
+        if not message:
+            await ctx.err("*Please provide a message.*")
+            return
+        await self._set_invoke(ctx, "ban", delivery, message)
 
     @invoke.command(name="timeout")
-    async def invoke_timeout(self, ctx: "PushieContext", *, message: str | None = None) -> None:
-        """Add invoke message for timeout."""
-        await ctx.ok("*Timeout invoke message set.*")
+    async def invoke_timeout(self, ctx: "PushieContext", delivery: str = "channel", *, message: str = "") -> None:
+        """Set invoke message for timeout."""
+        if not message:
+            await ctx.err("*Please provide a message.*")
+            return
+        await self._set_invoke(ctx, "timeout", delivery, message)
 
     @invoke.command(name="mute")
-    async def invoke_mute(self, ctx: "PushieContext", *, message: str | None = None) -> None:
-        """Add invoke message for mute."""
-        await ctx.ok("*Mute invoke message set.*")
+    async def invoke_mute(self, ctx: "PushieContext", delivery: str = "channel", *, message: str = "") -> None:
+        """Set invoke message for mute."""
+        if not message:
+            await ctx.err("*Please provide a message.*")
+            return
+        await self._set_invoke(ctx, "mute", delivery, message)
 
     @invoke.command(name="warn")
-    async def invoke_warn(self, ctx: "PushieContext", *, message: str | None = None) -> None:
-        """Add invoke message for warn."""
-        await ctx.ok("*Warn invoke message set.*")
+    async def invoke_warn(self, ctx: "PushieContext", delivery: str = "channel", *, message: str = "") -> None:
+        """Set invoke message for warn."""
+        if not message:
+            await ctx.err("*Please provide a message.*")
+            return
+        await self._set_invoke(ctx, "warn", delivery, message)
 
     @invoke.command(name="list")
     async def invoke_list(self, ctx: "PushieContext") -> None:
         """List current invoke messages."""
-        await ctx.info("*No invoke messages configured.*")
+        assert ctx.guild is not None
+        g = await ctx.bot.storage.get_guild(ctx.guild.id)
+        if not g.invoke_messages:
+            await ctx.info("*No invoke messages configured.*")
+            return
+        lines = []
+        for action, deliveries in g.invoke_messages.items():
+            for delivery, msg in deliveries.items():
+                lines.append(f"> **{action}** ({delivery}): `{msg[:60]}`")
+        await ctx.send(embed=UI.info(f"`{Emoji.INFO}` **Invoke Messages**\n\n" + "\n".join(lines)))
 
     @invoke.command(name="reset")
     async def invoke_reset(self, ctx: "PushieContext") -> None:
         """Reset all invoke messages."""
+        assert ctx.guild is not None
+        await ctx.bot.storage.update_setup(ctx.guild.id, invoke_messages={})
         await ctx.ok("*All invoke messages reset.*")
 
     @invoke.command(name="remove")
     async def invoke_remove(self, ctx: "PushieContext", message_type: str) -> None:
-        """Remove invoke message."""
-        await ctx.ok(f"*Invoke message for `{message_type}` removed.*")
+        """Remove invoke message for a specific type."""
+        assert ctx.guild is not None
+        g = await ctx.bot.storage.get_guild(ctx.guild.id)
+        if message_type in g.invoke_messages:
+            del g.invoke_messages[message_type]
+            await ctx.bot.storage.save_guild(g)
+            await ctx.ok(f"*Invoke message for `{message_type}` removed.*")
+        else:
+            await ctx.err(f"*No invoke message for `{message_type}`.*")
 
     # ======== JAIL ========
     @commands.command(name="jail")
@@ -942,6 +1270,8 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.has_guild_permissions(manage_guild=True)
     async def lockdown_staff(self, ctx: "PushieContext", role: discord.Role) -> None:
         """Set a staff role exempt from lockdown."""
+        assert ctx.guild is not None
+        await ctx.bot.storage.update_setup(ctx.guild.id, lockdown_staff_role=role.id)
         await ctx.ok(f"`{Emoji.WHITELIST}` *{role.mention} set as lockdown-exempt staff role.*")
 
     @commands.command(name="unlockdown", aliases=["uld"])

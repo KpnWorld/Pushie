@@ -12,7 +12,7 @@ import aiohttp
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from flask import Flask, jsonify  # type: ignore
+from flask import Flask, jsonify
 
 from storage import StorageManager
 from ui import UI, PrefixView
@@ -223,9 +223,7 @@ class Pushie(commands.Bot):
             afk_since = afk_info.get("since", 0)
             current_time = datetime.datetime.now(datetime.UTC).timestamp()
 
-            # Only show welcome back if AFK was set >2 seconds ago (not a fresh /afk command)
             if current_time - afk_since > 2:
-                # Check if this looks like a command to avoid duplicate messages
                 prefix = g.prefix if g else "!"
                 is_command = message.content.startswith(
                     prefix
@@ -311,14 +309,13 @@ def _setup_checks(bot: Pushie) -> None:
 
 
 def _setup_flask() -> Flask:
-    """Create and configure Flask app for Render health checks."""
     app = Flask(__name__)
 
-    @app.route("/health", methods=["HEAD"])
+    @app.route("/health", methods=["HEAD", "GET"])
     def health() -> typing.Any:
         return jsonify({"status": "ok"})
 
-    @app.route("/", methods=["HEAD"])
+    @app.route("/", methods=["HEAD", "GET"])
     def index() -> typing.Any:
         return jsonify({"bot": "Pushie", "status": "running"})
 
@@ -404,16 +401,6 @@ def in_voice():
     return commands.check(predicate)
 
 
-def _setup_commands(bot: Pushie) -> None:
-
-    @bot.hybrid_command(name="ping", description="Check bot latency")
-    async def ping(ctx: PushieContext) -> None:
-        await ctx.send(
-            embed=UI.info(f"`{Emoji.PING}` *Pong! `{round(bot.latency * 1000)}ms`*")
-        )
-
-
-
 def main() -> None:
     load_dotenv()
     logging.basicConfig(
@@ -433,7 +420,6 @@ def main() -> None:
 
     bot = Pushie()
     _setup_checks(bot)
-    _setup_commands(bot)
     token = os.getenv("TOKEN")
     if not token:
         log.critical("TOKEN not set in .env")

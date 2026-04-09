@@ -133,8 +133,8 @@ class Voice(commands.Cog, name="Voice"):
     # =========================================================================
 
     @commands.group(
-        name="voicecentre",
-        aliases=["vc", "voice"],
+        name="voice",
+        aliases=["vc", "voicecentre"],
         invoke_without_command=True,
     )
     @commands.guild_only()

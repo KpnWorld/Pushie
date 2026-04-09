@@ -110,18 +110,21 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to kick: `{e}`*")
 
-    @commands.command(name="ban")
+    @commands.group(name="ban", invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members=True)
     async def ban(
         self,
         ctx: "PushieContext",
-        user: discord.User,
+        user: discord.User | None = None,
         delete_days: int = 0,
         *,
         reason: str | None = None,
     ) -> None:
         """Ban a user from the server."""
+        if user is None:
+            await ctx.info("*Usage: `ban <user> [reason]` or `ban list`*")
+            return
         assert ctx.guild is not None
         if user.id == ctx.guild.owner_id:
             await ctx.err("*You cannot ban the server owner.*")
@@ -157,29 +160,16 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to unban: `{e}`*")
 
-    @commands.command(name="ban-list", aliases=["banlist", "bans"])
+    @ban.command(name="list", aliases=["banlist", "bans"])
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members=True)
     async def ban_list(self, ctx: "PushieContext") -> None:
         """View all banned members in the server."""
         assert ctx.guild is not None
-
-        if ctx.interaction:
-            await ctx.interaction.response.defer()
-
-        async def _reply(embed: discord.Embed) -> None:
-            if ctx.interaction:
-                try:
-                    await ctx.interaction.followup.send(embed=embed)
-                except (discord.NotFound, discord.HTTPException):
-                    pass
-            else:
-                await ctx.send(embed=embed)
-
         try:
             bans = [entry async for entry in ctx.guild.bans()]
             if not bans:
-                await _reply(UI.info("*No users are currently banned.*"))
+                await ctx.info("*No users are currently banned.*")
                 return
 
             ban_text = "\n".join(
@@ -192,9 +182,9 @@ class Moderation(commands.Cog, name="Moderation"):
                 description=f"`{Emoji.BAN}` *Banned users ({len(bans)} total)*\n\n{ban_text}{extra}",
                 color=0xFAB9EC,
             )
-            await _reply(embed)
+            await ctx.send(embed=embed)
         except discord.Forbidden:
-            await _reply(UI.error("*I don't have permission to view bans.*"))
+            await ctx.err("*I don't have permission to view bans.*")
 
     @commands.command(name="mute")
     @commands.guild_only()
@@ -532,9 +522,6 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.has_guild_permissions(manage_messages=True)
     async def purge(self, ctx: "PushieContext", limit: int = 10) -> None:
         """Bulk delete messages from a channel."""
-        if ctx.interaction:
-            await ctx.interaction.response.defer(ephemeral=True)
-
         if not isinstance(ctx.channel, discord.TextChannel):
             await ctx.err("*This command can only be used in text channels.*")
             return
@@ -543,22 +530,13 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err("*Limit must be between `1` and `100`.*")
             return
 
-        async def _reply(embed: discord.Embed) -> None:
-            if ctx.interaction:
-                try:
-                    await ctx.interaction.followup.send(embed=embed, ephemeral=True)
-                except (discord.NotFound, discord.HTTPException):
-                    pass
-            else:
-                await ctx.send(embed=embed)
-
         try:
             deleted = await ctx.channel.purge(limit=limit)
-            await _reply(UI.success(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages.*"))
+            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages.*")
         except discord.Forbidden:
-            await _reply(UI.error("*I don't have permission to delete messages.*"))
+            await ctx.err("*I don't have permission to delete messages.*")
         except discord.HTTPException as e:
-            await _reply(UI.error(f"*Failed to purge: `{e}`*"))
+            await ctx.err(f"*Failed to purge: `{e}`*")
 
     @purge.command(name="user")
     async def purge_user(self, ctx: "PushieContext", user: discord.User, amount: int = 50) -> None:

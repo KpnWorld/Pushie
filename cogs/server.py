@@ -1203,7 +1203,7 @@ class Server(commands.Cog, name="Server"):
         await ctx.ok("*All friend groups cleared.*")
 
     # ======== SERVER ========
-    @commands.group(name="server", aliases=["s"], invoke_without_command=True)
+    @commands.group(name="server", aliases=["srv"], invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def server(self, ctx: "PushieContext") -> None:

@@ -294,7 +294,7 @@ class Gate(commands.Cog, name="Gate"):
         await ctx.send(msg)
 
     # ======== Ping on Join ========
-    @commands.group(name="pingonjoin", aliases=["ping"], invoke_without_command=True)
+    @commands.group(name="pingonjoin", aliases=["poj"], invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def pingonjoin(self, ctx: "PushieContext") -> None:

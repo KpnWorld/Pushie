@@ -79,7 +79,7 @@ class Moderation(commands.Cog, name="Moderation"):
             except (discord.Forbidden, discord.HTTPException):
                 pass
 
-    @commands.hybrid_command(name="kick", description="Kick a member from the server")
+    @commands.command(name="kick")
     @commands.guild_only()
     @commands.has_guild_permissions(kick_members=True)
     async def kick(
@@ -110,7 +110,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to kick: `{e}`*")
 
-    @commands.hybrid_command(name="ban", description="Ban a user from the server")
+    @commands.command(name="ban")
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members=True)
     async def ban(
@@ -141,7 +141,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to ban: `{e}`*")
 
-    @commands.hybrid_command(name="unban", description="Unban a user from the server")
+    @commands.command(name="unban")
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members=True)
     async def unban(self, ctx: "PushieContext", user: discord.User) -> None:
@@ -157,9 +157,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to unban: `{e}`*")
 
-    @commands.hybrid_command(
-        name="ban-list", aliases=["banlist", "bans"], description="List banned members"
-    )
+    @commands.command(name="ban-list", aliases=["banlist", "bans"])
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members=True)
     async def ban_list(self, ctx: "PushieContext") -> None:
@@ -198,9 +196,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.Forbidden:
             await _reply(UI.error("*I don't have permission to view bans.*"))
 
-    @commands.hybrid_command(
-        name="mute", description="Mute a member via the configured mute role"
-    )
+    @commands.command(name="mute")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def mute(
@@ -236,7 +232,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to mute: `{e}`*")
 
-    @commands.hybrid_command(name="unmute", description="Unmute a member")
+    @commands.command(name="unmute")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def unmute(self, ctx: "PushieContext", member: discord.Member) -> None:
@@ -263,23 +259,22 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to unmute: `{e}`*")
 
-    @commands.hybrid_command(
-        name="timeout", description="Timeout a member (max 28 days)"
-    )
+    @commands.group(name="timeout", invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(moderate_members=True)
     async def timeout(
         self,
         ctx: "PushieContext",
-        member: discord.Member,
-        duration: str,
+        member: discord.Member | None = None,
+        duration: str | None = None,
     ) -> None:
         """Timeout a member for a specified duration (e.g. '5m', '1h', '7d')."""
-        import re
-        from datetime import datetime, timedelta, timezone
-
+        if member is None or duration is None:
+            await ctx.info("*Use: `timeout <user> <duration>` | `timeout list` | `timeout remove <user>`*")
+            return
+        import re as _re
         pattern = r"(\d+)([smhd])"
-        matches = re.findall(pattern, duration.lower())
+        matches = _re.findall(pattern, duration.lower())
         if not matches:
             await ctx.err("*Invalid duration format. Use: `5m` `1h` `7d` etc.*")
             return
@@ -296,7 +291,7 @@ class Moderation(commands.Cog, name="Moderation"):
             elif unit == "d":
                 total_seconds += amt * 86400
 
-        max_seconds = 28 * 86400  # 28 days
+        max_seconds = 28 * 86400
         if total_seconds > max_seconds:
             await ctx.err("*Timeout cannot exceed 28 days.*")
             return
@@ -312,9 +307,37 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to timeout: `{e}`*")
 
-    @commands.hybrid_command(
-        name="untimeout", description="Remove timeout from a member"
-    )
+    @timeout.command(name="list")
+    @commands.guild_only()
+    @commands.has_guild_permissions(moderate_members=True)
+    async def timeout_list_cmd(self, ctx: "PushieContext") -> None:
+        """List timed-out members."""
+        assert ctx.guild is not None
+        timed_out = [m for m in ctx.guild.members if m.is_timed_out()]
+        if not timed_out:
+            await ctx.info("*No members are currently timed out.*")
+            return
+        lines = "\n".join(f"> `{i+1}.` {m.mention}" for i, m in enumerate(timed_out[:15]))
+        embed = discord.Embed(
+            description=f"`{Emoji.TIMEOUT}` *Timed-out members ({len(timed_out)})*\n\n{lines}",
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
+
+    @timeout.command(name="remove")
+    @commands.guild_only()
+    @commands.has_guild_permissions(moderate_members=True)
+    async def timeout_remove_cmd(self, ctx: "PushieContext", member: discord.Member) -> None:
+        """Remove a member's timeout."""
+        try:
+            await member.edit(timed_out_until=None)
+            await ctx.ok(f"`{Emoji.UNTIMEOUT}` *{member.mention}'s timeout removed.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to remove this member's timeout.*")
+        except discord.HTTPException as e:
+            await ctx.err(f"*Failed to remove timeout: `{e}`*")
+
+    @commands.command(name="untimeout")
     @commands.guild_only()
     @commands.has_guild_permissions(moderate_members=True)
     async def untimeout(self, ctx: "PushieContext", member: discord.Member) -> None:
@@ -404,9 +427,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to cancel forced nickname: `{e}`*")
 
-    @commands.hybrid_command(
-        name="lock", description="Lock a channel (prevent sending messages)"
-    )
+    @commands.command(name="lock")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
     async def lock(
@@ -425,7 +446,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to lock channel: `{e}`*")
 
-    @commands.hybrid_command(name="unlock", description="Unlock a channel")
+    @commands.command(name="unlock")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
     async def unlock(
@@ -444,7 +465,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to unlock channel: `{e}`*")
 
-    @commands.hybrid_command(name="slowmode", description="Set channel slowmode delay")
+    @commands.command(name="slowmode", aliases=["slowmod"])
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
     async def slowmode(self, ctx: "PushieContext", delay: int = 0) -> None:
@@ -468,7 +489,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to set slowmode: `{e}`*")
 
-    @commands.hybrid_command(name="hide", description="Hide a channel from @everyone")
+    @commands.command(name="hide")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
     async def hide(
@@ -487,9 +508,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to hide channel: `{e}`*")
 
-    @commands.hybrid_command(
-        name="unhide", description="Unhide a channel from @everyone"
-    )
+    @commands.command(name="unhide")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
     async def unhide(
@@ -794,9 +813,7 @@ class Moderation(commands.Cog, name="Moderation"):
     # MUTE TYPES (imute, rmute, picperms)
     # =========================================================================
 
-    @commands.hybrid_command(
-        name="imute", description="Image mute a member (prevent image/attachment sending)"
-    )
+    @commands.command(name="imute")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def imute(
@@ -832,9 +849,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to image mute: `{e}`*")
 
-    @commands.hybrid_command(
-        name="rmute", description="Role-based mute (mute via role assignment)"
-    )
+    @commands.command(name="rmute")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
     async def rmute(
@@ -859,9 +874,7 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to apply mute: `{e}`*")
 
-    @commands.hybrid_command(
-        name="picperms", description="Toggle image/attachment sending permissions"
-    )
+    @commands.command(name="picperms")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def picperms(self, ctx: "PushieContext", member: discord.Member) -> None:
@@ -1290,34 +1303,7 @@ class Moderation(commands.Cog, name="Moderation"):
                 pass
         await ctx.ok(f"`{Emoji.UNLOCK}` *Server unlocked. (`{unlocked}` channels restored)*")
 
-    # ======== TIMEOUT LIST / REMOVE ========
-    @commands.command(name="timeoutlist", aliases=["tol"])
-    @commands.guild_only()
-    @commands.has_guild_permissions(moderate_members=True)
-    async def timeout_list(self, ctx: "PushieContext") -> None:
-        """List timed-out members."""
-        assert ctx.guild is not None
-        timed_out = [m for m in ctx.guild.members if m.is_timed_out()]
-        if not timed_out:
-            await ctx.info("*No members are currently timed out.*")
-            return
-        lines = "\n".join(f"> `{i+1}.` {m.mention}" for i, m in enumerate(timed_out[:15]))
-        embed = discord.Embed(
-            description=f"`{Emoji.TIMEOUT}` *Timed-out members ({len(timed_out)})*\n\n{lines}",
-            color=0xFAB9EC,
-        )
-        await ctx.send(embed=embed)
-
-    @commands.command(name="timeoutremove", aliases=["tor"])
-    @commands.guild_only()
-    @commands.has_guild_permissions(moderate_members=True)
-    async def timeout_remove(self, ctx: "PushieContext", member: discord.Member) -> None:
-        """Remove a member's timeout."""
-        try:
-            await member.edit(timed_out_until=None)
-            await ctx.ok(f"`{Emoji.UNTIMEOUT}` *{member.mention}'s timeout removed.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to remove this member's timeout.*")
+    # (timeout list / timeout remove are subcommands of the timeout group above)
 
     # ======== IUNMUTE / RUNMUTE ========
     @commands.command(name="iunmute")
@@ -1361,8 +1347,6 @@ class Moderation(commands.Cog, name="Moderation"):
             await ctx.err("*I don't have permission to remove the reaction mute role.*")
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
-        if isinstance(error, commands.HybridCommandError):
-            error = error.original
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, commands.MissingPermissions):

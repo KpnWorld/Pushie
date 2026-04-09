@@ -22,10 +22,10 @@ class Misc(commands.Cog, name="Miscellaneous"):
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    @commands.hybrid_group(
+    @commands.group(
         name="autoresponder",
         aliases=["autoreply", "autoresponse"],
-        description="Manage automatic message responses",
+        invoke_without_command=True,
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -135,10 +135,10 @@ class Misc(commands.Cog, name="Miscellaneous"):
         await ctx.bot.storage.save_guild(g)
         await ctx.ok(f"`{Emoji.INFO}` *Autoresponder `{trigger}` updated.*")
 
-    @commands.hybrid_group(
+    @commands.group(
         name="reactionrole",
         aliases=["rr", "reactrole"],
-        description="Manage reaction role bindings",
+        invoke_without_command=True,
     )
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
@@ -205,9 +205,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
         else:
             await ctx.info("*No reaction role message set.*")
 
-    @commands.hybrid_command(
-        name="embedjson", description="Create a custom embed from JSON"
-    )
+    @commands.command(name="embedjson")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def embed_json(self, ctx: "PushieContext", *, json_str: str) -> None:
@@ -222,7 +220,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
         except (KeyError, ValueError) as e:
             await ctx.err(f"*Invalid embed data: `{e}`*")
 
-    @commands.hybrid_command(name="poll", description="Create a reaction-based poll")
+    @commands.command(name="poll")
     @commands.guild_only()
     async def poll(
         self,
@@ -303,8 +301,6 @@ class Misc(commands.Cog, name="Miscellaneous"):
         await ctx.send(embed=embed)
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
-        if isinstance(error, commands.HybridCommandError):
-            error = error.original
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, commands.MissingPermissions):
@@ -394,19 +390,34 @@ class Misc(commands.Cog, name="Miscellaneous"):
         await ctx.send(embed=embed)
 
     # ======== COLOR ========
-    @commands.command(name="color")
-    async def color(self, ctx: "PushieContext", hex_color: str) -> None:
-        """Convert color to hex."""
+    @commands.group(name="color", invoke_without_command=True)
+    async def color(self, ctx: "PushieContext", hex_color: str | None = None) -> None:
+        """Convert hex color to embed preview, or use 'color random'."""
+        if hex_color is None:
+            await ctx.info("*Use: `color <hex>` or `color random`*")
+            return
         try:
-            color = int(hex_color.lstrip("#"), 16)
+            color_int = int(hex_color.lstrip("#"), 16)
             hex_display = f"#{hex_color.lstrip('#').upper()}"
             embed = discord.Embed(
-                description=f"> **Color:** `{hex_display}`\n> **Decimal:** `{color}`",
-                color=color,
+                description=f"> **Color:** `{hex_display}`\n> **Decimal:** `{color_int}`",
+                color=color_int,
             )
             await ctx.send(embed=embed)
         except ValueError:
             await ctx.err("*Invalid hex color.*")
+
+    @color.command(name="random")
+    async def color_random(self, ctx: "PushieContext") -> None:
+        """Get a random color hex."""
+        import random as _random
+        rand_color = _random.randint(0, 0xFFFFFF)
+        hex_display = f"#{rand_color:06X}"
+        embed = discord.Embed(
+            description=f"> **Color:** `{hex_display}`\n> **Decimal:** `{rand_color}`",
+            color=rand_color,
+        )
+        await ctx.send(embed=embed)
 
     # ======== TIMER ========
     @commands.group(name="timer", invoke_without_command=True)

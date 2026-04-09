@@ -35,7 +35,7 @@ class Core(commands.Cog, name="Core"):
         self.bot = bot
 
     # ======================== PING ========================
-    @commands.hybrid_command(name="ping", description="Check bot latency")
+    @commands.command(name="ping")
     async def ping(self, ctx: "PushieContext") -> None:
         """Check the bot's response time."""
         await ctx.send(

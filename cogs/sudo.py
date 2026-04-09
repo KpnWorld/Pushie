@@ -339,7 +339,7 @@ class Sudo(commands.Cog, name="Sudo"):
         await ctx.send(embed=UI.info(f"`{Emoji.BLACKLIST}` **Blacklist**\n\n" + "\n".join(lines)))
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
-        if isinstance(error, (commands.CommandInvokeError, commands.HybridCommandError)):
+        if isinstance(error, commands.CommandInvokeError):
             error = error.original  # type: ignore
         if isinstance(error, commands.NotOwner):
             await ctx.send(embed=UI.error("*This command is restricted to the bot owner.*"))

@@ -822,7 +822,7 @@ class Security(commands.Cog, name="Security"):
         await ctx.send(embed=UI.info(f"`{Emoji.WHITELIST}` **Antiraid Whitelist**\n\n" + "\n".join(lines)))
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
-        if isinstance(error, (commands.CommandInvokeError, commands.HybridCommandError)):
+        if isinstance(error, commands.CommandInvokeError):
             error = error.original  # type: ignore
         if isinstance(error, commands.MissingPermissions):
             await ctx.send(embed=UI.error(f"*You need: {', '.join(f'`{p}`' for p in error.missing_permissions)}*"))

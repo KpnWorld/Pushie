@@ -612,7 +612,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
         """View your reminder message."""
         await ctx.info("Default reminder message configured")
 
-    @commands.group(name="bump", invoke_without_command=True)
+    @reminder.group(name="bump", invoke_without_command=True)
     @commands.guild_only()
     async def bump(self, ctx: "PushieContext") -> None:
         """Bump reminder system."""

@@ -750,18 +750,20 @@ class Server(commands.Cog, name="Server"):
         await self.bot.storage.save_guild(g)
         await ctx.ok("*All filters cleared.*")
 
-    @boosterrole.command(name="shares")
+    @boosterrole.group(name="shares", invoke_without_command=True)
+    async def boosterrole_shares(self, ctx: "PushieContext") -> None:
+        """Booster role shares management."""
+        await ctx.info("*Use: `boosterrole shares limit <number>`*")
+
+    @boosterrole_shares.command(name="limit")
     @commands.has_guild_permissions(manage_guild=True)
-    async def boosterrole_shares(self, ctx: "PushieContext", action: str, number: int | None = None) -> None:
+    async def boosterrole_shares_limit(self, ctx: "PushieContext", number: int) -> None:
         """Set the share limit for booster roles."""
-        if action.lower() == "limit" and number is not None:
-            assert ctx.guild is not None
-            g = await self.bot.storage.get_guild(ctx.guild.id)
-            g.booster_shares_limit = number
-            await self.bot.storage.save_guild(g)
-            await ctx.ok(f"*Booster role share limit set to `{number}`.*")
-        else:
-            await ctx.err("*Use: `boosterrole shares limit <number>`*")
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        g.booster_shares_limit = number
+        await self.bot.storage.save_guild(g)
+        await ctx.ok(f"*Booster role share limit set to `{number}`.*")
 
     @boosterrole.command(name="color")
     async def boosterrole_color(self, ctx: "PushieContext", hex_color: str) -> None:
@@ -832,19 +834,11 @@ class Server(commands.Cog, name="Server"):
         except discord.Forbidden:
             await ctx.err("*I don't have permission to edit this role.*")
 
-    @boosterrole.command(name="share")
+    @boosterrole.group(name="share", invoke_without_command=True)
     async def boosterrole_share(self, ctx: "PushieContext", user: discord.Member | None = None) -> None:
-        """Share your booster role with another user (or list shares)."""
+        """Share your booster role with another user."""
         if user is None:
-            assert ctx.guild is not None
-            g = await self.bot.storage.get_guild(ctx.guild.id)
-            info = g.booster_roles.get(ctx.author.id, {})
-            shares = info.get("shared_with", [])
-            if not shares:
-                await ctx.info("*You haven't shared your booster role with anyone.*")
-            else:
-                lines = "\n".join(f"> <@{uid}>" for uid in shares)
-                await ctx.send(embed=discord.Embed(description=f"`{Emoji.BOOSTER}` *Shared with:*\n{lines}", color=0xFAB9EC))
+            await ctx.info("*Use: `boosterrole share <user>` or `boosterrole share list`*")
             return
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -857,6 +851,19 @@ class Server(commands.Cog, name="Server"):
             info["shared_with"].append(user.id)
             await self.bot.storage.save_guild(g)
         await ctx.ok(f"*Booster role shared with {user.mention}.*")
+
+    @boosterrole_share.command(name="list")
+    async def boosterrole_share_list(self, ctx: "PushieContext") -> None:
+        """List users sharing your booster role."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        info = g.booster_roles.get(ctx.author.id, {})
+        shares = info.get("shared_with", [])
+        if not shares:
+            await ctx.info("*You haven't shared your booster role with anyone.*")
+        else:
+            lines = "\n".join(f"> <@{uid}>" for uid in shares)
+            await ctx.send(embed=discord.Embed(description=f"`{Emoji.BOOSTER}` *Shared with:*\n{lines}", color=0xFAB9EC))
 
     @boosterrole.command(name="unshare")
     async def boosterrole_unshare(self, ctx: "PushieContext", user: discord.Member) -> None:

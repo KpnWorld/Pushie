@@ -249,7 +249,7 @@ class StorageManager:
         """Load all guild and global data from Supabase."""
         await self._load_global()
         client = await self._get_client()
-        
+
         # Load all guilds from Supabase
         try:
             response = await client.table(GUILD_DATA_TABLE).select("*").execute()
@@ -263,14 +263,19 @@ class StorageManager:
                     log.warning("Failed to load guild %s: %s", row.get("id"), e)
         except Exception as e:
             log.error("Failed to load guilds from Supabase: %s", e)
-        
+
         log.info("Storage loaded: %d guild(s)", len(self._guild_cache))
 
     async def _load_global(self) -> None:
         """Load global data from Supabase."""
         client = await self._get_client()
         try:
-            response = await client.table(GLOBAL_DATA_TABLE).select("data").eq("id", 1).execute()
+            response = (
+                await client.table(GLOBAL_DATA_TABLE)
+                .select("data")
+                .eq("id", 1)
+                .execute()
+            )
             if response.data and len(response.data) > 0:
                 self.global_data = GlobalData.from_dict(response.data[0]["data"])
             else:
@@ -286,7 +291,12 @@ class StorageManager:
             client = await self._get_client()
             try:
                 # Try to update, if not exists, insert
-                response = await client.table(GLOBAL_DATA_TABLE).select("id").eq("id", 1).execute()
+                response = (
+                    await client.table(GLOBAL_DATA_TABLE)
+                    .select("id")
+                    .eq("id", 1)
+                    .execute()
+                )
                 if response.data:
                     await client.table(GLOBAL_DATA_TABLE).update(
                         {"data": self.global_data.to_dict()}
@@ -307,10 +317,15 @@ class StorageManager:
         """Get guild data, loading from Supabase if not cached."""
         if guild_id in self._guild_cache:
             return self._guild_cache[guild_id]
-        
+
         client = await self._get_client()
         try:
-            response = await client.table(GUILD_DATA_TABLE).select("data").eq("id", guild_id).execute()
+            response = (
+                await client.table(GUILD_DATA_TABLE)
+                .select("data")
+                .eq("id", guild_id)
+                .execute()
+            )
             if response.data and len(response.data) > 0:
                 g = GuildData.from_dict(response.data[0]["data"])
             else:
@@ -319,7 +334,7 @@ class StorageManager:
         except Exception as e:
             log.error("Failed to load guild %s: %s", guild_id, e)
             g = GuildData(id=guild_id)
-        
+
         self._guild_cache[guild_id] = g
         return g
 
@@ -329,7 +344,12 @@ class StorageManager:
         async with self._get_lock(guild.id):
             client = await self._get_client()
             try:
-                response = await client.table(GUILD_DATA_TABLE).select("id").eq("id", guild.id).execute()
+                response = (
+                    await client.table(GUILD_DATA_TABLE)
+                    .select("id")
+                    .eq("id", guild.id)
+                    .execute()
+                )
                 if response.data:
                     await client.table(GUILD_DATA_TABLE).update(
                         {"data": guild.to_dict()}
@@ -360,7 +380,9 @@ class StorageManager:
         g.prefix = prefix
         await self.save_guild(g)
 
-    async def set_afk(self, guild_id: int, user_id: int, reason: str, since: float) -> None:
+    async def set_afk(
+        self, guild_id: int, user_id: int, reason: str, since: float
+    ) -> None:
         g = await self.get_guild(guild_id)
         g.afks[str(user_id)] = {"reason": reason, "since": since}
         await self.save_guild(g)
@@ -390,7 +412,9 @@ class StorageManager:
         g.voicecenter_category = category_id
         await self.save_guild(g)
 
-    async def set_voicecenter_default(self, guild_id: int, key: str, value: Any) -> None:
+    async def set_voicecenter_default(
+        self, guild_id: int, key: str, value: Any
+    ) -> None:
         g = await self.get_guild(guild_id)
         if not g.voicecenter_defaults:
             g.voicecenter_defaults = {}
@@ -481,7 +505,9 @@ class StorageManager:
             await self.save_guild(g)
 
     # Autorole Methods
-    async def add_autorole(self, guild_id: int, role_id: int, target: str = "all") -> None:
+    async def add_autorole(
+        self, guild_id: int, role_id: int, target: str = "all"
+    ) -> None:
         g = await self.get_guild(guild_id)
         if target == "human":
             if role_id not in g.autoroles_human:
@@ -494,7 +520,9 @@ class StorageManager:
                 g.autoroles.append(role_id)
         await self.save_guild(g)
 
-    async def remove_autorole(self, guild_id: int, role_id: int, target: str = "all") -> None:
+    async def remove_autorole(
+        self, guild_id: int, role_id: int, target: str = "all"
+    ) -> None:
         g = await self.get_guild(guild_id)
         if target == "human":
             if role_id in g.autoroles_human:
@@ -519,7 +547,9 @@ class StorageManager:
         await self.save_guild(g)
 
     # Booster Role Methods
-    async def add_booster_role(self, guild_id: int, user_id: int, role_info: dict[str, Any]) -> None:
+    async def add_booster_role(
+        self, guild_id: int, user_id: int, role_info: dict[str, Any]
+    ) -> None:
         g = await self.get_guild(guild_id)
         g.booster_roles[str(user_id)] = role_info
         await self.save_guild(g)
@@ -530,7 +560,9 @@ class StorageManager:
         await self.save_guild(g)
 
     # Friend Group Methods
-    async def add_friend_group(self, guild_id: int, name: str, group_info: dict[str, Any]) -> None:
+    async def add_friend_group(
+        self, guild_id: int, name: str, group_info: dict[str, Any]
+    ) -> None:
         g = await self.get_guild(guild_id)
         g.fg_list[name] = group_info
         await self.save_guild(g)
@@ -556,7 +588,9 @@ class StorageManager:
         await self.save_guild(g)
 
     # Ping on Join Methods
-    async def add_ping_assignment(self, guild_id: int, channel_id: int, config: dict[str, Any]) -> None:
+    async def add_ping_assignment(
+        self, guild_id: int, channel_id: int, config: dict[str, Any]
+    ) -> None:
         g = await self.get_guild(guild_id)
         g.ping_assignments[str(channel_id)] = config
         await self.save_guild(g)
@@ -593,10 +627,12 @@ class StorageManager:
         return level
 
     def level_to_xp(self, level: int) -> int:
-        return 5 * (level ** 2) + 50 * level + 100
+        return 5 * (level**2) + 50 * level + 100
 
     # Timer Methods
-    async def add_timer(self, guild_id: int, timer_id: str, config: dict[str, Any]) -> None:
+    async def add_timer(
+        self, guild_id: int, timer_id: str, config: dict[str, Any]
+    ) -> None:
         g = await self.get_guild(guild_id)
         g.timers[timer_id] = config
         await self.save_guild(g)
@@ -618,7 +654,9 @@ class StorageManager:
         await self.save_guild(g)
 
     # Reminder Methods
-    async def add_reminder(self, guild_id: int, reminder_id: str, config: dict[str, Any]) -> None:
+    async def add_reminder(
+        self, guild_id: int, reminder_id: str, config: dict[str, Any]
+    ) -> None:
         g = await self.get_guild(guild_id)
         g.reminders[reminder_id] = config
         await self.save_guild(g)
@@ -629,7 +667,9 @@ class StorageManager:
         await self.save_guild(g)
 
     # Warning Methods
-    async def add_warning(self, guild_id: int, user_id: int, warning_info: dict[str, Any]) -> None:
+    async def add_warning(
+        self, guild_id: int, user_id: int, warning_info: dict[str, Any]
+    ) -> None:
         g = await self.get_guild(guild_id)
         key = str(user_id)
         if key not in g.warnings:

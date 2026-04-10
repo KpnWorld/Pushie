@@ -95,7 +95,7 @@ class Pushie(commands.Bot):
                 log.error("Failed to load %s\n%s", ext, traceback.format_exc())
 
     async def close(self) -> None:
-        if hasattr(self, 'session') and self.session:
+        if hasattr(self, "session") and self.session:
             await self.session.close()
         await close_client()
         await super().close()

@@ -24,6 +24,7 @@ This guide will help you set up Supabase for the Pushie bot's database storage.
 Run these SQL queries in the Supabase SQL Editor:
 
 ### Guild Data Table
+
 ```sql
 CREATE TABLE guild_data (
   id BIGINT PRIMARY KEY,
@@ -40,6 +41,7 @@ EXECUTE FUNCTION update_updated_at_column();
 ```
 
 ### Global Data Table
+
 ```sql
 CREATE TABLE global_data (
   id INT PRIMARY KEY DEFAULT 1,
@@ -56,6 +58,7 @@ EXECUTE FUNCTION update_updated_at_column();
 ```
 
 ### Updated At Trigger Function (if it doesn't exist)
+
 ```sql
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -69,11 +72,13 @@ $$ LANGUAGE plpgsql;
 ## Step 3: Test Connection
 
 Install the updated dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 The bot will automatically:
+
 1. Connect to Supabase on startup
 2. Load all existing guild data
 3. Create new guild entries as needed
@@ -89,10 +94,10 @@ from pathlib import Path
 async def migrate_existing_data():
     from storage import StorageManager
     from supabase_client import get_client
-    
+
     storage = StorageManager()
     client = await get_client()
-    
+
     # Migrate guild data
     for guild_file in Path("data/guilds").glob("*.json"):
         guild_id = int(guild_file.stem)
@@ -101,7 +106,7 @@ async def migrate_existing_data():
             "id": guild_id,
             "data": data
         }).execute()
-    
+
     # Migrate global data
     global_file = Path("data/global.json")
     if global_file.exists():

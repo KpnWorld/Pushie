@@ -4,14 +4,15 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field, asdict
-from pathlib import Path
 from typing import Any
+
+from supabase_client import get_client
 
 log = logging.getLogger(__name__)
 
-DATA_DIR = Path("data")
-GUILDS_DIR = DATA_DIR / "guilds"
-GLOBAL_FILE = DATA_DIR / "global.json"
+# Table names in Supabase
+GUILD_DATA_TABLE = "guild_data"
+GLOBAL_DATA_TABLE = "global_data"
 
 
 @dataclass
@@ -236,40 +237,66 @@ class StorageManager:
         self._guild_locks: dict[int, asyncio.Lock] = {}
         self._global_lock = asyncio.Lock()
         self.global_data: GlobalData = GlobalData()
-        GUILDS_DIR.mkdir(parents=True, exist_ok=True)
+        self._client: Any = None
+
+    async def _get_client(self) -> Any:
+        """Get Supabase client."""
+        if self._client is None:
+            self._client = await get_client()
+        return self._client
 
     async def load_all(self) -> None:
+        """Load all guild and global data from Supabase."""
         await self._load_global()
-        for path in GUILDS_DIR.glob("*.json"):
-            try:
-                await self.get_guild(int(path.stem))
-            except Exception as e:
-                log.warning("Failed to load guild file %s: %s", path, e)
+        client = await self._get_client()
+        
+        # Load all guilds from Supabase
+        try:
+            response = await client.table(GUILD_DATA_TABLE).select("*").execute()
+            for row in response.data:
+                try:
+                    guild_id = row["id"]
+                    guild_json = row["data"]
+                    g = GuildData.from_dict(guild_json)
+                    self._guild_cache[guild_id] = g
+                except Exception as e:
+                    log.warning("Failed to load guild %s: %s", row.get("id"), e)
+        except Exception as e:
+            log.error("Failed to load guilds from Supabase: %s", e)
+        
         log.info("Storage loaded: %d guild(s)", len(self._guild_cache))
 
     async def _load_global(self) -> None:
-        if GLOBAL_FILE.exists():
-            try:
-                self.global_data = GlobalData.from_dict(
-                    json.loads(GLOBAL_FILE.read_text("utf-8"))
-                )
-            except Exception as e:
-                log.error("Failed to load global.json: %s", e)
+        """Load global data from Supabase."""
+        client = await self._get_client()
+        try:
+            response = await client.table(GLOBAL_DATA_TABLE).select("data").eq("id", 1).execute()
+            if response.data and len(response.data) > 0:
+                self.global_data = GlobalData.from_dict(response.data[0]["data"])
+            else:
                 self.global_data = GlobalData()
-        else:
+                await self.save_global()
+        except Exception as e:
+            log.error("Failed to load global.json: %s", e)
             self.global_data = GlobalData()
-            await self.save_global()
 
     async def save_global(self) -> None:
+        """Save global data to Supabase."""
         async with self._global_lock:
-            await asyncio.to_thread(
-                GLOBAL_FILE.write_text,
-                json.dumps(self.global_data.to_dict(), indent=2),
-                "utf-8",
-            )
-
-    def _guild_path(self, guild_id: int) -> Path:
-        return GUILDS_DIR / f"{guild_id}.json"
+            client = await self._get_client()
+            try:
+                # Try to update, if not exists, insert
+                response = await client.table(GLOBAL_DATA_TABLE).select("id").eq("id", 1).execute()
+                if response.data:
+                    await client.table(GLOBAL_DATA_TABLE).update(
+                        {"data": self.global_data.to_dict()}
+                    ).eq("id", 1).execute()
+                else:
+                    await client.table(GLOBAL_DATA_TABLE).insert(
+                        {"id": 1, "data": self.global_data.to_dict()}
+                    ).execute()
+            except Exception as e:
+                log.error("Failed to save global data: %s", e)
 
     def _get_lock(self, guild_id: int) -> asyncio.Lock:
         if guild_id not in self._guild_locks:
@@ -277,39 +304,56 @@ class StorageManager:
         return self._guild_locks[guild_id]
 
     async def get_guild(self, guild_id: int) -> GuildData:
+        """Get guild data, loading from Supabase if not cached."""
         if guild_id in self._guild_cache:
             return self._guild_cache[guild_id]
-        path = self._guild_path(guild_id)
-        if path.exists():
-            try:
-                g = GuildData.from_dict(json.loads(path.read_text("utf-8")))
-            except Exception as e:
-                log.error("Corrupt guild file %s: %s — using defaults", path, e)
+        
+        client = await self._get_client()
+        try:
+            response = await client.table(GUILD_DATA_TABLE).select("data").eq("id", guild_id).execute()
+            if response.data and len(response.data) > 0:
+                g = GuildData.from_dict(response.data[0]["data"])
+            else:
                 g = GuildData(id=guild_id)
-        else:
+                await self.save_guild(g)
+        except Exception as e:
+            log.error("Failed to load guild %s: %s", guild_id, e)
             g = GuildData(id=guild_id)
-            await self.save_guild(g)
+        
         self._guild_cache[guild_id] = g
         return g
 
     async def save_guild(self, guild: GuildData) -> None:
+        """Save guild data to Supabase."""
         self._guild_cache[guild.id] = guild
         async with self._get_lock(guild.id):
-            await asyncio.to_thread(
-                self._guild_path(guild.id).write_text,
-                json.dumps(guild.to_dict(), indent=2),
-                "utf-8",
-            )
+            client = await self._get_client()
+            try:
+                response = await client.table(GUILD_DATA_TABLE).select("id").eq("id", guild.id).execute()
+                if response.data:
+                    await client.table(GUILD_DATA_TABLE).update(
+                        {"data": guild.to_dict()}
+                    ).eq("id", guild.id).execute()
+                else:
+                    await client.table(GUILD_DATA_TABLE).insert(
+                        {"id": guild.id, "data": guild.to_dict()}
+                    ).execute()
+            except Exception as e:
+                log.error("Failed to save guild %s: %s", guild.id, e)
 
     def get_guild_sync(self, guild_id: int) -> GuildData | None:
+        """Get cached guild data synchronously."""
         return self._guild_cache.get(guild_id)
 
     async def delete_guild(self, guild_id: int) -> None:
+        """Delete guild data from Supabase."""
         self._guild_cache.pop(guild_id, None)
         self._guild_locks.pop(guild_id, None)
-        path = self._guild_path(guild_id)
-        if path.exists():
-            await asyncio.to_thread(path.unlink)
+        client = await self._get_client()
+        try:
+            await client.table(GUILD_DATA_TABLE).delete().eq("id", guild_id).execute()
+        except Exception as e:
+            log.error("Failed to delete guild %s: %s", guild_id, e)
 
     async def set_prefix(self, guild_id: int, prefix: str) -> None:
         g = await self.get_guild(guild_id)

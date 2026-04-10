@@ -17,6 +17,7 @@ from flask import Flask, jsonify
 from storage import StorageManager
 from ui import UI, PrefixView
 from emojis import Emoji
+from supabase_client import close_client
 
 log = logging.getLogger("pushie")
 
@@ -96,6 +97,7 @@ class Pushie(commands.Bot):
     async def close(self) -> None:
         if hasattr(self, 'session') and self.session:
             await self.session.close()
+        await close_client()
         await super().close()
 
     @property

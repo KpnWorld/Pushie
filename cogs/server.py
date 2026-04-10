@@ -8,7 +8,7 @@ import discord
 from discord.ext import commands
 
 from emojis import Emoji
-from ui import UI, BaseView
+from ui import UI, BaseView, resolve_color
 
 if TYPE_CHECKING:
     from main import Pushie, PushieContext
@@ -100,17 +100,21 @@ class Server(commands.Cog, name="Server"):
         except discord.Forbidden:
             await ctx.err("*I don't have permission to delete roles.*")
 
-    @role.command(name="color")
+    @role.command(name="color", aliases=["colour"])
     async def role_color(
-        self, ctx: "PushieContext", role: discord.Role, hex_color: str
+        self, ctx: "PushieContext", role: discord.Role, *, color_input: str
     ) -> None:
-        """Set role color."""
+        """Set role color. Accepts hex, CSS name, or a saved palette name."""
+        assert ctx.guild is not None
+        color_int = await resolve_color(self.bot, ctx.guild.id, color_input)
+        if color_int is None:
+            await ctx.err("*Invalid color. Use a hex code, CSS name, or saved palette name.*")
+            return
         try:
-            color = int(hex_color.lstrip("#"), 16)
-            await role.edit(color=discord.Colour(color))
-            await ctx.ok(f"Color changed for {role.mention}")
-        except ValueError:
-            await ctx.err("*Invalid hex color.*")
+            await role.edit(color=discord.Colour(color_int))
+            await ctx.ok(f"*Color of {role.mention} set to `#{color_int:06X}`.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to edit that role.*")
 
     @role.command(name="info")
     async def role_info(self, ctx: "PushieContext", role: discord.Role) -> None:
@@ -765,9 +769,9 @@ class Server(commands.Cog, name="Server"):
         await self.bot.storage.save_guild(g)
         await ctx.ok(f"*Booster role share limit set to `{number}`.*")
 
-    @boosterrole.command(name="color")
-    async def boosterrole_color(self, ctx: "PushieContext", hex_color: str) -> None:
-        """Change your booster role's color."""
+    @boosterrole.command(name="color", aliases=["colour"])
+    async def boosterrole_color(self, ctx: "PushieContext", *, color_input: str) -> None:
+        """Change your booster role's color. Accepts hex, CSS name, or saved palette name."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
         user_id = ctx.author.id
@@ -779,12 +783,13 @@ class Server(commands.Cog, name="Server"):
         if not role:
             await ctx.err("*Booster role not found.*")
             return
+        color_int = await resolve_color(self.bot, ctx.guild.id, color_input)
+        if color_int is None:
+            await ctx.err("*Invalid color. Use a hex code, CSS name, or saved palette name.*")
+            return
         try:
-            color = int(hex_color.lstrip("#"), 16)
-            await role.edit(color=discord.Colour(color))
-            await ctx.ok(f"*Booster role color updated to `#{hex_color.lstrip('#')}`.*")
-        except ValueError:
-            await ctx.err("*Invalid hex color.*")
+            await role.edit(color=discord.Colour(color_int))
+            await ctx.ok(f"*Booster role color updated to `#{color_int:06X}`.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to edit this role.*")
 

@@ -8,7 +8,7 @@ import discord
 from discord.ext import commands
 
 from emojis import Emoji
-from ui import UI
+from ui import UI, resolve_color
 
 if TYPE_CHECKING:
     from main import Pushie, PushieContext
@@ -389,34 +389,101 @@ class Misc(commands.Cog, name="Miscellaneous"):
         )
         await ctx.send(embed=embed)
 
-    # ======== COLOR ========
-    @commands.group(name="color", invoke_without_command=True)
-    async def color(self, ctx: "PushieContext", hex_color: str | None = None) -> None:
-        """Convert hex color to embed preview, or use 'color random'."""
-        if hex_color is None:
-            await ctx.info("*Use: `color <hex>` or `color random`*")
-            return
-        try:
-            color_int = int(hex_color.lstrip("#"), 16)
-            hex_display = f"#{hex_color.lstrip('#').upper()}"
-            embed = discord.Embed(
-                description=f"> **Color:** `{hex_display}`\n> **Decimal:** `{color_int}`",
-                color=color_int,
+    # ── COLOR ──────────────────────────────────────────────────────────────────
+    @commands.group(name="color", aliases=["colour"], invoke_without_command=True)
+    async def color(self, ctx: "PushieContext", *, color_input: str | None = None) -> None:
+        """Resolve a color name or hex and show a preview.
+        Accepts: CSS name (e.g. hotpink), saved guild name, or hex (e.g. #FAB9EC).
+        Subcommands: random · save · remove · list
+        """
+        if color_input is None:
+            await ctx.info(
+                "*Usage:*\n"
+                f"> `,color <hex/name>` — preview a color\n"
+                f"> `,color random` — random color\n"
+                f"> `,color save <name> <hex/name>` — save to palette\n"
+                f"> `,color remove <name>` — remove from palette\n"
+                f"> `,color list` — view saved palette"
             )
-            await ctx.send(embed=embed)
-        except ValueError:
-            await ctx.err("*Invalid hex color.*")
+            return
+        guild_id = ctx.guild.id if ctx.guild else 0
+        color_int = await resolve_color(self.bot, guild_id, color_input)
+        if color_int is None:
+            await ctx.err("*Unknown color. Use a hex code, CSS name, or a saved palette name.*")
+            return
+        hex_display = f"#{color_int:06X}"
+        embed = discord.Embed(
+            description=f"> **Hex:** `{hex_display}`\n> **Decimal:** `{color_int}`\n> **Input:** `{color_input}`",
+            color=color_int,
+        )
+        await ctx.send(embed=embed)
 
     @color.command(name="random")
     async def color_random(self, ctx: "PushieContext") -> None:
-        """Get a random color hex."""
+        """Get a random color."""
         import random as _random
         rand_color = _random.randint(0, 0xFFFFFF)
         hex_display = f"#{rand_color:06X}"
         embed = discord.Embed(
-            description=f"> **Color:** `{hex_display}`\n> **Decimal:** `{rand_color}`",
+            description=f"> **Hex:** `{hex_display}`\n> **Decimal:** `{rand_color}`",
             color=rand_color,
         )
+        await ctx.send(embed=embed)
+
+    @color.command(name="save")
+    @commands.guild_only()
+    async def color_save(self, ctx: "PushieContext", name: str, *, color_input: str) -> None:
+        """Save a color to this server's palette under a name.
+        Example: ,color save brandpink FAB9EC
+        """
+        assert ctx.guild is not None
+        color_int = await resolve_color(self.bot, ctx.guild.id, color_input)
+        if color_int is None:
+            await ctx.err("*Invalid color. Use a hex code or CSS color name.*")
+            return
+        hex_val = f"#{color_int:06X}"
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        g.saved_colors[name.lower()] = hex_val
+        await self.bot.storage.save_guild(g)
+        embed = discord.Embed(
+            description=f"> `{Emoji.SUCCESS}` *Saved `{name.lower()}` → `{hex_val}`*",
+            color=color_int,
+        )
+        await ctx.send(embed=embed)
+
+    @color.command(name="remove", aliases=["delete", "del"])
+    @commands.guild_only()
+    async def color_remove(self, ctx: "PushieContext", name: str) -> None:
+        """Remove a saved color from this server's palette."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        key = name.lower()
+        if key not in g.saved_colors:
+            await ctx.err(f"*No saved color named `{name}`.*")
+            return
+        del g.saved_colors[key]
+        await self.bot.storage.save_guild(g)
+        await ctx.ok(f"*Removed `{name}` from the color palette.*")
+
+    @color.command(name="list", aliases=["palette", "saved"])
+    @commands.guild_only()
+    async def color_list(self, ctx: "PushieContext") -> None:
+        """Show all saved colors in this server's palette."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if not g.saved_colors:
+            await ctx.info("*No saved colors. Use `,color save <name> <hex>` to add one.*")
+            return
+        lines = "\n".join(
+            f"> `{n}` — `{h}`"
+            for n, h in sorted(g.saved_colors.items())
+        )
+        embed = discord.Embed(
+            title="Color Palette",
+            description=lines,
+            color=0xFAB9EC,
+        )
+        embed.set_footer(text=f"{len(g.saved_colors)} color(s) saved")
         await ctx.send(embed=embed)
 
     # ======== TIMER ========

@@ -81,6 +81,9 @@ class GuildData:
     autoroles_human: list[int] = field(default_factory=list)
     autoroles_bot: list[int] = field(default_factory=list)
 
+    # Saved Colors (guild color palette)
+    saved_colors: dict[str, str] = field(default_factory=dict)
+
     # Booster Roles
     booster_setup_enabled: bool = False
     booster_base_role: int | None = None

@@ -1,5 +1,8 @@
 {
-  "sudo_users": [],
+  "sudo_users": [
+    895767962722660372
+  ],
   "banned_guilds": [],
-  "banned_users": []
+  "banned_users": [],
+  "default_presence": {}
 }

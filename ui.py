@@ -234,16 +234,10 @@ class BaseModal(discord.ui.Modal):
 
 class EmbedBuilderModal(BaseModal, title="Embed Builder"):
     content = discord.ui.TextInput(
-        label="Content",
-        placeholder="Supports **bold**, *italic*, `code`, {user.mention}, {guild.name} ...",
+        label="Content (body text)",
+        placeholder="Supports **bold**, *italic*, `code`, {user.mention}, {guild.name} …",
         style=discord.TextStyle.long,
         max_length=4000,
-    )
-    destination = discord.ui.TextInput(
-        label="Destination channel ID",
-        placeholder="Leave blank to send here",
-        required=False,
-        max_length=30,
     )
     embed_title = discord.ui.TextInput(
         label="Title (optional)",
@@ -251,20 +245,39 @@ class EmbedBuilderModal(BaseModal, title="Embed Builder"):
         max_length=256,
     )
     footer_text = discord.ui.TextInput(
-        label="Footer (optional)",
+        label="Footer text (optional)",
         required=False,
         max_length=2048,
     )
+    footer_icon = discord.ui.TextInput(
+        label="Footer icon URL (optional)",
+        placeholder="https://…",
+        required=False,
+        max_length=500,
+    )
+    embed_color = discord.ui.TextInput(
+        label="Color hex (optional, e.g. FAB9EC)",
+        placeholder="FAB9EC",
+        required=False,
+        max_length=7,
+    )
 
-    def build(self, ctx_vars: dict[str, str]) -> discord.Embed:
-        description = substitute(self.content.value, ctx_vars)
-        title = substitute(self.embed_title.value or "", ctx_vars) or None
-        footer = substitute(self.footer_text.value or "", ctx_vars) or None
-        embed = discord.Embed(description=description, color=COLOR)
+    def build(self, ctx_vars: dict[str, str] | None = None) -> discord.Embed:
+        cv = ctx_vars or {}
+        description = substitute(self.content.value, cv)
+        title = substitute(self.embed_title.value or "", cv) or None
+        footer = substitute(self.footer_text.value or "", cv) or None
+        ficon = self.footer_icon.value.strip() or None
+        raw_color = self.embed_color.value.strip().lstrip("#")
+        try:
+            color = int(raw_color, 16) if raw_color else COLOR
+        except ValueError:
+            color = COLOR
+        embed = discord.Embed(description=description or None, color=color)
         if title:
             embed.title = title
         if footer:
-            embed.set_footer(text=footer)
+            embed.set_footer(text=footer, icon_url=ficon)
         return embed
 
 
@@ -280,17 +293,173 @@ def parse_duration(argument: str) -> datetime.timedelta | None:
     return datetime.timedelta(seconds=int(m.group(1)) * _DURATION_MAP[m.group(2)])
 
 
-# embed flag detection — "$em <content>" triggers embed, "embed <content>" triggers modal
-def is_embed_flag(argument: str) -> bool:
-    return argument.strip().lower().startswith("$em ")
+# ── Inline Embed Parser ───────────────────────────────────────────────────────
+#
+# Supported input modes for any [input] argument:
+#
+#   $im <text>          → plain message, no embed wrapper
+#   $em [flags…]        → inline embed built from flags (see below)
+#   embed  (alone)      → caller should open the EmbedBuilderModal via a button
+#   <anything else>     → plain text (caller wraps in UI.info/success/etc.)
+#
+# Inline embed flags (can appear in any order after $em):
+#   $title  <text>      → embed title
+#   $color  <hex>       → embed color  (alias: $colour)
+#   $footer <text>      → footer text
+#   $footericon <url>   → footer icon URL  (alias: $ficon)
+#   $author <text>      → author name
+#   $authoricon <url>   → author icon URL  (alias: $aicon)
+#   $url    <url>       → title hyperlink URL
+#   $image  <url>       → large embed image  (alias: $img)
+#   $thumbnail <url>    → thumbnail image    (alias: $thumb)
+#
+# Example:
+#   !greet message $em Welcome {user.mention}! $title Hello $footer Pushie Bot $footericon https://…
 
+_FLAG_SPLIT_RE = re.compile(r"\$(\w+)")
+
+# Aliases → canonical key
+_FLAG_ALIASES: dict[str, str] = {
+    "colour": "color",
+    "ficon": "footericon",
+    "aicon": "authoricon",
+    "img": "image",
+    "thumb": "thumbnail",
+}
+
+
+def _split_flags(text: str) -> dict[str, str]:
+    """Split '$key value $key2 value2 …' text into a dict."""
+    parts = _FLAG_SPLIT_RE.split(text.strip())
+    out: dict[str, str] = {}
+    # parts[0] is the text *before* the first flag (usually empty for $em …)
+    if parts[0].strip():
+        out["_prefix"] = parts[0].strip()
+    for i in range(1, len(parts), 2):
+        key = parts[i].lower()
+        key = _FLAG_ALIASES.get(key, key)
+        val = parts[i + 1].strip() if i + 1 < len(parts) else ""
+        out[key] = val
+    return out
+
+
+class ParsedInput:
+    """Result of parse_input(). Describes what a command's [input] arg resolved to."""
+
+    __slots__ = ("kind", "text", "embed")
+
+    def __init__(
+        self,
+        kind: str,
+        text: str | None = None,
+        embed: discord.Embed | None = None,
+    ) -> None:
+        self.kind = kind    # "text" | "plain" | "embed" | "modal"
+        self.text = text
+        self.embed = embed
+
+    def __repr__(self) -> str:
+        return f"<ParsedInput kind={self.kind!r}>"
+
+
+def parse_input(argument: str, ctx_vars: dict[str, str] | None = None) -> ParsedInput:
+    """
+    Parse a freeform [input] argument.
+
+    Returns a ParsedInput with one of four kinds:
+      "plain"  → send as raw text (no embed)
+      "embed"  → send the .embed object
+      "modal"  → caller must open EmbedBuilderModal via a button View
+      "text"   → plain text string; caller decides how to wrap it
+    """
+    stripped = argument.strip()
+    cv = ctx_vars or {}
+    low = stripped.lower()
+
+    # ── $im → plain text, no embed wrapper ───────────────────────────────────
+    if low.startswith("$im"):
+        content = stripped[3:].strip()
+        return ParsedInput(kind="plain", text=substitute(content, cv))
+
+    # ── "embed" alone → modal trigger ─────────────────────────────────────────
+    if low in ("embed", "$em"):
+        return ParsedInput(kind="modal")
+
+    # ── $em <flags> → inline embed ────────────────────────────────────────────
+    if low.startswith("$em"):
+        flags = _split_flags(stripped)
+        body = substitute(flags.get("em", ""), cv)
+        title = substitute(flags.get("title", ""), cv) or None
+        footer = substitute(flags.get("footer", ""), cv) or None
+        footer_icon = flags.get("footericon", "") or None
+        author = substitute(flags.get("author", ""), cv) or None
+        author_icon = flags.get("authoricon", "") or None
+        url = flags.get("url", "") or None
+        image = flags.get("image", "") or None
+        thumbnail = flags.get("thumbnail", "") or None
+        raw_color = flags.get("color", "").lstrip("#")
+        try:
+            color = int(raw_color, 16) if raw_color else COLOR
+        except ValueError:
+            color = COLOR
+
+        embed = discord.Embed(description=body or None, color=color)
+        if title:
+            embed.title = title
+            if url:
+                embed.url = url
+        if footer:
+            embed.set_footer(text=footer, icon_url=footer_icon)
+        if author:
+            embed.set_author(name=author, icon_url=author_icon)
+        if image:
+            embed.set_image(url=image)
+        if thumbnail:
+            embed.set_thumbnail(url=thumbnail)
+        return ParsedInput(kind="embed", embed=embed)
+
+    # ── plain text fallback ───────────────────────────────────────────────────
+    return ParsedInput(kind="text", text=substitute(stripped, cv))
+
+
+class EmbedBuilderView(BaseView):
+    """
+    Sends a button that opens EmbedBuilderModal.
+    Pass an async `on_build(embed, interaction)` callback to receive the result.
+    """
+
+    def __init__(
+        self,
+        user: discord.User | discord.Member,
+        on_build: Any,
+        ctx_vars: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(user, timeout=120.0)
+        self._on_build = on_build
+        self._ctx_vars = ctx_vars or {}
+
+    @discord.ui.button(label="Open Embed Builder", style=discord.ButtonStyle.primary, emoji="✏️")
+    async def open_builder(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ) -> None:
+        modal = EmbedBuilderModal()
+        await interaction.response.send_modal(modal)
+        await modal.wait()
+        if modal.interaction:
+            embed = modal.build(self._ctx_vars)
+            await self._on_build(embed, modal.interaction)
+        self.stop()
+
+
+# Backwards-compat stubs (kept so any existing import doesn't break)
+def is_embed_flag(argument: str) -> bool:
+    return argument.strip().lower().startswith("$em")
 
 def is_modal_flag(argument: str) -> bool:
-    return argument.strip().lower().startswith("embed")
-
+    return argument.strip().lower() in ("embed", "$em")
 
 def strip_embed_flag(argument: str) -> str:
-    return argument.strip()[4:].strip()  # strip "$em "
+    return argument.strip()[3:].strip()
 
 
 # variable substitution for welcome msgs, sticky, autoresponders

@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 
 from emojis import Emoji
-from ui import UI, substitute, build_ctx_vars
+from ui import UI, substitute, build_ctx_vars, parse_input, EmbedBuilderView
 
 if TYPE_CHECKING:
     from main import Pushie, PushieContext
@@ -55,10 +55,15 @@ class Gate(commands.Cog, name="Gate"):
         if g.greet_enabled and g.greet_channel and g.greet_msg:
             ch = guild.get_channel(g.greet_channel)
             if ch and isinstance(ch, discord.TextChannel):
-                vars = build_ctx_vars(guild, member)
-                msg = substitute(g.greet_msg, vars)
+                cv = build_ctx_vars(guild, member)
+                parsed = parse_input(g.greet_msg, cv)
                 try:
-                    await ch.send(msg)
+                    if parsed.kind == "embed" and parsed.embed:
+                        await ch.send(embed=parsed.embed)
+                    elif parsed.kind == "plain" and parsed.text:
+                        await ch.send(parsed.text)
+                    elif parsed.text:
+                        await ch.send(parsed.text)
                 except (discord.Forbidden, discord.HTTPException):
                     pass
 
@@ -94,10 +99,15 @@ class Gate(commands.Cog, name="Gate"):
         if g.leave_enabled and g.leave_channel and g.leave_msg:
             ch = guild.get_channel(g.leave_channel)
             if ch and isinstance(ch, discord.TextChannel):
-                vars = build_ctx_vars(guild, member)
-                msg = substitute(g.leave_msg, vars)
+                cv = build_ctx_vars(guild, member)
+                parsed = parse_input(g.leave_msg, cv)
                 try:
-                    await ch.send(msg)
+                    if parsed.kind == "embed" and parsed.embed:
+                        await ch.send(embed=parsed.embed)
+                    elif parsed.kind == "plain" and parsed.text:
+                        await ch.send(parsed.text)
+                    elif parsed.text:
+                        await ch.send(parsed.text)
                 except (discord.Forbidden, discord.HTTPException):
                     pass
 
@@ -149,10 +159,28 @@ class Gate(commands.Cog, name="Gate"):
 
     @greet.command(name="message")
     async def greet_message(self, ctx: "PushieContext", *, message: str) -> None:
-        """Set greet message."""
+        """Set greet message. Use $em flags for embeds or 'embed' to open the builder."""
         assert ctx.guild is not None
+        parsed = parse_input(message)
+        if parsed.kind == "modal":
+            async def _on_build(embed: discord.Embed, interaction: discord.Interaction) -> None:
+                parts = [f"$em {embed.description or ''}"]
+                if embed.title:
+                    parts.append(f"$title {embed.title}")
+                if embed.footer and embed.footer.text:
+                    parts.append(f"$footer {embed.footer.text}")
+                    if embed.footer.icon_url:
+                        parts.append(f"$footericon {embed.footer.icon_url}")
+                if embed.color and embed.color.value != 0xFAB9EC:
+                    parts.append(f"$color {embed.color.value:06X}")
+                stored = " ".join(parts)
+                await self.bot.storage.update_setup(ctx.guild.id, greet_msg=stored)
+                await interaction.followup.send(embed=UI.success("*Greet message updated.*"), ephemeral=True)
+            view = EmbedBuilderView(ctx.author, _on_build)
+            await ctx.send(embed=UI.info("*Click to build your greet embed:*"), view=view)
+            return
         await self.bot.storage.update_setup(ctx.guild.id, greet_msg=message)
-        await ctx.ok("Greet message updated")
+        await ctx.ok("*Greet message updated.*")
 
     @greet.command(name="view")
     async def greet_view(self, ctx: "PushieContext") -> None:
@@ -190,12 +218,17 @@ class Gate(commands.Cog, name="Gate"):
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
         if not g.greet_msg:
-            await ctx.err("No greet message set. Use `greet message <text>` first.")
+            await ctx.err("*No greet message set. Use `greet message <text>` first.*")
             return
         member = ctx.author if isinstance(ctx.author, discord.Member) else None
-        vars = build_ctx_vars(ctx.guild, member)
-        msg = substitute(g.greet_msg, vars)
-        await ctx.send(msg)
+        cv = build_ctx_vars(ctx.guild, member)
+        parsed = parse_input(g.greet_msg, cv)
+        if parsed.kind == "embed" and parsed.embed:
+            await ctx.send(embed=parsed.embed)
+        elif parsed.text:
+            await ctx.send(parsed.text)
+        else:
+            await ctx.info("*No message content to preview.*")
 
     # ======== Leave System ========
     @commands.group(name="leave", invoke_without_command=True)
@@ -245,10 +278,28 @@ class Gate(commands.Cog, name="Gate"):
 
     @leave.command(name="message")
     async def leave_message(self, ctx: "PushieContext", *, message: str) -> None:
-        """Set leave message."""
+        """Set leave message. Use $em flags for embeds or 'embed' to open the builder."""
         assert ctx.guild is not None
+        parsed = parse_input(message)
+        if parsed.kind == "modal":
+            async def _on_build(embed: discord.Embed, interaction: discord.Interaction) -> None:
+                parts = [f"$em {embed.description or ''}"]
+                if embed.title:
+                    parts.append(f"$title {embed.title}")
+                if embed.footer and embed.footer.text:
+                    parts.append(f"$footer {embed.footer.text}")
+                    if embed.footer.icon_url:
+                        parts.append(f"$footericon {embed.footer.icon_url}")
+                if embed.color and embed.color.value != 0xFAB9EC:
+                    parts.append(f"$color {embed.color.value:06X}")
+                stored = " ".join(parts)
+                await self.bot.storage.update_setup(ctx.guild.id, leave_msg=stored)
+                await interaction.followup.send(embed=UI.success("*Leave message updated.*"), ephemeral=True)
+            view = EmbedBuilderView(ctx.author, _on_build)
+            await ctx.send(embed=UI.info("*Click to build your leave embed:*"), view=view)
+            return
         await self.bot.storage.update_setup(ctx.guild.id, leave_msg=message)
-        await ctx.ok("Leave message updated")
+        await ctx.ok("*Leave message updated.*")
 
     @leave.command(name="view")
     async def leave_view(self, ctx: "PushieContext") -> None:
@@ -286,12 +337,17 @@ class Gate(commands.Cog, name="Gate"):
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
         if not g.leave_msg:
-            await ctx.err("No leave message set.")
+            await ctx.err("*No leave message set.*")
             return
         member = ctx.author if isinstance(ctx.author, discord.Member) else None
-        vars = build_ctx_vars(ctx.guild, member)
-        msg = substitute(g.leave_msg, vars)
-        await ctx.send(msg)
+        cv = build_ctx_vars(ctx.guild, member)
+        parsed = parse_input(g.leave_msg, cv)
+        if parsed.kind == "embed" and parsed.embed:
+            await ctx.send(embed=parsed.embed)
+        elif parsed.text:
+            await ctx.send(parsed.text)
+        else:
+            await ctx.info("*No message content to preview.*")
 
     # ======== Ping on Join ========
     @commands.group(name="pingonjoin", aliases=["poj"], invoke_without_command=True)

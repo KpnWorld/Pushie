@@ -20,9 +20,9 @@
   "welcome_role": null,
   "welcome_role_bot": null,
   "welcome_msg": null,
-  "greet_enabled": false,
-  "greet_channel": null,
-  "greet_msg": null,
+  "greet_enabled": true,
+  "greet_channel": 1474888628801896689,
+  "greet_msg": "$em",
   "leave_enabled": false,
   "leave_channel": null,
   "leave_msg": null,
@@ -114,11 +114,7 @@
   "voicecenter_mode": "temp",
   "voicecenter_defaults": {},
   "voicecenter_rolejoin": null,
-  "voicecenter_temp_channels": {
-    "1491988822681194666": {
-      "owner_id": 895767962722660372
-    }
-  },
+  "voicecenter_temp_channels": {},
   "voicecenter_allowance": false,
   "voicecenter_allowed": [],
   "voicecenter_disallowed": [],

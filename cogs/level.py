@@ -8,7 +8,7 @@ import discord
 from discord.ext import commands
 
 from emojis import Emoji
-from ui import UI, substitute, build_ctx_vars
+from ui import UI, substitute, build_ctx_vars, parse_input, EmbedBuilderView
 
 if TYPE_CHECKING:
     from main import Pushie, PushieContext
@@ -75,22 +75,24 @@ class Level(commands.Cog, name="Levels"):
 
             # Send level-up message
             level_msg = g.levels_msg or f"🎉 {member.mention} reached **Level {new_level}**!"
-            vars = build_ctx_vars(message.guild, member)
-            vars["level"] = str(new_level)
-            content = substitute(level_msg, vars)
+            cv = build_ctx_vars(message.guild, member)
+            cv["level"] = str(new_level)
+            parsed = parse_input(level_msg, cv)
 
             target_channel = None
             if g.levels_channel:
                 target_channel = message.guild.get_channel(g.levels_channel)
 
-            if isinstance(target_channel, discord.TextChannel):
+            dest = target_channel if isinstance(target_channel, discord.TextChannel) else (
+                message.channel if isinstance(message.channel, discord.TextChannel) else None
+            )
+            if dest:
+                delete = None if isinstance(target_channel, discord.TextChannel) else 10.0
                 try:
-                    await target_channel.send(content)
-                except (discord.Forbidden, discord.HTTPException):
-                    pass
-            elif isinstance(message.channel, discord.TextChannel):
-                try:
-                    await message.channel.send(content, delete_after=10)
+                    if parsed.kind == "embed" and parsed.embed:
+                        await dest.send(embed=parsed.embed, delete_after=delete)
+                    elif parsed.text:
+                        await dest.send(parsed.text, delete_after=delete)
                 except (discord.Forbidden, discord.HTTPException):
                     pass
 
@@ -154,10 +156,28 @@ class Level(commands.Cog, name="Levels"):
 
     @levels.command(name="msg")
     async def levels_msg(self, ctx: "PushieContext", *, message: str) -> None:
-        """Update level-up message template. Use $user.mention, $guild.name, $level."""
+        """Update level-up message. Supports $em flags or 'embed' to open the builder."""
         assert ctx.guild is not None
+        parsed = parse_input(message)
+        if parsed.kind == "modal":
+            async def _on_build(embed: discord.Embed, interaction: discord.Interaction) -> None:
+                parts = [f"$em {embed.description or ''}"]
+                if embed.title:
+                    parts.append(f"$title {embed.title}")
+                if embed.footer and embed.footer.text:
+                    parts.append(f"$footer {embed.footer.text}")
+                    if embed.footer.icon_url:
+                        parts.append(f"$footericon {embed.footer.icon_url}")
+                if embed.color and embed.color.value != 0xFAB9EC:
+                    parts.append(f"$color {embed.color.value:06X}")
+                stored = " ".join(parts)
+                await self.bot.storage.update_setup(ctx.guild.id, levels_msg=stored)
+                await interaction.followup.send(embed=UI.success("*Level-up message updated.*"), ephemeral=True)
+            view = EmbedBuilderView(ctx.author, _on_build)
+            await ctx.send(embed=UI.info("*Click to build your level-up embed:*"), view=view)
+            return
         await self.bot.storage.update_setup(ctx.guild.id, levels_msg=message)
-        await ctx.ok("Level-up message updated")
+        await ctx.ok("*Level-up message updated.*")
 
     @levels.command(name="reset")
     async def levels_reset(self, ctx: "PushieContext") -> None:

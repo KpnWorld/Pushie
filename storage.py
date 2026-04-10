@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from dataclasses import dataclass, field, asdict
+from datetime import datetime, timezone
 from typing import Any
 
 from supabase_client import get_client
 
 log = logging.getLogger(__name__)
-
-# Table names in Supabase
-GUILD_DATA_TABLE = "guild_data"
-GLOBAL_DATA_TABLE = "global_data"
 
 
 @dataclass
@@ -235,162 +231,315 @@ class StorageManager:
     def __init__(self) -> None:
         self._guild_cache: dict[int, GuildData] = {}
         self._guild_locks: dict[int, asyncio.Lock] = {}
-        self._global_lock = asyncio.Lock()
         self.global_data: GlobalData = GlobalData()
-        self._client: Any = None
-
-    async def _get_client(self) -> Any:
-        """Get Supabase client."""
-        if self._client is None:
-            self._client = await get_client()
-        return self._client
-
-    async def load_all(self) -> None:
-        """Load all guild and global data from Supabase."""
-        await self._load_global()
-        client = await self._get_client()
-
-        # Load all guilds from Supabase
-        try:
-            response = await client.table(GUILD_DATA_TABLE).select("*").execute()
-            for row in response.data:
-                try:
-                    guild_id = row["id"]
-                    guild_json = row["data"]
-                    g = GuildData.from_dict(guild_json)
-                    self._guild_cache[guild_id] = g
-                except Exception as e:
-                    log.warning("Failed to load guild %s: %s", row.get("id"), e)
-        except Exception as e:
-            log.error("Failed to load guilds from Supabase: %s", e)
-
-        log.info("Storage loaded: %d guild(s)", len(self._guild_cache))
-
-    async def _load_global(self) -> None:
-        """Load global data from Supabase."""
-        client = await self._get_client()
-        try:
-            response = (
-                await client.table(GLOBAL_DATA_TABLE)
-                .select("data")
-                .eq("id", 1)
-                .execute()
-            )
-            if response.data and len(response.data) > 0:
-                self.global_data = GlobalData.from_dict(response.data[0]["data"])
-            else:
-                self.global_data = GlobalData()
-                await self.save_global()
-        except Exception as e:
-            log.error("Failed to load global.json: %s", e)
-            self.global_data = GlobalData()
-
-    async def save_global(self) -> None:
-        """Save global data to Supabase."""
-        async with self._global_lock:
-            client = await self._get_client()
-            try:
-                # Try to update, if not exists, insert
-                response = (
-                    await client.table(GLOBAL_DATA_TABLE)
-                    .select("id")
-                    .eq("id", 1)
-                    .execute()
-                )
-                if response.data:
-                    await client.table(GLOBAL_DATA_TABLE).update(
-                        {"data": self.global_data.to_dict()}
-                    ).eq("id", 1).execute()
-                else:
-                    await client.table(GLOBAL_DATA_TABLE).insert(
-                        {"id": 1, "data": self.global_data.to_dict()}
-                    ).execute()
-            except Exception as e:
-                log.error("Failed to save global data: %s", e)
 
     def _get_lock(self, guild_id: int) -> asyncio.Lock:
         if guild_id not in self._guild_locks:
             self._guild_locks[guild_id] = asyncio.Lock()
         return self._guild_locks[guild_id]
 
+    # ── STARTUP ────────────────────────────────────────────────────────────
+
+    async def load_all(self) -> None:
+        """Load all guild and global data from Supabase."""
+        client = await get_client()
+
+        # Load sudo users
+        try:
+            res = await client.table("sudo_users").select("user_id").execute()
+            self.global_data.sudo_users = [int(r["user_id"]) for r in (res.data or [])]
+        except Exception as e:
+            log.error("Failed to load sudo_users: %s", e)
+
+        # Load banned guilds and users from guild_blacklist
+        try:
+            res = (
+                await client.table("guild_blacklist")
+                .select("target_id, scope")
+                .execute()
+            )
+            self.global_data.banned_guilds = [
+                int(r["target_id"]) for r in (res.data or []) if r["scope"] == "guild"
+            ]
+            self.global_data.banned_users = [
+                int(r["target_id"]) for r in (res.data or []) if r["scope"] == "user"
+            ]
+        except Exception as e:
+            log.error("Failed to load guild_blacklist: %s", e)
+
+        # Load prefix cache from guild_config
+        try:
+            res = (
+                await client.table("guild_config")
+                .select(
+                    "guild_id, prefix, bot_lock, muted_role, imuted_role, rmuted_role, "
+                    "jail_channel, jail_role, greet_enabled, greet_channel, greet_msg, "
+                    "leave_enabled, leave_channel, leave_msg, ping_enabled, "
+                    "lockdown_staff_role, member_log_channel, mod_log_channel, "
+                    "role_log_channel, channel_log_channel, voice_log_channel, general_log_channel"
+                )
+                .execute()
+            )
+            for row in res.data or []:
+                gid = int(row["guild_id"])
+                if gid not in self._guild_cache:
+                    self._guild_cache[gid] = GuildData(id=gid)
+                g = self._guild_cache[gid]
+                g.prefix = row.get("prefix") or "!"
+                g.bot_lock = row.get("bot_lock") or False
+                g.mute_role = row.get("muted_role")
+                g.imute_role = row.get("imuted_role")
+                g.rmute_role = row.get("rmuted_role")
+                g.jail_channel = row.get("jail_channel")
+                g.jail_role = row.get("jail_role")
+                g.greet_enabled = row.get("greet_enabled") or False
+                g.greet_channel = row.get("greet_channel")
+                g.greet_msg = row.get("greet_msg")
+                g.leave_enabled = row.get("leave_enabled") or False
+                g.leave_channel = row.get("leave_channel")
+                g.leave_msg = row.get("leave_msg")
+                g.ping_enabled = row.get("ping_enabled") or False
+                g.lockdown_staff_role = row.get("lockdown_staff_role")
+                g.member_channel = row.get("member_log_channel")
+                g.mod_channel = row.get("mod_log_channel")
+                g.role_channel = row.get("role_log_channel")
+                g.channel_channel = row.get("channel_log_channel")
+                g.voice_channel = row.get("voice_log_channel")
+                g.log_channel = row.get("general_log_channel")
+        except Exception as e:
+            log.error("Failed to load guild_config: %s", e)
+
+        log.info("Storage loaded: %d guild(s)", len(self._guild_cache))
+
+    # ── GUILD ──────────────────────────────────────────────────────────────
+
     async def get_guild(self, guild_id: int) -> GuildData:
         """Get guild data, loading from Supabase if not cached."""
         if guild_id in self._guild_cache:
             return self._guild_cache[guild_id]
 
-        client = await self._get_client()
+        client = await get_client()
         try:
-            response = (
-                await client.table(GUILD_DATA_TABLE)
-                .select("data")
-                .eq("id", guild_id)
+            res = (
+                await client.table("guild_config")
+                .select("*")
+                .eq("guild_id", guild_id)
+                .maybe_single()
                 .execute()
             )
-            if response.data and len(response.data) > 0:
-                g = GuildData.from_dict(response.data[0]["data"])
+            if res.data:
+                g = GuildData(id=guild_id)
+                row = res.data
+                g.prefix = row.get("prefix") or "!"
+                g.bot_lock = row.get("bot_lock") or False
+                g.mute_role = row.get("muted_role")
+                g.imute_role = row.get("imuted_role")
+                g.rmute_role = row.get("rmuted_role")
+                g.jail_channel = row.get("jail_channel")
+                g.jail_role = row.get("jail_role")
+                g.greet_enabled = row.get("greet_enabled") or False
+                g.greet_channel = row.get("greet_channel")
+                g.greet_msg = row.get("greet_msg")
+                g.leave_enabled = row.get("leave_enabled") or False
+                g.leave_channel = row.get("leave_channel")
+                g.leave_msg = row.get("leave_msg")
+                g.ping_enabled = row.get("ping_enabled") or False
+                g.lockdown_staff_role = row.get("lockdown_staff_role")
+                g.member_channel = row.get("member_log_channel")
+                g.mod_channel = row.get("mod_log_channel")
+                g.role_channel = row.get("role_log_channel")
+                g.channel_channel = row.get("channel_log_channel")
+                g.voice_channel = row.get("voice_log_channel")
+                g.log_channel = row.get("general_log_channel")
             else:
                 g = GuildData(id=guild_id)
-                await self.save_guild(g)
+                await client.table("guild_config").insert(
+                    {"guild_id": guild_id, "prefix": "!"}
+                ).execute()
         except Exception as e:
-            log.error("Failed to load guild %s: %s", guild_id, e)
+            log.error("Failed to get guild %s: %s", guild_id, e)
             g = GuildData(id=guild_id)
 
         self._guild_cache[guild_id] = g
         return g
 
-    async def save_guild(self, guild: GuildData) -> None:
-        """Save guild data to Supabase."""
-        self._guild_cache[guild.id] = guild
-        async with self._get_lock(guild.id):
-            client = await self._get_client()
-            try:
-                response = (
-                    await client.table(GUILD_DATA_TABLE)
-                    .select("id")
-                    .eq("id", guild.id)
-                    .execute()
-                )
-                if response.data:
-                    await client.table(GUILD_DATA_TABLE).update(
-                        {"data": guild.to_dict()}
-                    ).eq("id", guild.id).execute()
-                else:
-                    await client.table(GUILD_DATA_TABLE).insert(
-                        {"id": guild.id, "data": guild.to_dict()}
-                    ).execute()
-            except Exception as e:
-                log.error("Failed to save guild %s: %s", guild.id, e)
-
     def get_guild_sync(self, guild_id: int) -> GuildData | None:
         """Get cached guild data synchronously."""
         return self._guild_cache.get(guild_id)
+
+    async def save_guild(self, guild: GuildData) -> None:
+        """Persist only the guild_config columns that exist in Supabase. Everything else stays in cache only."""
+        self._guild_cache[guild.id] = guild
+        client = await get_client()
+        payload = {
+            "guild_id": guild.id,
+            "prefix": guild.prefix,
+            "bot_lock": guild.bot_lock,
+            "muted_role": guild.mute_role,
+            "imuted_role": guild.imute_role,
+            "rmuted_role": guild.rmute_role,
+            "jail_channel": guild.jail_channel,
+            "jail_role": guild.jail_role,
+            "greet_enabled": guild.greet_enabled,
+            "greet_channel": guild.greet_channel,
+            "greet_msg": guild.greet_msg,
+            "leave_enabled": guild.leave_enabled,
+            "leave_channel": guild.leave_channel,
+            "leave_msg": guild.leave_msg,
+            "ping_enabled": guild.ping_enabled,
+            "lockdown_staff_role": guild.lockdown_staff_role,
+            "member_log_channel": guild.member_channel,
+            "mod_log_channel": guild.mod_channel,
+            "role_log_channel": guild.role_channel,
+            "channel_log_channel": guild.channel_channel,
+            "voice_log_channel": guild.voice_channel,
+            "general_log_channel": guild.log_channel,
+        }
+        try:
+            await client.table("guild_config").upsert(
+                payload, on_conflict="guild_id"
+            ).execute()
+        except Exception as e:
+            log.error("Failed to save guild %s: %s", guild.id, e)
 
     async def delete_guild(self, guild_id: int) -> None:
         """Delete guild data from Supabase."""
         self._guild_cache.pop(guild_id, None)
         self._guild_locks.pop(guild_id, None)
-        client = await self._get_client()
+        client = await get_client()
         try:
-            await client.table(GUILD_DATA_TABLE).delete().eq("id", guild_id).execute()
+            await client.table("guild_config").delete().eq(
+                "guild_id", guild_id
+            ).execute()
         except Exception as e:
             log.error("Failed to delete guild %s: %s", guild_id, e)
+
+    async def update_setup(self, guild_id: int, **kwargs: Any) -> None:
+        g = await self.get_guild(guild_id)
+        for key, value in kwargs.items():
+            if hasattr(g, key):
+                setattr(g, key, value)
+        await self.save_guild(g)
+
+    # ── PREFIX ─────────────────────────────────────────────────────────────
 
     async def set_prefix(self, guild_id: int, prefix: str) -> None:
         g = await self.get_guild(guild_id)
         g.prefix = prefix
         await self.save_guild(g)
 
+    # ── SUDO / BANS ────────────────────────────────────────────────────────
+    # All of these update both in-memory global_data AND the DB.
+
+    def is_sudo(self, user_id: int) -> bool:
+        return user_id in self.global_data.sudo_users
+
+    def is_banned_guild(self, guild_id: int) -> bool:
+        return guild_id in self.global_data.banned_guilds
+
+    def is_banned_user(self, user_id: int) -> bool:
+        return user_id in self.global_data.banned_users
+
+    async def add_sudo(self, user_id: int) -> None:
+        if user_id not in self.global_data.sudo_users:
+            self.global_data.sudo_users.append(user_id)
+        client = await get_client()
+        try:
+            await client.table("sudo_users").upsert(
+                {"user_id": user_id, "granted_by": 0}, on_conflict="user_id"
+            ).execute()
+        except Exception as e:
+            log.error("Failed to add sudo %s: %s", user_id, e)
+
+    async def remove_sudo(self, user_id: int) -> None:
+        if user_id in self.global_data.sudo_users:
+            self.global_data.sudo_users.remove(user_id)
+        client = await get_client()
+        try:
+            await client.table("sudo_users").delete().eq("user_id", user_id).execute()
+        except Exception as e:
+            log.error("Failed to remove sudo %s: %s", user_id, e)
+
+    async def ban_guild(self, guild_id: int) -> None:
+        if guild_id not in self.global_data.banned_guilds:
+            self.global_data.banned_guilds.append(guild_id)
+        client = await get_client()
+        try:
+            await client.table("guild_blacklist").insert(
+                {"target_id": guild_id, "scope": "guild", "banned_by": 0}
+            ).execute()
+        except Exception as e:
+            log.error("Failed to ban guild %s: %s", guild_id, e)
+
+    async def unban_guild(self, guild_id: int) -> None:
+        if guild_id in self.global_data.banned_guilds:
+            self.global_data.banned_guilds.remove(guild_id)
+        client = await get_client()
+        try:
+            await client.table("guild_blacklist").delete().eq("target_id", guild_id).eq(
+                "scope", "guild"
+            ).execute()
+        except Exception as e:
+            log.error("Failed to unban guild %s: %s", guild_id, e)
+
+    async def ban_user(self, user_id: int) -> None:
+        if user_id not in self.global_data.banned_users:
+            self.global_data.banned_users.append(user_id)
+        client = await get_client()
+        try:
+            await client.table("guild_blacklist").insert(
+                {"target_id": user_id, "scope": "user", "banned_by": 0}
+            ).execute()
+        except Exception as e:
+            log.error("Failed to ban user %s: %s", user_id, e)
+
+    async def unban_user(self, user_id: int) -> None:
+        if user_id in self.global_data.banned_users:
+            self.global_data.banned_users.remove(user_id)
+        client = await get_client()
+        try:
+            await client.table("guild_blacklist").delete().eq("target_id", user_id).eq(
+                "scope", "user"
+            ).execute()
+        except Exception as e:
+            log.error("Failed to unban user %s: %s", user_id, e)
+
+    # ── AFK ────────────────────────────────────────────────────────────────
+    # AFK uses the `afk` table (PK: user_id + guild_id).
+    # Also kept in GuildData.afks dict for sync access in on_message.
+
     async def set_afk(
         self, guild_id: int, user_id: int, reason: str, since: float
     ) -> None:
         g = await self.get_guild(guild_id)
         g.afks[str(user_id)] = {"reason": reason, "since": since}
-        await self.save_guild(g)
+        client = await get_client()
+        set_at = datetime.fromtimestamp(since, tz=timezone.utc).isoformat()
+        try:
+            await client.table("afk").upsert(
+                {
+                    "user_id": user_id,
+                    "guild_id": guild_id,
+                    "status": reason,
+                    "set_at": set_at,
+                },
+                on_conflict="user_id,guild_id",
+            ).execute()
+        except Exception as e:
+            log.error("Failed to set afk %s/%s: %s", guild_id, user_id, e)
 
     async def clear_afk(self, guild_id: int, user_id: int) -> None:
         g = await self.get_guild(guild_id)
         g.afks.pop(str(user_id), None)
-        await self.save_guild(g)
+        client = await get_client()
+        try:
+            await client.table("afk").delete().eq("user_id", user_id).eq(
+                "guild_id", guild_id
+            ).execute()
+        except Exception as e:
+            log.error("Failed to clear afk %s/%s: %s", guild_id, user_id, e)
+
+    # ── REACTION ROLES ────────────────────────────────────────────────────────
 
     async def add_reaction_role(self, guild_id: int, key: str, role_id: int) -> None:
         g = await self.get_guild(guild_id)
@@ -401,6 +550,8 @@ class StorageManager:
         g = await self.get_guild(guild_id)
         g.reaction_roles.pop(key, None)
         await self.save_guild(g)
+
+    # ── VOICECENTER ────────────────────────────────────────────────────────
 
     async def set_voicecenter_channel(self, guild_id: int, channel_id: int) -> None:
         g = await self.get_guild(guild_id)
@@ -440,53 +591,7 @@ class StorageManager:
         g.voicecenter_systems.clear()
         await self.save_guild(g)
 
-    def is_sudo(self, user_id: int) -> bool:
-        return user_id in self.global_data.sudo_users
-
-    def is_banned_guild(self, guild_id: int) -> bool:
-        return guild_id in self.global_data.banned_guilds
-
-    def is_banned_user(self, user_id: int) -> bool:
-        return user_id in self.global_data.banned_users
-
-    async def add_sudo(self, user_id: int) -> None:
-        if user_id not in self.global_data.sudo_users:
-            self.global_data.sudo_users.append(user_id)
-            await self.save_global()
-
-    async def remove_sudo(self, user_id: int) -> None:
-        if user_id in self.global_data.sudo_users:
-            self.global_data.sudo_users.remove(user_id)
-            await self.save_global()
-
-    async def ban_guild(self, guild_id: int) -> None:
-        if guild_id not in self.global_data.banned_guilds:
-            self.global_data.banned_guilds.append(guild_id)
-            await self.save_global()
-
-    async def unban_guild(self, guild_id: int) -> None:
-        if guild_id in self.global_data.banned_guilds:
-            self.global_data.banned_guilds.remove(guild_id)
-            await self.save_global()
-
-    async def ban_user(self, user_id: int) -> None:
-        if user_id not in self.global_data.banned_users:
-            self.global_data.banned_users.append(user_id)
-            await self.save_global()
-
-    async def unban_user(self, user_id: int) -> None:
-        if user_id in self.global_data.banned_users:
-            self.global_data.banned_users.remove(user_id)
-            await self.save_global()
-
-    async def update_setup(self, guild_id: int, **kwargs: Any) -> None:
-        g = await self.get_guild(guild_id)
-        for key, value in kwargs.items():
-            if hasattr(g, key):
-                setattr(g, key, value)
-        await self.save_guild(g)
-
-    # Ticket System Methods
+    # ── TICKET SYSTEM ──────────────────────────────────────────────────────
     async def set_ticket_channel(self, guild_id: int, channel_id: int) -> None:
         g = await self.get_guild(guild_id)
         g.ticket_channel = channel_id

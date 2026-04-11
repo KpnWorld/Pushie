@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 
 # ── VOICE COG ──────────────────────────────────────────────────────────────
 
+
 class Voice(commands.Cog, name="Voice"):
     """Voice channel management and VoiceCenter temp-channel system."""
 

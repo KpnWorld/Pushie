@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 
 # ── MISCELLANEOUS COG ──────────────────────────────────────────────────────
 
+
 class Misc(commands.Cog, name="Miscellaneous"):
     """Autoresponders, reaction roles, embed builder, and polls."""
 
@@ -395,7 +396,9 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
     # ── COLOR ──────────────────────────────────────────────────────────────────
     @commands.group(name="color", aliases=["colour"], invoke_without_command=True)
-    async def color(self, ctx: "PushieContext", *, color_input: str | None = None) -> None:
+    async def color(
+        self, ctx: "PushieContext", *, color_input: str | None = None
+    ) -> None:
         """Resolve a color name or hex and show a preview.
         Accepts: CSS name (e.g. hotpink), saved guild name, or hex (e.g. #FAB9EC).
         Subcommands: random · save · remove · list
@@ -413,7 +416,9 @@ class Misc(commands.Cog, name="Miscellaneous"):
         guild_id = ctx.guild.id if ctx.guild else 0
         color_int = await resolve_color(self.bot, guild_id, color_input)
         if color_int is None:
-            await ctx.err("*Unknown color. Use a hex code, CSS name, or a saved palette name.*")
+            await ctx.err(
+                "*Unknown color. Use a hex code, CSS name, or a saved palette name.*"
+            )
             return
         hex_display = f"#{color_int:06X}"
         embed = discord.Embed(
@@ -426,6 +431,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
     async def color_random(self, ctx: "PushieContext") -> None:
         """Get a random color."""
         import random as _random
+
         rand_color = _random.randint(0, 0xFFFFFF)
         hex_display = f"#{rand_color:06X}"
         embed = discord.Embed(
@@ -436,7 +442,9 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
     @color.command(name="save")
     @commands.guild_only()
-    async def color_save(self, ctx: "PushieContext", name: str, *, color_input: str) -> None:
+    async def color_save(
+        self, ctx: "PushieContext", name: str, *, color_input: str
+    ) -> None:
         """Save a color to this server's palette under a name.
         Example: ,color save brandpink FAB9EC
         """
@@ -476,12 +484,11 @@ class Misc(commands.Cog, name="Miscellaneous"):
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
         if not g.saved_colors:
-            await ctx.info("*No saved colors. Use `,color save <name> <hex>` to add one.*")
+            await ctx.info(
+                "*No saved colors. Use `,color save <name> <hex>` to add one.*"
+            )
             return
-        lines = "\n".join(
-            f"> `{n}` — `{h}`"
-            for n, h in sorted(g.saved_colors.items())
-        )
+        lines = "\n".join(f"> `{n}` — `{h}`" for n, h in sorted(g.saved_colors.items()))
         embed = discord.Embed(
             title="Color Palette",
             description=lines,
@@ -545,7 +552,9 @@ class Misc(commands.Cog, name="Miscellaneous"):
             await ctx.err("*Timer not found.*")
             return
         timer = g.timers[timer_id]
-        await ctx.info(f"Timer `{timer_id[:8]}`: {timer.get('message', 'No message')[:100]}")
+        await ctx.info(
+            f"Timer `{timer_id[:8]}`: {timer.get('message', 'No message')[:100]}"
+        )
 
     @timer.command(name="pause")
     async def timer_pause(self, ctx: "PushieContext", timer_id: str) -> None:
@@ -602,7 +611,9 @@ class Misc(commands.Cog, name="Miscellaneous"):
         await ctx.send(embed=embed)
 
     @counter.command(name="pause")
-    async def counter_pause(self, ctx: "PushieContext", channel: discord.TextChannel) -> None:
+    async def counter_pause(
+        self, ctx: "PushieContext", channel: discord.TextChannel
+    ) -> None:
         """Pause channel counter."""
         await ctx.ok(f"Counter paused for {channel.mention}")
 
@@ -673,7 +684,9 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
     @reminder.command(name="msg")
     @commands.has_guild_permissions(manage_guild=True)
-    async def reminder_msg(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+    async def reminder_msg(
+        self, ctx: "PushieContext", *, message: str | None = None
+    ) -> None:
         """Set default reminder message."""
         assert ctx.guild is not None
         await ctx.ok("Default reminder message updated")
@@ -704,12 +717,16 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
     @bump.group(name="msg", invoke_without_command=True)
     @commands.has_guild_permissions(manage_guild=True)
-    async def bump_msg(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+    async def bump_msg(
+        self, ctx: "PushieContext", *, message: str | None = None
+    ) -> None:
         """Set the bump reminder message."""
         if message:
             await ctx.ok(f"*Bump reminder message set.*")
         else:
-            await ctx.info("*Use: `reminder bump msg <message>` or `reminder bump msg view`*")
+            await ctx.info(
+                "*Use: `reminder bump msg <message>` or `reminder bump msg view`*"
+            )
 
     @bump_msg.command(name="view")
     async def bump_msg_view(self, ctx: "PushieContext") -> None:
@@ -718,12 +735,16 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
     @bump.group(name="thankyou", invoke_without_command=True)
     @commands.has_guild_permissions(manage_guild=True)
-    async def bump_thankyou(self, ctx: "PushieContext", *, message: str | None = None) -> None:
+    async def bump_thankyou(
+        self, ctx: "PushieContext", *, message: str | None = None
+    ) -> None:
         """Set the bump thank you response."""
         if message:
             await ctx.ok("*Bump thank you message set.*")
         else:
-            await ctx.info("*Use: `reminder bump thankyou <message>` or `reminder bump thankyou view`*")
+            await ctx.info(
+                "*Use: `reminder bump thankyou <message>` or `reminder bump thankyou view`*"
+            )
 
     @bump_thankyou.command(name="view")
     async def bump_thankyou_view(self, ctx: "PushieContext") -> None:

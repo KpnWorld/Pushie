@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 
 # ── SUDO COG ───────────────────────────────────────────────────────────────
 
+
 class Sudo(commands.Cog, name="Sudo"):
     """Bot owner commands for managing sudo access and bot configuration."""
 
@@ -32,12 +33,21 @@ class Sudo(commands.Cog, name="Sudo"):
         """Sudo command group."""
         prefix = ctx.prefix or "!"
         cmds = [
-            "sudo add <user>", "sudo remove <user>", "sudo list",
-            "sudo ban user <user_id>", "sudo ban guild <guild_id>",
-            "sudo unban <user>", "sudo leave", "sudo guilds",
-            "sudo bot stats/restart/shutdown", "sudo cog load/reload/unload <cog>",
-            "sudo customize status/presence <...>", "sudo default",
-            "sudo msg <message>", "sudo guild config", "sudo icon [url]",
+            "sudo add <user>",
+            "sudo remove <user>",
+            "sudo list",
+            "sudo ban user <user_id>",
+            "sudo ban guild <guild_id>",
+            "sudo unban <user>",
+            "sudo leave",
+            "sudo guilds",
+            "sudo bot stats/restart/shutdown",
+            "sudo cog load/reload/unload <cog>",
+            "sudo customize status/presence <...>",
+            "sudo default",
+            "sudo msg <message>",
+            "sudo guild config",
+            "sudo icon [url]",
         ]
         await ctx.send(
             embed=UI.info(
@@ -83,7 +93,9 @@ class Sudo(commands.Cog, name="Sudo"):
     async def sudo_ban(self, ctx: "PushieContext") -> None:
         """Ban a user or guild from using the bot."""
         prefix = ctx.prefix or "!"
-        await ctx.info(f"*Use: `{prefix}sudo ban user <id>` or `{prefix}sudo ban guild <id>`*")
+        await ctx.info(
+            f"*Use: `{prefix}sudo ban user <id>` or `{prefix}sudo ban guild <id>`*"
+        )
 
     @sudo_ban.command(name="user")
     @commands.is_owner()
@@ -159,6 +171,7 @@ class Sudo(commands.Cog, name="Sudo"):
             # Get system stats
             try:
                 import psutil
+
                 proc = psutil.Process()
                 mem_mb = proc.memory_info().rss / 1024 / 1024
                 cpu_p = psutil.cpu_percent(interval=0.1)
@@ -177,8 +190,7 @@ class Sudo(commands.Cog, name="Sudo"):
                 f"> **Cogs** — `{len(self.bot.cogs)}`\n"
                 f"> **Commands** — `{len(self.bot.commands)}`\n"
                 f"> **Python** — `{platform.python_version()}`\n"
-                f"> **discord.py** — `{discord.__version__}`\n"
-                + sys_info
+                f"> **discord.py** — `{discord.__version__}`\n" + sys_info
             )
             embed = discord.Embed(description=stats_text, color=0xFAB9EC)
             await ctx.send(embed=embed)
@@ -251,7 +263,9 @@ class Sudo(commands.Cog, name="Sudo"):
             act_key, act_text = parts[0].lower(), parts[1]
             atype = activity_type_map.get(act_key)
             if not atype:
-                await ctx.err(f"*Unknown type. Valid: `{', '.join(activity_type_map)}`*")
+                await ctx.err(
+                    f"*Unknown type. Valid: `{', '.join(activity_type_map)}`*"
+                )
                 return
             activity = discord.Activity(type=atype, name=act_text)
             await self.bot.change_presence(activity=activity)
@@ -292,6 +306,7 @@ class Sudo(commands.Cog, name="Sudo"):
                 return
             g = await self.bot.storage.get_guild(ctx.guild.id)
             import json
+
             config_text = json.dumps(g.to_dict(), indent=2)
             if len(config_text) > 1800:
                 config_text = config_text[:1800] + "\n..."
@@ -307,6 +322,7 @@ class Sudo(commands.Cog, name="Sudo"):
                 data = await ctx.message.attachments[0].read()
             elif url:
                 import aiohttp
+
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url) as resp:
                         data = await resp.read()
@@ -339,13 +355,17 @@ class Sudo(commands.Cog, name="Sudo"):
         if not lines:
             await ctx.info("*Blacklist is empty.*")
             return
-        await ctx.send(embed=UI.info(f"`{Emoji.BLACKLIST}` **Blacklist**\n\n" + "\n".join(lines)))
+        await ctx.send(
+            embed=UI.info(f"`{Emoji.BLACKLIST}` **Blacklist**\n\n" + "\n".join(lines))
+        )
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.CommandInvokeError):
             error = error.original  # type: ignore
         if isinstance(error, commands.NotOwner):
-            await ctx.send(embed=UI.error("*This command is restricted to the bot owner.*"))
+            await ctx.send(
+                embed=UI.error("*This command is restricted to the bot owner.*")
+            )
         elif isinstance(error, commands.CheckFailure):
             await ctx.send(embed=UI.error(str(error)))
         else:

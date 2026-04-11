@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 
 # ── LEVEL COG ──────────────────────────────────────────────────────────────
 
+
 class Level(commands.Cog, name="Levels"):
     """Leveling and XP system with level-up rewards."""
 

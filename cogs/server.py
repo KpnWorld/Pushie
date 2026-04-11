@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 
 # ── SERVER COG ─────────────────────────────────────────────────────────────
 
+
 class Server(commands.Cog, name="Server"):
     """Server management: roles, channels, tickets, booster roles, friend groups."""
 

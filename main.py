@@ -24,6 +24,7 @@ log = logging.getLogger("pushie")
 
 # ── CONTEXT & BOT SETUP ────────────────────────────────────────────────────
 
+
 class PushieContext(commands.Context):
     """Extended context with helper methods for common responses."""
 
@@ -47,6 +48,7 @@ class PushieContext(commands.Context):
 
 
 # ── MAIN BOT CLASS ────────────────────────────────────────────────────────
+
 
 class Pushie(commands.Bot):
     """Main Discord bot with storage, session, and cog management."""
@@ -164,6 +166,7 @@ class Pushie(commands.Bot):
 
     async def _send_welcome_message(self, channel: discord.TextChannel) -> None:
         """Send welcome message with instructions to new guild."""
+
         class WelcomeView(discord.ui.LayoutView):
             container = (
                 discord.ui.Container()

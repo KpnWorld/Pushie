@@ -32,6 +32,7 @@ _MODULE_HELP: dict[str, str] = {
 
 # ── CORE COG ───────────────────────────────────────────────────────────────
 
+
 class Core(commands.Cog, name="Core"):
     """Core bot commands: prefix, AFK, help, and ping."""
 
@@ -44,7 +45,9 @@ class Core(commands.Cog, name="Core"):
     async def ping(self, ctx: "PushieContext") -> None:
         """Check the bot's response time."""
         await ctx.send(
-            embed=UI.info(f"`{Emoji.PING}` *Pong! `{round(self.bot.latency * 1000)}ms`*")
+            embed=UI.info(
+                f"`{Emoji.PING}` *Pong! `{round(self.bot.latency * 1000)}ms`*"
+            )
         )
 
     # ── PREFIX ──────────────────────────────────────────────────────────────
@@ -170,7 +173,9 @@ class Core(commands.Cog, name="Core"):
         cmd = self.bot.get_command(q)
         if cmd:
             prefix = ctx.prefix or "!"
-            aliases = ", ".join(f"`{a}`" for a in cmd.aliases) if cmd.aliases else "*none*"
+            aliases = (
+                ", ".join(f"`{a}`" for a in cmd.aliases) if cmd.aliases else "*none*"
+            )
             embed = discord.Embed(
                 description=(
                     f"`{Emoji.INFO}` **`{prefix}{cmd.qualified_name}`**\n\n"
@@ -179,12 +184,14 @@ class Core(commands.Cog, name="Core"):
                 ),
                 color=0xFAB9EC,
             )
-            if hasattr(cmd, 'commands'):
+            if hasattr(cmd, "commands"):
                 subs = "\n".join(
                     f"> `{prefix}{s.qualified_name}` — {s.short_doc or ''}"
                     for s in cmd.commands  # type: ignore
                 )
-                embed.add_field(name="Subcommands", value=subs or "*none*", inline=False)
+                embed.add_field(
+                    name="Subcommands", value=subs or "*none*", inline=False
+                )
             await ctx.send(embed=embed)
             return
 

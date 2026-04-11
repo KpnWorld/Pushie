@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 
 # ── SECURITY COG ──────────────────────────────────────────────────────────
 
+
 class Security(commands.Cog, name="Security"):
     """Message filtering, antinuke, fake permissions, and antiraid protection."""
 
@@ -54,7 +55,9 @@ class Security(commands.Cog, name="Security"):
                 try:
                     await message.delete()
                     await message.channel.send(  # type: ignore
-                        embed=UI.error(f"*{message.author.mention} — message removed (keyword filter).*"),
+                        embed=UI.error(
+                            f"*{message.author.mention} — message removed (keyword filter).*"
+                        ),
                         delete_after=4,
                     )
                 except (discord.Forbidden, discord.HTTPException):
@@ -68,7 +71,9 @@ class Security(commands.Cog, name="Security"):
                     try:
                         await message.delete()
                         await message.channel.send(  # type: ignore
-                            embed=UI.error(f"*{message.author.mention} — message removed (regex filter).*"),
+                            embed=UI.error(
+                                f"*{message.author.mention} — message removed (regex filter).*"
+                            ),
                             delete_after=4,
                         )
                     except (discord.Forbidden, discord.HTTPException):
@@ -84,7 +89,9 @@ class Security(commands.Cog, name="Security"):
                 try:
                     await message.delete()
                     await message.channel.send(  # type: ignore
-                        embed=UI.error(f"*{message.author.mention} — Discord invites are not allowed here.*"),
+                        embed=UI.error(
+                            f"*{message.author.mention} — Discord invites are not allowed here.*"
+                        ),
                         delete_after=4,
                     )
                 except (discord.Forbidden, discord.HTTPException):
@@ -106,7 +113,9 @@ class Security(commands.Cog, name="Security"):
                     try:
                         await message.delete()
                         await message.channel.send(  # type: ignore
-                            embed=UI.error(f"*{message.author.mention} — that link is not allowed here.*"),
+                            embed=UI.error(
+                                f"*{message.author.mention} — that link is not allowed here.*"
+                            ),
                             delete_after=4,
                         )
                     except (discord.Forbidden, discord.HTTPException):
@@ -127,7 +136,9 @@ class Security(commands.Cog, name="Security"):
                     if re.search(pattern, member.name, re.IGNORECASE):
                         if member.id not in g.antiraid_whitelist:
                             try:
-                                await member.kick(reason="Antiraid: username pattern match")
+                                await member.kick(
+                                    reason="Antiraid: username pattern match"
+                                )
                             except (discord.Forbidden, discord.HTTPException):
                                 pass
                             return
@@ -178,7 +189,9 @@ class Security(commands.Cog, name="Security"):
                         return
 
     @commands.Cog.listener()
-    async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
+    async def on_member_update(
+        self, before: discord.Member, after: discord.Member
+    ) -> None:
         guild = after.guild
         g = self.bot.storage.get_guild_sync(guild.id)
         if not g or not g.antinuke_enabled:
@@ -189,7 +202,9 @@ class Security(commands.Cog, name="Security"):
             for nf in g.nickname_filters:
                 if nf.lower() in after.nick.lower():
                     try:
-                        await after.edit(nick=before.nick, reason="Antinuke: nickname filter")
+                        await after.edit(
+                            nick=before.nick, reason="Antinuke: nickname filter"
+                        )
                     except (discord.Forbidden, discord.HTTPException):
                         pass
                     break
@@ -256,13 +271,19 @@ class Security(commands.Cog, name="Security"):
         if not lines:
             await ctx.info("*No filters configured.*")
             return
-        await ctx.send(embed=UI.info(f"`{Emoji.BLACKLIST}` **Active Filters**\n\n" + "\n".join(lines)))
+        await ctx.send(
+            embed=UI.info(
+                f"`{Emoji.BLACKLIST}` **Active Filters**\n\n" + "\n".join(lines)
+            )
+        )
 
     @filter.group(name="keyword", invoke_without_command=True)
     async def filter_keyword(self, ctx: "PushieContext") -> None:
         """Keyword filter management."""
         prefix = ctx.prefix or "!"
-        await ctx.info(f"Usage: `{prefix}filter keyword add <word>` or `{prefix}filter keyword remove <word>`")
+        await ctx.info(
+            f"Usage: `{prefix}filter keyword add <word>` or `{prefix}filter keyword remove <word>`"
+        )
 
     @filter_keyword.command(name="add")
     async def filter_keyword_add(self, ctx: "PushieContext", *, word: str) -> None:
@@ -292,7 +313,9 @@ class Security(commands.Cog, name="Security"):
     async def filter_link(self, ctx: "PushieContext") -> None:
         """Link filter management."""
         prefix = ctx.prefix or "!"
-        await ctx.info(f"Usage: `{prefix}filter link add <domain>` or `{prefix}filter link remove <domain>`")
+        await ctx.info(
+            f"Usage: `{prefix}filter link add <domain>` or `{prefix}filter link remove <domain>`"
+        )
 
     @filter_link.command(name="add")
     async def filter_link_add(self, ctx: "PushieContext", *, domain: str) -> None:
@@ -320,7 +343,9 @@ class Security(commands.Cog, name="Security"):
     async def filter_invites(self, ctx: "PushieContext") -> None:
         """Discord invite link filter."""
         prefix = ctx.prefix or "!"
-        await ctx.info(f"Usage: `{prefix}filter invites add` or `{prefix}filter invites remove`")
+        await ctx.info(
+            f"Usage: `{prefix}filter invites add` or `{prefix}filter invites remove`"
+        )
 
     @filter_invites.command(name="add")
     async def filter_invites_add(self, ctx: "PushieContext") -> None:
@@ -345,7 +370,9 @@ class Security(commands.Cog, name="Security"):
     async def filter_regex(self, ctx: "PushieContext") -> None:
         """Regex filter management."""
         prefix = ctx.prefix or "!"
-        await ctx.info(f"Usage: `{prefix}filter regex add <pattern>` or `{prefix}filter regex test <text>`")
+        await ctx.info(
+            f"Usage: `{prefix}filter regex add <pattern>` or `{prefix}filter regex test <text>`"
+        )
 
     @filter_regex.command(name="add")
     async def filter_regex_add(self, ctx: "PushieContext", *, pattern: str) -> None:
@@ -390,7 +417,9 @@ class Security(commands.Cog, name="Security"):
         await ctx.ok(f"*Added `{word}` to whitelist.*")
 
     @filter.command(name="links")
-    async def filter_links_whitelist(self, ctx: "PushieContext", *, domain: str) -> None:
+    async def filter_links_whitelist(
+        self, ctx: "PushieContext", *, domain: str
+    ) -> None:
         """Add domain to link whitelist."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -466,7 +495,11 @@ class Security(commands.Cog, name="Security"):
         """Antinuke configuration."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        enabled = f"`{Emoji.SUCCESS}` enabled" if g.antinuke_enabled else f"`{Emoji.CANCEL}` disabled"
+        enabled = (
+            f"`{Emoji.SUCCESS}` enabled"
+            if g.antinuke_enabled
+            else f"`{Emoji.CANCEL}` disabled"
+        )
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
@@ -493,7 +526,9 @@ class Security(commands.Cog, name="Security"):
             return
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, antinuke_enabled=enabled)
-        state = f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        state = (
+            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        )
         await ctx.ok(f"*Antinuke {state}.*")
 
     @antinuke.command(name="kick")
@@ -550,10 +585,14 @@ class Security(commands.Cog, name="Security"):
     async def antinuke_whitelist(self, ctx: "PushieContext") -> None:
         """Antinuke whitelist management."""
         prefix = ctx.prefix or "!"
-        await ctx.info(f"Use: `{prefix}antinuke whitelist add <user>` or `{prefix}antinuke whitelist remove <user>`")
+        await ctx.info(
+            f"Use: `{prefix}antinuke whitelist add <user>` or `{prefix}antinuke whitelist remove <user>`"
+        )
 
     @antinuke_whitelist.command(name="add")
-    async def antinuke_whitelist_add(self, ctx: "PushieContext", member: discord.Member) -> None:
+    async def antinuke_whitelist_add(
+        self, ctx: "PushieContext", member: discord.Member
+    ) -> None:
         """Add user to antinuke whitelist."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -563,7 +602,9 @@ class Security(commands.Cog, name="Security"):
         await ctx.ok(f"*{member.mention} added to antinuke whitelist.*")
 
     @antinuke_whitelist.command(name="remove")
-    async def antinuke_whitelist_remove(self, ctx: "PushieContext", member: discord.Member) -> None:
+    async def antinuke_whitelist_remove(
+        self, ctx: "PushieContext", member: discord.Member
+    ) -> None:
         """Remove user from antinuke whitelist."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -581,16 +622,22 @@ class Security(commands.Cog, name="Security"):
             await ctx.info("*No antinuke admins configured.*")
             return
         lines = [f"> <@{uid}>" for uid in g.antinuke_admins]
-        await ctx.send(embed=UI.info(f"`{Emoji.LOCK}` **Antinuke Admins**\n\n" + "\n".join(lines)))
+        await ctx.send(
+            embed=UI.info(f"`{Emoji.LOCK}` **Antinuke Admins**\n\n" + "\n".join(lines))
+        )
 
     @antinuke.group(name="admin", invoke_without_command=True)
     async def antinuke_admin(self, ctx: "PushieContext") -> None:
         """Antinuke admin management."""
         prefix = ctx.prefix or "!"
-        await ctx.info(f"Use: `{prefix}antinuke admin add <user>` or `{prefix}antinuke admin remove <user>`")
+        await ctx.info(
+            f"Use: `{prefix}antinuke admin add <user>` or `{prefix}antinuke admin remove <user>`"
+        )
 
     @antinuke_admin.command(name="add")
-    async def antinuke_admin_add(self, ctx: "PushieContext", member: discord.Member) -> None:
+    async def antinuke_admin_add(
+        self, ctx: "PushieContext", member: discord.Member
+    ) -> None:
         """Add antinuke admin."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -600,7 +647,9 @@ class Security(commands.Cog, name="Security"):
         await ctx.ok(f"*{member.mention} added as antinuke admin.*")
 
     @antinuke_admin.command(name="remove")
-    async def antinuke_admin_remove(self, ctx: "PushieContext", member: discord.Member) -> None:
+    async def antinuke_admin_remove(
+        self, ctx: "PushieContext", member: discord.Member
+    ) -> None:
         """Remove antinuke admin."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -611,7 +660,9 @@ class Security(commands.Cog, name="Security"):
 
     # ======== Fake Permissions ========
 
-    @commands.group(name="fakepermissions", aliases=["fakeperms"], invoke_without_command=True)
+    @commands.group(
+        name="fakepermissions", aliases=["fakeperms"], invoke_without_command=True
+    )
     @commands.guild_only()
     @commands.has_guild_permissions(administrator=True)
     async def fakepermissions(self, ctx: "PushieContext") -> None:
@@ -627,14 +678,18 @@ class Security(commands.Cog, name="Security"):
         )
 
     @fakepermissions.command(name="add")
-    async def fakepermissions_add(self, ctx: "PushieContext", member: discord.Member, *, perms: str) -> None:
+    async def fakepermissions_add(
+        self, ctx: "PushieContext", member: discord.Member, *, perms: str
+    ) -> None:
         """Grant fake permissions to a user."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
         perm_list = [p.strip() for p in perms.split(",")]
         g.fake_permissions[str(member.id)] = perm_list
         await self.bot.storage.save_guild(g)
-        await ctx.ok(f"*Fake permissions granted to {member.mention}: `{', '.join(perm_list)}`*")
+        await ctx.ok(
+            f"*Fake permissions granted to {member.mention}: `{', '.join(perm_list)}`*"
+        )
 
     @fakepermissions.command(name="list")
     async def fakepermissions_list(self, ctx: "PushieContext") -> None:
@@ -644,11 +699,18 @@ class Security(commands.Cog, name="Security"):
         if not g.fake_permissions:
             await ctx.info("*No fake permissions configured.*")
             return
-        lines = [f"> <@{uid}>: `{', '.join(perms)}`" for uid, perms in g.fake_permissions.items()]
-        await ctx.send(embed=UI.info(f"`{Emoji.LOCK}` **Fake Permissions**\n\n" + "\n".join(lines)))
+        lines = [
+            f"> <@{uid}>: `{', '.join(perms)}`"
+            for uid, perms in g.fake_permissions.items()
+        ]
+        await ctx.send(
+            embed=UI.info(f"`{Emoji.LOCK}` **Fake Permissions**\n\n" + "\n".join(lines))
+        )
 
     @fakepermissions.command(name="remove")
-    async def fakepermissions_remove(self, ctx: "PushieContext", member: discord.Member) -> None:
+    async def fakepermissions_remove(
+        self, ctx: "PushieContext", member: discord.Member
+    ) -> None:
         """Remove fake permissions from a user."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -668,7 +730,11 @@ class Security(commands.Cog, name="Security"):
         """Antiraid configuration."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        enabled = f"`{Emoji.SUCCESS}` enabled" if g.antiraid_enabled else f"`{Emoji.CANCEL}` disabled"
+        enabled = (
+            f"`{Emoji.SUCCESS}` enabled"
+            if g.antiraid_enabled
+            else f"`{Emoji.CANCEL}` disabled"
+        )
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
@@ -694,17 +760,23 @@ class Security(commands.Cog, name="Security"):
             return
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, antiraid_enabled=enabled)
-        state = f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        state = (
+            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        )
         await ctx.ok(f"*Antiraid {state}.*")
 
     @antiraid.group(name="username", invoke_without_command=True)
     async def antiraid_username(self, ctx: "PushieContext") -> None:
         """Username pattern management."""
         prefix = ctx.prefix or "!"
-        await ctx.info(f"Use: `{prefix}antiraid username add <pattern>` / `remove` / `list`")
+        await ctx.info(
+            f"Use: `{prefix}antiraid username add <pattern>` / `remove` / `list`"
+        )
 
     @antiraid_username.command(name="add")
-    async def antiraid_username_add(self, ctx: "PushieContext", *, pattern: str) -> None:
+    async def antiraid_username_add(
+        self, ctx: "PushieContext", *, pattern: str
+    ) -> None:
         """Add username pattern to block."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -714,7 +786,9 @@ class Security(commands.Cog, name="Security"):
         await ctx.ok(f"*Added username pattern: `{pattern}`*")
 
     @antiraid_username.command(name="remove")
-    async def antiraid_username_remove(self, ctx: "PushieContext", *, pattern: str) -> None:
+    async def antiraid_username_remove(
+        self, ctx: "PushieContext", *, pattern: str
+    ) -> None:
         """Remove username pattern."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -734,7 +808,11 @@ class Security(commands.Cog, name="Security"):
             await ctx.info("*No username patterns configured.*")
             return
         lines = [f"> `{p}`" for p in g.antiraid_username_patterns]
-        await ctx.send(embed=UI.info(f"`{Emoji.BLACKLIST}` **Username Patterns**\n\n" + "\n".join(lines)))
+        await ctx.send(
+            embed=UI.info(
+                f"`{Emoji.BLACKLIST}` **Username Patterns**\n\n" + "\n".join(lines)
+            )
+        )
 
     @antiraid.command(name="massmention")
     async def antiraid_massmention(self, ctx: "PushieContext") -> None:
@@ -793,7 +871,9 @@ class Security(commands.Cog, name="Security"):
         await ctx.info(f"Use: `{prefix}antiraid whitelist add/remove/view <user>`")
 
     @antiraid_whitelist.command(name="add")
-    async def antiraid_whitelist_add(self, ctx: "PushieContext", member: discord.Member) -> None:
+    async def antiraid_whitelist_add(
+        self, ctx: "PushieContext", member: discord.Member
+    ) -> None:
         """Add user to antiraid whitelist."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -803,7 +883,9 @@ class Security(commands.Cog, name="Security"):
         await ctx.ok(f"*{member.mention} added to antiraid whitelist.*")
 
     @antiraid_whitelist.command(name="remove")
-    async def antiraid_whitelist_remove(self, ctx: "PushieContext", member: discord.Member) -> None:
+    async def antiraid_whitelist_remove(
+        self, ctx: "PushieContext", member: discord.Member
+    ) -> None:
         """Remove user from antiraid whitelist."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -821,13 +903,21 @@ class Security(commands.Cog, name="Security"):
             await ctx.info("*Antiraid whitelist is empty.*")
             return
         lines = [f"> <@{uid}>" for uid in g.antiraid_whitelist]
-        await ctx.send(embed=UI.info(f"`{Emoji.WHITELIST}` **Antiraid Whitelist**\n\n" + "\n".join(lines)))
+        await ctx.send(
+            embed=UI.info(
+                f"`{Emoji.WHITELIST}` **Antiraid Whitelist**\n\n" + "\n".join(lines)
+            )
+        )
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.CommandInvokeError):
             error = error.original  # type: ignore
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send(embed=UI.error(f"*You need: {', '.join(f'`{p}`' for p in error.missing_permissions)}*"))
+            await ctx.send(
+                embed=UI.error(
+                    f"*You need: {', '.join(f'`{p}`' for p in error.missing_permissions)}*"
+                )
+            )
         elif isinstance(error, commands.CheckFailure):
             await ctx.send(embed=UI.error(str(error)))
         else:

@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 
 # ── GATE COG ───────────────────────────────────────────────────────────────
 
+
 class Gate(commands.Cog, name="Gate"):
     """Welcome, leave, and ping on join features."""
 

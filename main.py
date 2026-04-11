@@ -17,7 +17,7 @@ from flask import Flask, jsonify
 from storage import StorageManager
 from ui import UI, PrefixView
 from emojis import Emoji
-from supabase_client import close_client
+from dbclient import close_client
 
 log = logging.getLogger("pushie")
 

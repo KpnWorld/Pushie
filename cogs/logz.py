@@ -17,13 +17,18 @@ log = logging.getLogger(__name__)
 VALID_EVENT_TYPES = ["member", "mod", "role", "channel", "voice"]
 
 
+# ── LOGGING COG ────────────────────────────────────────────────────────────
+
 class Logz(commands.Cog, name="Logz"):
-    """Per-type event logging system."""
+    """Per-type event logging system with configurable channels."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
+    # ── LOG SENDER ──────────────────────────────────────────────────────────
+
     async def _send_log(self, guild: discord.Guild, event_type: str, embed: discord.Embed) -> None:
+        """Send log embed to appropriate channel."""
         g = self.bot.storage.get_guild_sync(guild.id)
         if not g:
             return
@@ -39,10 +44,11 @@ class Logz(commands.Cog, name="Logz"):
             except (discord.Forbidden, discord.HTTPException):
                 pass
 
-    # ======== Listeners ========
+    # ── EVENT LISTENERS ─────────────────────────────────────────────────────
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
+        """Log member join events."""
         embed = discord.Embed(color=0x57F287, description=f"`{Emoji.JOIN}` **Member Joined**")
         embed.set_author(name=str(member), icon_url=member.display_avatar.url)
         embed.add_field(name="User", value=member.mention, inline=True)
@@ -53,6 +59,7 @@ class Logz(commands.Cog, name="Logz"):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member) -> None:
+        """Log member leave events."""
         embed = discord.Embed(color=0xED4245, description=f"`{Emoji.LEAVE}` **Member Left**")
         embed.set_author(name=str(member), icon_url=member.display_avatar.url)
         embed.add_field(name="User", value=member.mention, inline=True)
@@ -64,6 +71,7 @@ class Logz(commands.Cog, name="Logz"):
 
     @commands.Cog.listener()
     async def on_member_ban(self, guild: discord.Guild, user: discord.User) -> None:
+        """Log member ban events."""
         embed = discord.Embed(color=0xED4245, description=f"`{Emoji.BAN}` **Member Banned**")
         embed.set_author(name=str(user), icon_url=user.display_avatar.url)
         embed.add_field(name="User", value=user.mention, inline=True)
@@ -72,6 +80,7 @@ class Logz(commands.Cog, name="Logz"):
 
     @commands.Cog.listener()
     async def on_member_unban(self, guild: discord.Guild, user: discord.User) -> None:
+        """Log member unban events."""
         embed = discord.Embed(color=0x57F287, description=f"`{Emoji.UNBAN}` **Member Unbanned**")
         embed.set_author(name=str(user), icon_url=user.display_avatar.url)
         embed.add_field(name="User", value=user.mention, inline=True)
@@ -80,6 +89,7 @@ class Logz(commands.Cog, name="Logz"):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
+        """Log member role and nickname changes."""
         guild = after.guild
         if before.roles != after.roles:
             added = [r for r in after.roles if r not in before.roles]

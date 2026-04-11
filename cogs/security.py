@@ -17,18 +17,20 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+# ── SECURITY COG ──────────────────────────────────────────────────────────
+
 class Security(commands.Cog, name="Security"):
     """Message filtering, antinuke, fake permissions, and antiraid protection."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
-        # In-memory antiraid join tracker: guild_id -> [timestamp, ...]
         self._join_times: dict[int, list[float]] = {}
 
-    # ======== Filter Enforcement ========
+    # ── MESSAGE FILTERING ──────────────────────────────────────────────────
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
+        """Enforce keyword, link, invite, and regex filters."""
         if message.author.bot or not message.guild:
             return
         g = self.bot.storage.get_guild_sync(message.guild.id)

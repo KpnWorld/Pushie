@@ -9,47 +9,60 @@ import discord
 from discord.ui.select import BaseSelect
 from emojis import Emoji
 
+# ── CONSTANTS ──────────────────────────────────────────────────────────────
 COLOR = 0xFAB9EC
 
 
 def _base(msg: str, emoji: str) -> discord.Embed:
+    """Create a standard themed embed."""
     return discord.Embed(description=f"> `{emoji}` *{msg}*", color=COLOR)
 
 
+# ── UI HELPER CLASS ────────────────────────────────────────────────────────
+
 class UI:
+    """Static methods for building standardized embeds with consistent styling."""
 
     @staticmethod
     def success(msg: str) -> discord.Embed:
+        """Create a success embed."""
         return _base(msg, Emoji.SUCCESS)
 
     @staticmethod
     def error(msg: str) -> discord.Embed:
+        """Create an error embed."""
         return _base(msg, Emoji.ERROR)
 
     @staticmethod
     def warning(msg: str) -> discord.Embed:
+        """Create a warning embed."""
         return _base(msg, Emoji.WARNING)
 
     @staticmethod
     def info(msg: str) -> discord.Embed:
+        """Create an info embed."""
         return _base(msg, Emoji.INFO)
 
     @staticmethod
     def afk(msg: str) -> discord.Embed:
+        """Create an AFK status embed."""
         return _base(msg, Emoji.AFK)
 
     @staticmethod
     def loading(msg: str) -> discord.Embed:
+        """Create a loading embed."""
         return _base(msg, Emoji.LOADING)
 
     @staticmethod
     def confirm(msg: str) -> discord.Embed:
+        """Create a confirmation prompt embed."""
         return _base(msg, Emoji.WARNING).set_footer(
             text=f"{Emoji.CONFIRM} confirm  ·  {Emoji.CANCEL} cancel"
         )
 
     @staticmethod
     def paginator(msg: str, page: int, total: int) -> discord.Embed:
+        """Create a paginated embed footer."""
         return _base(msg, Emoji.INFO).set_footer(
             text=f"page {page}/{total}  ·  {Emoji.PREV} prev  {Emoji.NEXT} next  {Emoji.GOTO} goto"
         )
@@ -69,7 +82,11 @@ class UI:
         return embed
 
 
+# ── BASE VIEWS ────────────────────────────────────────────────────────────
+
 class BaseView(discord.ui.View):
+    """Base class for discord.ui Views with user permission checking."""
+
     interaction: discord.Interaction | None = None
     message: discord.Message | None = None
 
@@ -78,6 +95,7 @@ class BaseView(discord.ui.View):
         self.user = user
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        """Verify interaction belongs to the authorized user."""
         if interaction.user.id != self.user.id:
             await interaction.response.send_message(
                 embed=UI.error("This isn't your interaction."), ephemeral=True
@@ -87,11 +105,13 @@ class BaseView(discord.ui.View):
         return True
 
     def _disable_all(self) -> None:
+        """Disable all buttons and selects in this view."""
         for item in self.children:
             if isinstance(item, (discord.ui.Button, BaseSelect)):
                 item.disabled = True
 
     async def _edit(self, **kwargs: Any) -> None:
+        """Edit the message via stored interaction or message reference."""
         try:
             if self.message is not None:
                 await self.message.edit(**kwargs)
@@ -106,6 +126,7 @@ class BaseView(discord.ui.View):
     async def on_error(
         self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item
     ) -> None:
+        """Handle view errors gracefully."""
         tb = "".join(
             traceback.format_exception(type(error), error, error.__traceback__)
         )
@@ -116,9 +137,40 @@ class BaseView(discord.ui.View):
         self.stop()
 
     async def on_timeout(self) -> None:
+        """Disable view when timeout occurs."""
         self._disable_all()
         await self._edit(view=self)
 
+
+class ConfirmView(BaseView):
+    """View with confirm/cancel buttons."""
+
+    def __init__(self, user: discord.User | discord.Member, timeout: float = 30.0):
+        super().__init__(user, timeout)
+        self.value: bool | None = None
+
+    @discord.ui.button(label=Emoji.CONFIRM, style=discord.ButtonStyle.success)
+    async def confirm(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ) -> None:
+        """Handle confirm button press."""
+        self.value = True
+        self._disable_all()
+        await self._edit(embed=UI.success("Confirmed."), view=self)
+        self.stop()
+
+    @discord.ui.button(label=Emoji.CANCEL, style=discord.ButtonStyle.danger)
+    async def cancel(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ) -> None:
+        """Handle cancel button press."""
+        self.value = False
+        self._disable_all()
+        await self._edit(embed=UI.error("Cancelled."), view=self)
+        self.stop()
+
+
+# ── PREFIX MANAGEMENT ──────────────────────────────────────────────────────
 
 class ChangePrefix(discord.ui.Modal):
     """Modal for changing the server prefix."""
@@ -136,6 +188,7 @@ class ChangePrefix(discord.ui.Modal):
         self._guild_id = guild_id
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Save new prefix and notify user."""
         new_prefix = self.prefix.value.strip()
         await interaction.response.defer(ephemeral=True)
         await self._bot.storage.set_prefix(self._guild_id, new_prefix)
@@ -148,6 +201,7 @@ class ChangePrefix(discord.ui.Modal):
     async def on_error(
         self, interaction: discord.Interaction, error: Exception
     ) -> None:
+        """Handle submission errors."""
         await interaction.response.send_message(
             embed=UI.error("Failed to update prefix."), ephemeral=True
         )
@@ -166,6 +220,7 @@ class PrefixView(discord.ui.View):
     async def change_prefix(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ) -> None:
+        """Open prefix change modal."""
         if not self._bot or not self._guild_id:
             await interaction.response.send_message(
                 embed=UI.error(
@@ -178,34 +233,15 @@ class PrefixView(discord.ui.View):
         await interaction.response.send_modal(modal)
 
 
-class ConfirmView(BaseView):
-    def __init__(self, user: discord.User | discord.Member, timeout: float = 30.0):
-        super().__init__(user, timeout)
-        self.value: bool | None = None
-
-    @discord.ui.button(label=Emoji.CONFIRM, style=discord.ButtonStyle.success)
-    async def confirm(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ) -> None:
-        self.value = True
-        self._disable_all()
-        await self._edit(embed=UI.success("Confirmed."), view=self)
-        self.stop()
-
-    @discord.ui.button(label=Emoji.CANCEL, style=discord.ButtonStyle.danger)
-    async def cancel(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ) -> None:
-        self.value = False
-        self._disable_all()
-        await self._edit(embed=UI.error("Cancelled."), view=self)
-        self.stop()
-
+# ── BASE MODALS ────────────────────────────────────────────────────────────
 
 class BaseModal(discord.ui.Modal):
+    """Base modal class with error handling."""
+
     _interaction: discord.Interaction | None = None
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Process modal submission."""
         if not interaction.response.is_done():
             await interaction.response.defer()
         self._interaction = interaction
@@ -214,6 +250,7 @@ class BaseModal(discord.ui.Modal):
     async def on_error(
         self, interaction: discord.Interaction, error: Exception
     ) -> None:
+        """Handle modal submission errors."""
         tb = "".join(
             traceback.format_exception(type(error), error, error.__traceback__)
         )
@@ -229,10 +266,13 @@ class BaseModal(discord.ui.Modal):
 
     @property
     def interaction(self) -> discord.Interaction | None:
+        """Get the stored interaction from submission."""
         return self._interaction
 
 
 class EmbedBuilderModal(BaseModal, title="Embed Builder"):
+    """Modal for building custom embeds with full styling options."""
+
     content = discord.ui.TextInput(
         label="Content (body text)",
         placeholder="Supports **bold**, *italic*, `code`, {user.mention}, {guild.name} …",
@@ -263,6 +303,7 @@ class EmbedBuilderModal(BaseModal, title="Embed Builder"):
     )
 
     def build(self, ctx_vars: dict[str, str] | None = None) -> discord.Embed:
+        """Build the embed from modal inputs."""
         cv = ctx_vars or {}
         description = substitute(self.content.value, cv)
         title = substitute(self.embed_title.value or "", cv) or None
@@ -281,28 +322,55 @@ class EmbedBuilderModal(BaseModal, title="Embed Builder"):
         return embed
 
 
-# duration  e.g. "10m" "2h" "1d"
+class EmbedBuilderView(BaseView):
+    """View with button to open EmbedBuilderModal."""
+
+    def __init__(
+        self,
+        user: discord.User | discord.Member,
+        on_build: Any,
+        ctx_vars: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(user, timeout=120.0)
+        self._on_build = on_build
+        self._ctx_vars = ctx_vars or {}
+
+    @discord.ui.button(label="Open Embed Builder", style=discord.ButtonStyle.primary, emoji="✏️")
+    async def open_builder(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ) -> None:
+        """Open the embed builder modal."""
+        modal = EmbedBuilderModal()
+        await interaction.response.send_modal(modal)
+        await modal.wait()
+        if modal.interaction:
+            embed = modal.build(self._ctx_vars)
+            await self._on_build(embed, modal.interaction)
+        self.stop()
+
+
+# ── DURATION PARSING ──────────────────────────────────────────────────────
+
 _DURATION_RE = re.compile(r"^(\d+)([smhdw])$")
 _DURATION_MAP = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}
 
 
 def parse_duration(argument: str) -> datetime.timedelta | None:
+    """Parse duration strings like '10m', '2h', '1d'."""
     m = _DURATION_RE.match(argument.lower().strip())
     if not m:
         return None
     return datetime.timedelta(seconds=int(m.group(1)) * _DURATION_MAP[m.group(2)])
 
 
-# ── Inline Embed Parser ───────────────────────────────────────────────────────
-#
-# Supported input modes for any [input] argument:
-#
+# ── INLINE EMBED PARSER ────────────────────────────────────────────────────────
+# Supported input modes for [input] arguments:
 #   $im <text>          → plain message, no embed wrapper
-#   $em [flags…]        → inline embed built from flags (see below)
-#   embed  (alone)      → caller should open the EmbedBuilderModal via a button
+#   $em [flags…]        → inline embed built from flags
+#   embed  (alone)      → caller opens EmbedBuilderModal via button
 #   <anything else>     → plain text (caller wraps in UI.info/success/etc.)
 #
-# Inline embed flags (can appear in any order after $em):
+# Inline embed flags (after $em):
 #   $title  <text>      → embed title
 #   $color  <hex>       → embed color  (alias: $colour)
 #   $footer <text>      → footer text
@@ -312,13 +380,8 @@ def parse_duration(argument: str) -> datetime.timedelta | None:
 #   $url    <url>       → title hyperlink URL
 #   $image  <url>       → large embed image  (alias: $img)
 #   $thumbnail <url>    → thumbnail image    (alias: $thumb)
-#
-# Example:
-#   !greet message $em Welcome {user.mention}! $title Hello $footer Pushie Bot $footericon https://…
 
 _FLAG_SPLIT_RE = re.compile(r"\$(\w+)")
-
-# Aliases → canonical key
 _FLAG_ALIASES: dict[str, str] = {
     "colour": "color",
     "ficon": "footericon",
@@ -329,10 +392,9 @@ _FLAG_ALIASES: dict[str, str] = {
 
 
 def _split_flags(text: str) -> dict[str, str]:
-    """Split '$key value $key2 value2 …' text into a dict."""
+    """Parse '$key value $key2 value2 …' text into a dict."""
     parts = _FLAG_SPLIT_RE.split(text.strip())
     out: dict[str, str] = {}
-    # parts[0] is the text *before* the first flag (usually empty for $em …)
     if parts[0].strip():
         out["_prefix"] = parts[0].strip()
     for i in range(1, len(parts), 2):
@@ -344,7 +406,7 @@ def _split_flags(text: str) -> dict[str, str]:
 
 
 class ParsedInput:
-    """Result of parse_input(). Describes what a command's [input] arg resolved to."""
+    """Result of parse_input(). Describes the resolved input type."""
 
     __slots__ = ("kind", "text", "embed")
 
@@ -354,7 +416,7 @@ class ParsedInput:
         text: str | None = None,
         embed: discord.Embed | None = None,
     ) -> None:
-        self.kind = kind    # "text" | "plain" | "embed" | "modal"
+        self.kind = kind
         self.text = text
         self.embed = embed
 
@@ -363,29 +425,18 @@ class ParsedInput:
 
 
 def parse_input(argument: str, ctx_vars: dict[str, str] | None = None) -> ParsedInput:
-    """
-    Parse a freeform [input] argument.
-
-    Returns a ParsedInput with one of four kinds:
-      "plain"  → send as raw text (no embed)
-      "embed"  → send the .embed object
-      "modal"  → caller must open EmbedBuilderModal via a button View
-      "text"   → plain text string; caller decides how to wrap it
-    """
+    """Parse a freeform input argument with embedded directives."""
     stripped = argument.strip()
     cv = ctx_vars or {}
     low = stripped.lower()
 
-    # ── $im → plain text, no embed wrapper ───────────────────────────────────
     if low.startswith("$im"):
         content = stripped[3:].strip()
         return ParsedInput(kind="plain", text=substitute(content, cv))
 
-    # ── "embed" alone → modal trigger ─────────────────────────────────────────
     if low in ("embed", "$em"):
         return ParsedInput(kind="modal")
 
-    # ── $em <flags> → inline embed ────────────────────────────────────────────
     if low.startswith("$em"):
         flags = _split_flags(stripped)
         body = substitute(flags.get("em", ""), cv)
@@ -418,62 +469,38 @@ def parse_input(argument: str, ctx_vars: dict[str, str] | None = None) -> Parsed
             embed.set_thumbnail(url=thumbnail)
         return ParsedInput(kind="embed", embed=embed)
 
-    # ── plain text fallback ───────────────────────────────────────────────────
     return ParsedInput(kind="text", text=substitute(stripped, cv))
 
 
-class EmbedBuilderView(BaseView):
-    """
-    Sends a button that opens EmbedBuilderModal.
-    Pass an async `on_build(embed, interaction)` callback to receive the result.
-    """
+# ── BACKWARDS COMPATIBILITY ────────────────────────────────────────────────
 
-    def __init__(
-        self,
-        user: discord.User | discord.Member,
-        on_build: Any,
-        ctx_vars: dict[str, str] | None = None,
-    ) -> None:
-        super().__init__(user, timeout=120.0)
-        self._on_build = on_build
-        self._ctx_vars = ctx_vars or {}
-
-    @discord.ui.button(label="Open Embed Builder", style=discord.ButtonStyle.primary, emoji="✏️")
-    async def open_builder(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ) -> None:
-        modal = EmbedBuilderModal()
-        await interaction.response.send_modal(modal)
-        await modal.wait()
-        if modal.interaction:
-            embed = modal.build(self._ctx_vars)
-            await self._on_build(embed, modal.interaction)
-        self.stop()
-
-
-# Backwards-compat stubs (kept so any existing import doesn't break)
 def is_embed_flag(argument: str) -> bool:
+    """Check if argument contains embed flags."""
     return argument.strip().lower().startswith("$em")
 
 def is_modal_flag(argument: str) -> bool:
+    """Check if argument triggers modal."""
     return argument.strip().lower() in ("embed", "$em")
 
 def strip_embed_flag(argument: str) -> str:
+    """Remove $em prefix from argument."""
     return argument.strip()[3:].strip()
 
 
-# variable substitution for welcome msgs, sticky, autoresponders
+# ── TEMPLATE VARIABLES ────────────────────────────────────────────────────
+
 _VAR_RE = re.compile(r"\{(\w+(?:\.\w+)*)\}")
 
 
 def substitute(template: str, variables: dict[str, str]) -> str:
+    """Substitute {variable} placeholders with values."""
     def replacer(match: re.Match) -> str:
         return variables.get(match.group(1)) or match.group(0)
-
     return _VAR_RE.sub(replacer, template)
 
 
-# ── CSS Named Colors ──────────────────────────────────────────────────────────
+# ── CSS NAMED COLORS ───────────────────────────────────────────────────────
+
 CSS_COLORS: dict[str, int] = {
     "aliceblue": 0xF0F8FF, "antiquewhite": 0xFAEBD7, "aqua": 0x00FFFF,
     "aquamarine": 0x7FFFD4, "azure": 0xF0FFFF, "beige": 0xF5F5DC,
@@ -526,18 +553,14 @@ CSS_COLORS: dict[str, int] = {
 
 
 async def resolve_color(bot: Any, guild_id: int, value: str) -> int | None:
-    """
-    Resolve a color value to an integer.
+    """Resolve color from guild palette, CSS name, or hex code.
 
     Priority:
-      1. Saved guild palette  (name lookup in guild.saved_colors)
-      2. CSS named color      (e.g. "red", "hotpink", "royalblue")
-      3. Hex string           (e.g. "#FAB9EC" or "FAB9EC")
-
-    Returns None if the value cannot be resolved.
+      1. Guild saved_colors dict
+      2. CSS named colors
+      3. Hex string
     """
     s = value.strip().lower()
-    # 1. Guild saved palette
     try:
         g = bot.storage.get_guild_sync(guild_id)
         if g and s in g.saved_colors:
@@ -545,10 +568,8 @@ async def resolve_color(bot: Any, guild_id: int, value: str) -> int | None:
             return int(hex_str, 16)
     except Exception:
         pass
-    # 2. CSS named color
     if s in CSS_COLORS:
         return CSS_COLORS[s]
-    # 3. Raw hex
     try:
         return int(s.lstrip("#"), 16)
     except ValueError:
@@ -559,7 +580,7 @@ def build_ctx_vars(
     guild: discord.Guild,
     member: discord.Member | None = None,
 ) -> dict[str, str]:
-    # called whenever we need to resolve template variables
+    """Build template variable dict for embed/message substitution."""
     vars: dict[str, str] = {
         "guild.name": guild.name,
         "guild.count": str(guild.member_count or 0),

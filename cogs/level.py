@@ -16,15 +16,20 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+# ── LEVEL COG ──────────────────────────────────────────────────────────────
+
 class Level(commands.Cog, name="Levels"):
-    """Leveling and XP system."""
+    """Leveling and XP system with level-up rewards."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
         self._xp_cooldown: dict[int, float] = {}
 
+    # ── EVENT LISTENERS ─────────────────────────────────────────────────────
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
+        """Award XP on message send."""
         if message.author.bot:
             return
         if not message.guild:
@@ -36,6 +41,7 @@ class Level(commands.Cog, name="Levels"):
 
         user_id = message.author.id
         import time
+
         now = time.time()
         last = self._xp_cooldown.get(user_id, 0)
         if now - last < 60:
@@ -55,7 +61,12 @@ class Level(commands.Cog, name="Levels"):
         if new_level > old_level:
             await self._on_level_up(message, new_level, g)
 
-    async def _on_level_up(self, message: discord.Message, new_level: int, g: object) -> None:
+    # ── LEVEL UP HANDLER ────────────────────────────────────────────────────
+
+    async def _on_level_up(
+        self, message: discord.Message, new_level: int, g: object
+    ) -> None:
+        """Handle level up: assign roles and announce."""
         assert message.guild is not None
         member = message.author
         if not isinstance(member, discord.Member):
@@ -63,18 +74,23 @@ class Level(commands.Cog, name="Levels"):
 
         # Assign level roles
         from storage import GuildData
+
         if isinstance(g, GuildData):
             for entry in g.levels_list:
                 if entry.get("level") == new_level:
                     role = message.guild.get_role(entry["role_id"])
                     if role and role not in member.roles:
                         try:
-                            await member.add_roles(role, reason=f"Level {new_level} reached")
+                            await member.add_roles(
+                                role, reason=f"Level {new_level} reached"
+                            )
                         except (discord.Forbidden, discord.HTTPException):
                             pass
 
             # Send level-up message
-            level_msg = g.levels_msg or f"🎉 {member.mention} reached **Level {new_level}**!"
+            level_msg = (
+                g.levels_msg or f"🎉 {member.mention} reached **Level {new_level}**!"
+            )
             cv = build_ctx_vars(message.guild, member)
             cv["level"] = str(new_level)
             parsed = parse_input(level_msg, cv)
@@ -83,16 +99,30 @@ class Level(commands.Cog, name="Levels"):
             if g.levels_channel:
                 target_channel = message.guild.get_channel(g.levels_channel)
 
-            dest = target_channel if isinstance(target_channel, discord.TextChannel) else (
-                message.channel if isinstance(message.channel, discord.TextChannel) else None
+            dest = (
+                target_channel
+                if isinstance(target_channel, discord.TextChannel)
+                else (
+                    message.channel
+                    if isinstance(message.channel, discord.TextChannel)
+                    else None
+                )
             )
             if dest:
-                delete = None if isinstance(target_channel, discord.TextChannel) else 10.0
+                delete = (
+                    None if isinstance(target_channel, discord.TextChannel) else 10.0
+                )
                 try:
                     if parsed.kind == "embed" and parsed.embed:
-                        await dest.send(embed=parsed.embed, delete_after=delete)
+                        if delete:
+                            await dest.send(embed=parsed.embed, delete_after=delete)
+                        else:
+                            await dest.send(embed=parsed.embed)
                     elif parsed.text:
-                        await dest.send(parsed.text, delete_after=delete)
+                        if delete:
+                            await dest.send(parsed.text, delete_after=delete)
+                        else:
+                            await dest.send(parsed.text)
                 except (discord.Forbidden, discord.HTTPException):
                     pass
 
@@ -103,7 +133,11 @@ class Level(commands.Cog, name="Levels"):
         """Leveling system management."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        enabled = f"`{Emoji.SUCCESS}` enabled" if g.levels_enabled else f"`{Emoji.CANCEL}` disabled"
+        enabled = (
+            f"`{Emoji.SUCCESS}` enabled"
+            if g.levels_enabled
+            else f"`{Emoji.CANCEL}` disabled"
+        )
         ch = f"<#{g.levels_channel}>" if g.levels_channel else "*not set*"
         prefix = ctx.prefix or "!"
         await ctx.send(
@@ -131,18 +165,28 @@ class Level(commands.Cog, name="Levels"):
         assert ctx.guild is not None
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, levels_enabled=enabled)
-        status = f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        status = (
+            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        )
         await ctx.ok(f"Level system {status}")
 
     @levels.command(name="channel")
-    async def levels_channel(self, ctx: "PushieContext", channel: discord.TextChannel) -> None:
+    async def levels_channel(
+        self, ctx: "PushieContext", channel: discord.TextChannel
+    ) -> None:
         """Set level-up notification channel."""
         assert ctx.guild is not None
         await self.bot.storage.update_setup(ctx.guild.id, levels_channel=channel.id)
         await ctx.ok(f"Level-up channel set to {channel.mention}")
 
     @levels.command(name="message")
-    async def levels_message(self, ctx: "PushieContext", channel: discord.TextChannel | None = None, *, message: str = "") -> None:
+    async def levels_message(
+        self,
+        ctx: "PushieContext",
+        channel: discord.TextChannel | None = None,
+        *,
+        message: str = "",
+    ) -> None:
         """Set level-up channel and message."""
         assert ctx.guild is not None
         update: dict = {}
@@ -152,15 +196,22 @@ class Level(commands.Cog, name="Levels"):
             update["levels_msg"] = message
         if update:
             await self.bot.storage.update_setup(ctx.guild.id, **update)
-        await ctx.ok("Level message" + (f" and channel set to {channel.mention}" if channel else " updated"))
+        await ctx.ok(
+            "Level message"
+            + (f" and channel set to {channel.mention}" if channel else " updated")
+        )
 
     @levels.command(name="msg")
     async def levels_msg(self, ctx: "PushieContext", *, message: str) -> None:
         """Update level-up message. Supports $em flags or 'embed' to open the builder."""
         assert ctx.guild is not None
+        guild_id = ctx.guild.id
         parsed = parse_input(message)
         if parsed.kind == "modal":
-            async def _on_build(embed: discord.Embed, interaction: discord.Interaction) -> None:
+
+            async def _on_build(
+                embed: discord.Embed, interaction: discord.Interaction
+            ) -> None:
                 parts = [f"$em {embed.description or ''}"]
                 if embed.title:
                     parts.append(f"$title {embed.title}")
@@ -171,10 +222,15 @@ class Level(commands.Cog, name="Levels"):
                 if embed.color and embed.color.value != 0xFAB9EC:
                     parts.append(f"$color {embed.color.value:06X}")
                 stored = " ".join(parts)
-                await self.bot.storage.update_setup(ctx.guild.id, levels_msg=stored)
-                await interaction.followup.send(embed=UI.success("*Level-up message updated.*"), ephemeral=True)
+                await self.bot.storage.update_setup(guild_id, levels_msg=stored)
+                await interaction.followup.send(
+                    embed=UI.success("*Level-up message updated.*"), ephemeral=True
+                )
+
             view = EmbedBuilderView(ctx.author, _on_build)
-            await ctx.send(embed=UI.info("*Click to build your level-up embed:*"), view=view)
+            await ctx.send(
+                embed=UI.info("*Click to build your level-up embed:*"), view=view
+            )
             return
         await self.bot.storage.update_setup(ctx.guild.id, levels_msg=message)
         await ctx.ok("*Level-up message updated.*")
@@ -211,7 +267,9 @@ class Level(commands.Cog, name="Levels"):
         await ctx.send(embed=embed)
 
     @levels.command(name="add")
-    async def levels_add(self, ctx: "PushieContext", level: int, role: discord.Role) -> None:
+    async def levels_add(
+        self, ctx: "PushieContext", level: int, role: discord.Role
+    ) -> None:
         """Add a role reward for reaching a level."""
         assert ctx.guild is not None
         await self.bot.storage.add_level(ctx.guild.id, level, role.id)

@@ -16,13 +16,16 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+# ── SERVER COG ─────────────────────────────────────────────────────────────
+
 class Server(commands.Cog, name="Server"):
     """Server management: roles, channels, tickets, booster roles, friend groups."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # ======== ROLES ========
+    # ── ROLES ──────────────────────────────────────────────────────────────
+
     @commands.group(name="role", aliases=["r"], invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
@@ -108,7 +111,9 @@ class Server(commands.Cog, name="Server"):
         assert ctx.guild is not None
         color_int = await resolve_color(self.bot, ctx.guild.id, color_input)
         if color_int is None:
-            await ctx.err("*Invalid color. Use a hex code, CSS name, or saved palette name.*")
+            await ctx.err(
+                "*Invalid color. Use a hex code, CSS name, or saved palette name.*"
+            )
             return
         try:
             await role.edit(color=discord.Colour(color_int))
@@ -131,7 +136,9 @@ class Server(commands.Cog, name="Server"):
 
     @role.command(name="icon")
     @commands.has_guild_permissions(manage_roles=True)
-    async def role_icon(self, ctx: "PushieContext", role: discord.Role, *, icon: str | None = None) -> None:
+    async def role_icon(
+        self, ctx: "PushieContext", role: discord.Role, *, icon: str | None = None
+    ) -> None:
         """Update role icon (emoji or file attachment)."""
         if ctx.message.attachments:
             data = await ctx.message.attachments[0].read()
@@ -139,7 +146,9 @@ class Server(commands.Cog, name="Server"):
                 await role.edit(display_icon=data)
                 await ctx.ok(f"Icon updated for {role.mention}")
             except discord.Forbidden:
-                await ctx.err("*I don't have permission to edit this role's icon (requires Level 2 Boost).*")
+                await ctx.err(
+                    "*I don't have permission to edit this role's icon (requires Level 2 Boost).*"
+                )
         elif icon:
             try:
                 await role.edit(display_icon=icon)
@@ -151,13 +160,17 @@ class Server(commands.Cog, name="Server"):
 
     @role.command(name="gradient")
     @commands.has_guild_permissions(manage_roles=True)
-    async def role_gradient(self, ctx: "PushieContext", role: discord.Role, hex1: str, hex2: str) -> None:
+    async def role_gradient(
+        self, ctx: "PushieContext", role: discord.Role, hex1: str, hex2: str
+    ) -> None:
         """Update role gradient (two hex colors)."""
         try:
             color1 = int(hex1.lstrip("#"), 16)
             color2 = int(hex2.lstrip("#"), 16)
             await role.edit(color=discord.Colour(color1))
-            await ctx.ok(f"Gradient set for {role.mention} (`#{hex1.lstrip('#')}` → `#{hex2.lstrip('#')}`)")
+            await ctx.ok(
+                f"Gradient set for {role.mention} (`#{hex1.lstrip('#')}` → `#{hex2.lstrip('#')}`)"
+            )
         except ValueError:
             await ctx.err("*Invalid hex color(s).*")
         except discord.Forbidden:
@@ -165,7 +178,13 @@ class Server(commands.Cog, name="Server"):
 
     @role.command(name="move")
     @commands.has_guild_permissions(manage_roles=True)
-    async def role_move(self, ctx: "PushieContext", role: discord.Role, position_type: str, target: discord.Role) -> None:
+    async def role_move(
+        self,
+        ctx: "PushieContext",
+        role: discord.Role,
+        position_type: str,
+        target: discord.Role,
+    ) -> None:
         """Move role above or below another role."""
         if position_type.lower() not in ["above", "below"]:
             await ctx.err("*Use `above` or `below`.*")
@@ -192,7 +211,9 @@ class Server(commands.Cog, name="Server"):
 
     @role.command(name="rename")
     @commands.has_guild_permissions(manage_roles=True)
-    async def role_rename(self, ctx: "PushieContext", role: discord.Role, *, new_name: str) -> None:
+    async def role_rename(
+        self, ctx: "PushieContext", role: discord.Role, *, new_name: str
+    ) -> None:
         """Rename a role."""
         try:
             old_name = role.name
@@ -203,7 +224,9 @@ class Server(commands.Cog, name="Server"):
 
     @role.group(name="bots", invoke_without_command=True)
     @commands.has_guild_permissions(manage_roles=True)
-    async def role_bots(self, ctx: "PushieContext", action: str, role: discord.Role) -> None:
+    async def role_bots(
+        self, ctx: "PushieContext", action: str, role: discord.Role
+    ) -> None:
         """Mass assign/remove role to all bots."""
         assert ctx.guild is not None
         if action.lower() not in ["add", "remove"]:
@@ -221,11 +244,15 @@ class Server(commands.Cog, name="Server"):
                 success += 1
             except (discord.Forbidden, discord.HTTPException):
                 pass
-        await ctx.ok(f"`{Emoji.ROLE}` *{action.capitalize()}ed {role.mention} for `{success}/{len(bots)}` bots.*")
+        await ctx.ok(
+            f"`{Emoji.ROLE}` *{action.capitalize()}ed {role.mention} for `{success}/{len(bots)}` bots.*"
+        )
 
     @role.group(name="members", invoke_without_command=True)
     @commands.has_guild_permissions(manage_roles=True)
-    async def role_members(self, ctx: "PushieContext", action: str, role: discord.Role) -> None:
+    async def role_members(
+        self, ctx: "PushieContext", action: str, role: discord.Role
+    ) -> None:
         """Mass assign/remove role to all human members."""
         assert ctx.guild is not None
         if action.lower() not in ["add", "remove"]:
@@ -243,11 +270,15 @@ class Server(commands.Cog, name="Server"):
                 success += 1
             except (discord.Forbidden, discord.HTTPException):
                 pass
-        await ctx.ok(f"`{Emoji.ROLE}` *{action.capitalize()}ed {role.mention} for `{success}/{len(humans)}` members.*")
+        await ctx.ok(
+            f"`{Emoji.ROLE}` *{action.capitalize()}ed {role.mention} for `{success}/{len(humans)}` members.*"
+        )
 
     @role.group(name="all", invoke_without_command=True)
     @commands.has_guild_permissions(manage_roles=True)
-    async def role_all(self, ctx: "PushieContext", action: str, role: discord.Role) -> None:
+    async def role_all(
+        self, ctx: "PushieContext", action: str, role: discord.Role
+    ) -> None:
         """Mass assign/remove role to everyone."""
         assert ctx.guild is not None
         if action.lower() not in ["add", "remove"]:
@@ -265,7 +296,9 @@ class Server(commands.Cog, name="Server"):
                 success += 1
             except (discord.Forbidden, discord.HTTPException):
                 pass
-        await ctx.ok(f"`{Emoji.ROLE}` *{action.capitalize()}ed {role.mention} for `{success}/{len(everyone)}` members.*")
+        await ctx.ok(
+            f"`{Emoji.ROLE}` *{action.capitalize()}ed {role.mention} for `{success}/{len(everyone)}` members.*"
+        )
 
     @role.command(name="cancel")
     async def role_cancel(self, ctx: "PushieContext") -> None:
@@ -360,7 +393,9 @@ class Server(commands.Cog, name="Server"):
         await ctx.send(embed=embed)
 
     @channel.command(name="own")
-    async def channel_own(self, ctx: "PushieContext", action: str, user: discord.Member) -> None:
+    async def channel_own(
+        self, ctx: "PushieContext", action: str, user: discord.Member
+    ) -> None:
         """Give or remove Manage Channel perms for a user in this channel."""
         if action.lower() not in ["add", "remove"]:
             await ctx.err("*Use `add` or `remove`.*")
@@ -373,13 +408,19 @@ class Server(commands.Cog, name="Server"):
                 await ctx.ok(f"*{user.mention} can now manage {ch.mention}.*")
             else:
                 await ch.set_permissions(user, manage_channels=None)
-                await ctx.ok(f"*Manage Channel removed from {user.mention} in {ch.mention}.*")
+                await ctx.ok(
+                    f"*Manage Channel removed from {user.mention} in {ch.mention}.*"
+                )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to edit channel permissions.*")
 
     @channel.command(name="access")
     async def channel_access(
-        self, ctx: "PushieContext", action: str, target: discord.Member | discord.Role, channel: discord.TextChannel | None = None
+        self,
+        ctx: "PushieContext",
+        action: str,
+        target: discord.Member | discord.Role,
+        channel: discord.TextChannel | None = None,
     ) -> None:
         """Add or remove access to a channel for a user or role."""
         if action.lower() not in ["add", "remove"]:
@@ -455,10 +496,14 @@ class Server(commands.Cog, name="Server"):
 
     @ticket.command(name="reports")
     @commands.has_guild_permissions(manage_guild=True)
-    async def ticket_reports(self, ctx: "PushieContext", channel: discord.TextChannel) -> None:
+    async def ticket_reports(
+        self, ctx: "PushieContext", channel: discord.TextChannel
+    ) -> None:
         """Set the channel where user reports are sent."""
         assert ctx.guild is not None
-        await self.bot.storage.update_setup(ctx.guild.id, ticket_reports_channel=channel.id)
+        await self.bot.storage.update_setup(
+            ctx.guild.id, ticket_reports_channel=channel.id
+        )
         await ctx.ok(f"*Reports channel set to {channel.mention}.*")
 
     @ticket.command(name="panel")
@@ -469,7 +514,9 @@ class Server(commands.Cog, name="Server"):
 
     @ticket.command(name="user")
     @commands.has_guild_permissions(manage_messages=True)
-    async def ticket_user(self, ctx: "PushieContext", user: discord.Member, *, reason: str | None = None) -> None:
+    async def ticket_user(
+        self, ctx: "PushieContext", user: discord.Member, *, reason: str | None = None
+    ) -> None:
         """Create a mod ticket for a user and optionally link to warn system."""
         await ctx.ok(f"*Mod ticket created for {user.mention}.*")
 
@@ -530,12 +577,16 @@ class Server(commands.Cog, name="Server"):
                 await ctx.channel.remove_user(user)
                 await ctx.ok(f"*{user.mention} removed from ticket.*")
             except discord.Forbidden:
-                await ctx.err("*I don't have permission to remove users from this thread.*")
+                await ctx.err(
+                    "*I don't have permission to remove users from this thread.*"
+                )
         else:
             await ctx.err("*This command must be used in a ticket thread.*")
 
     @ticket.group(name="transcript", invoke_without_command=True)
-    async def ticket_transcript(self, ctx: "PushieContext", action: str = "list") -> None:
+    async def ticket_transcript(
+        self, ctx: "PushieContext", action: str = "list"
+    ) -> None:
         """Manage ticket transcripts."""
         await ctx.info("*Use subcommands: `list`, `create`, `delete`, `view`*")
 
@@ -561,7 +612,9 @@ class Server(commands.Cog, name="Server"):
 
     @ticket.command(name="manager")
     @commands.has_guild_permissions(manage_guild=True)
-    async def ticket_manager(self, ctx: "PushieContext", target: discord.Role | discord.Member) -> None:
+    async def ticket_manager(
+        self, ctx: "PushieContext", target: discord.Role | discord.Member
+    ) -> None:
         """Assign a ticket manager role or user."""
         await ctx.ok(f"*{target.mention} set as ticket manager.*")
 
@@ -597,9 +650,17 @@ class Server(commands.Cog, name="Server"):
             await ctx.info("No autoroles configured")
             return
 
-        lines = [f"> `{i+1}.` <@&{rid}> (everyone)" for i, rid in enumerate(g.autoroles)]
-        lines += [f"> `{i+len(g.autoroles)+1}.` <@&{rid}> (humans)" for i, rid in enumerate(g.autoroles_human)]
-        lines += [f"> `{i+len(g.autoroles)+len(g.autoroles_human)+1}.` <@&{rid}> (bots)" for i, rid in enumerate(g.autoroles_bot)]
+        lines = [
+            f"> `{i+1}.` <@&{rid}> (everyone)" for i, rid in enumerate(g.autoroles)
+        ]
+        lines += [
+            f"> `{i+len(g.autoroles)+1}.` <@&{rid}> (humans)"
+            for i, rid in enumerate(g.autoroles_human)
+        ]
+        lines += [
+            f"> `{i+len(g.autoroles)+len(g.autoroles_human)+1}.` <@&{rid}> (bots)"
+            for i, rid in enumerate(g.autoroles_bot)
+        ]
         embed = discord.Embed(
             description=f"`{Emoji.ROLE}` **Autoroles**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
@@ -696,7 +757,9 @@ class Server(commands.Cog, name="Server"):
 
     @boosterrole.command(name="base")
     @commands.has_guild_permissions(manage_roles=True)
-    async def boosterrole_base(self, ctx: "PushieContext", position: str, role: discord.Role) -> None:
+    async def boosterrole_base(
+        self, ctx: "PushieContext", position: str, role: discord.Role
+    ) -> None:
         """Set the base role position for new booster roles."""
         if position.lower() not in ["above", "below"]:
             await ctx.err("*Use `above` or `below`.*")
@@ -720,7 +783,9 @@ class Server(commands.Cog, name="Server"):
     @boosterrole.group(name="filter", invoke_without_command=True)
     async def boosterrole_filter(self, ctx: "PushieContext") -> None:
         """Manage booster role name filters."""
-        await ctx.info("*Use: `filter add <name>`, `filter remove <name>`, `filter clear`*")
+        await ctx.info(
+            "*Use: `filter add <name>`, `filter remove <name>`, `filter clear`*"
+        )
 
     @boosterrole_filter.command(name="add")
     @commands.has_guild_permissions(manage_guild=True)
@@ -735,7 +800,9 @@ class Server(commands.Cog, name="Server"):
 
     @boosterrole_filter.command(name="remove")
     @commands.has_guild_permissions(manage_guild=True)
-    async def boosterrole_filter_remove(self, ctx: "PushieContext", *, name: str) -> None:
+    async def boosterrole_filter_remove(
+        self, ctx: "PushieContext", *, name: str
+    ) -> None:
         """Remove a forbidden name filter."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -770,7 +837,9 @@ class Server(commands.Cog, name="Server"):
         await ctx.ok(f"*Booster role share limit set to `{number}`.*")
 
     @boosterrole.command(name="color", aliases=["colour"])
-    async def boosterrole_color(self, ctx: "PushieContext", *, color_input: str) -> None:
+    async def boosterrole_color(
+        self, ctx: "PushieContext", *, color_input: str
+    ) -> None:
         """Change your booster role's color. Accepts hex, CSS name, or saved palette name."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -785,7 +854,9 @@ class Server(commands.Cog, name="Server"):
             return
         color_int = await resolve_color(self.bot, ctx.guild.id, color_input)
         if color_int is None:
-            await ctx.err("*Invalid color. Use a hex code, CSS name, or saved palette name.*")
+            await ctx.err(
+                "*Invalid color. Use a hex code, CSS name, or saved palette name.*"
+            )
             return
         try:
             await role.edit(color=discord.Colour(color_int))
@@ -814,43 +885,50 @@ class Server(commands.Cog, name="Server"):
             await ctx.err("*I don't have permission to edit this role.*")
 
     @boosterrole.command(name="icon")
-    async def boosterrole_icon(self, ctx: "PushieContext", *, icon: str | None = None) -> None:
+    async def boosterrole_icon(
+        self, ctx: "PushieContext", *, icon: str | None = None
+    ) -> None:
         """Change your booster role's icon."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        user_id = ctx.author.id
-        if user_id not in g.booster_roles:
+        user_id_str = str(ctx.author.id)
+        if user_id_str not in g.booster_roles:
             await ctx.err("*You don't have a booster role.*")
             return
-        role_id = g.booster_roles[user_id].get("role_id")
+        role_id = g.booster_roles[user_id_str].get("role_id")
         role = ctx.guild.get_role(role_id) if role_id else None
         if not role:
             await ctx.err("*Booster role not found.*")
             return
         try:
-            display_icon = ctx.message.attachments[0] if ctx.message.attachments else icon
-            if display_icon is None:
+            if ctx.message.attachments:
+                display_icon: bytes | str = await ctx.message.attachments[0].read()
+            elif icon:
+                display_icon = icon
+            else:
                 await ctx.err("*Please provide an emoji or attach an image.*")
                 return
-            if ctx.message.attachments:
-                display_icon = await ctx.message.attachments[0].read()
             await role.edit(display_icon=display_icon)
             await ctx.ok("*Booster role icon updated.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to edit this role.*")
 
     @boosterrole.group(name="share", invoke_without_command=True)
-    async def boosterrole_share(self, ctx: "PushieContext", user: discord.Member | None = None) -> None:
+    async def boosterrole_share(
+        self, ctx: "PushieContext", user: discord.Member | None = None
+    ) -> None:
         """Share your booster role with another user."""
         if user is None:
-            await ctx.info("*Use: `boosterrole share <user>` or `boosterrole share list`*")
+            await ctx.info(
+                "*Use: `boosterrole share <user>` or `boosterrole share list`*"
+            )
             return
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        if ctx.author.id not in g.booster_roles:
+        if str(ctx.author.id) not in g.booster_roles:
             await ctx.err("*You don't have a booster role.*")
             return
-        info = g.booster_roles[ctx.author.id]
+        info = g.booster_roles[str(ctx.author.id)]
         info.setdefault("shared_with", [])
         if user.id not in info["shared_with"]:
             info["shared_with"].append(user.id)
@@ -862,23 +940,30 @@ class Server(commands.Cog, name="Server"):
         """List users sharing your booster role."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        info = g.booster_roles.get(ctx.author.id, {})
+        info = g.booster_roles.get(str(ctx.author.id), {})
         shares = info.get("shared_with", [])
         if not shares:
             await ctx.info("*You haven't shared your booster role with anyone.*")
         else:
             lines = "\n".join(f"> <@{uid}>" for uid in shares)
-            await ctx.send(embed=discord.Embed(description=f"`{Emoji.BOOSTER}` *Shared with:*\n{lines}", color=0xFAB9EC))
+            await ctx.send(
+                embed=discord.Embed(
+                    description=f"`{Emoji.BOOSTER}` *Shared with:*\n{lines}",
+                    color=0xFAB9EC,
+                )
+            )
 
     @boosterrole.command(name="unshare")
-    async def boosterrole_unshare(self, ctx: "PushieContext", user: discord.Member) -> None:
+    async def boosterrole_unshare(
+        self, ctx: "PushieContext", user: discord.Member
+    ) -> None:
         """Unshare your booster role from a user."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        if ctx.author.id not in g.booster_roles:
+        if str(ctx.author.id) not in g.booster_roles:
             await ctx.err("*You don't have a booster role.*")
             return
-        info = g.booster_roles[ctx.author.id]
+        info = g.booster_roles[str(ctx.author.id)]
         shared = info.get("shared_with", [])
         if user.id in shared:
             shared.remove(user.id)
@@ -890,17 +975,17 @@ class Server(commands.Cog, name="Server"):
         """Delete your booster role."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        if ctx.author.id not in g.booster_roles:
+        if str(ctx.author.id) not in g.booster_roles:
             await ctx.err("*You don't have a booster role to delete.*")
             return
-        role_id = g.booster_roles[ctx.author.id].get("role_id")
+        role_id = g.booster_roles[str(ctx.author.id)].get("role_id")
         role = ctx.guild.get_role(role_id) if role_id else None
         if role:
             try:
                 await role.delete()
             except (discord.Forbidden, discord.HTTPException):
                 pass
-        del g.booster_roles[ctx.author.id]
+        del g.booster_roles[str(ctx.author.id)]
         await self.bot.storage.save_guild(g)
         await ctx.ok("*Booster role deleted.*")
 
@@ -1010,7 +1095,9 @@ class Server(commands.Cog, name="Server"):
 
     @friendgroup.command(name="base")
     @commands.has_guild_permissions(manage_roles=True)
-    async def friendgroup_base(self, ctx: "PushieContext", position: str, role: discord.Role) -> None:
+    async def friendgroup_base(
+        self, ctx: "PushieContext", position: str, role: discord.Role
+    ) -> None:
         """Set base role position for friend group roles."""
         if position.lower() not in ["above", "below"]:
             await ctx.err("*Use `above` or `below`.*")
@@ -1037,7 +1124,9 @@ class Server(commands.Cog, name="Server"):
     @friendgroup.group(name="filter", invoke_without_command=True)
     async def friendgroup_filter(self, ctx: "PushieContext") -> None:
         """Manage friend group name filters."""
-        await ctx.info("*Use: `filter add <name>`, `filter remove <name>`, `filter clear`*")
+        await ctx.info(
+            "*Use: `filter add <name>`, `filter remove <name>`, `filter clear`*"
+        )
 
     @friendgroup_filter.command(name="add")
     @commands.has_guild_permissions(manage_guild=True)
@@ -1052,7 +1141,9 @@ class Server(commands.Cog, name="Server"):
 
     @friendgroup_filter.command(name="remove")
     @commands.has_guild_permissions(manage_guild=True)
-    async def friendgroup_filter_remove(self, ctx: "PushieContext", *, name: str) -> None:
+    async def friendgroup_filter_remove(
+        self, ctx: "PushieContext", *, name: str
+    ) -> None:
         """Remove a forbidden name filter."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -1073,7 +1164,9 @@ class Server(commands.Cog, name="Server"):
 
     @friendgroup.command(name="own")
     @commands.has_guild_permissions(manage_guild=True)
-    async def friendgroup_own(self, ctx: "PushieContext", name: str, user: discord.Member) -> None:
+    async def friendgroup_own(
+        self, ctx: "PushieContext", name: str, user: discord.Member
+    ) -> None:
         """Transfer ownership of a friend group."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -1086,7 +1179,12 @@ class Server(commands.Cog, name="Server"):
 
     @friendgroup.command(name="manager")
     @commands.has_guild_permissions(manage_guild=True)
-    async def friendgroup_manager(self, ctx: "PushieContext", name_or_role: str, user: discord.Member | None = None) -> None:
+    async def friendgroup_manager(
+        self,
+        ctx: "PushieContext",
+        name_or_role: str,
+        user: discord.Member | None = None,
+    ) -> None:
         """Set a user as manager of a group, or set a global manager role."""
         assert ctx.guild is not None
         if user is not None:
@@ -1100,7 +1198,9 @@ class Server(commands.Cog, name="Server"):
                 await self.bot.storage.save_guild(g)
             await ctx.ok(f"*{user.mention} set as manager of `{name_or_role}`.*")
         else:
-            await ctx.info("*Use: `friendgroup manager <group_name> <user>` or `friendgroup manager <@role>`*")
+            await ctx.info(
+                "*Use: `friendgroup manager <group_name> <user>` or `friendgroup manager <@role>`*"
+            )
 
     @friendgroup.group(name="user", invoke_without_command=True)
     async def friendgroup_user(self, ctx: "PushieContext") -> None:
@@ -1109,7 +1209,9 @@ class Server(commands.Cog, name="Server"):
 
     @friendgroup_user.command(name="ban")
     @commands.has_guild_permissions(manage_guild=True)
-    async def friendgroup_user_ban(self, ctx: "PushieContext", name: str, user: discord.Member) -> None:
+    async def friendgroup_user_ban(
+        self, ctx: "PushieContext", name: str, user: discord.Member
+    ) -> None:
         """Ban a user from a friend group."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -1124,7 +1226,9 @@ class Server(commands.Cog, name="Server"):
 
     @friendgroup_user.command(name="remove")
     @commands.has_guild_permissions(manage_guild=True)
-    async def friendgroup_user_remove(self, ctx: "PushieContext", name: str, user: discord.Member) -> None:
+    async def friendgroup_user_remove(
+        self, ctx: "PushieContext", name: str, user: discord.Member
+    ) -> None:
         """Remove a user from a friend group."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -1138,7 +1242,9 @@ class Server(commands.Cog, name="Server"):
         await ctx.ok(f"*{user.mention} removed from `{name}`.*")
 
     @friendgroup_user.command(name="invite")
-    async def friendgroup_user_invite(self, ctx: "PushieContext", name: str, user: discord.Member) -> None:
+    async def friendgroup_user_invite(
+        self, ctx: "PushieContext", name: str, user: discord.Member
+    ) -> None:
         """Invite a user to a friend group."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
@@ -1190,7 +1296,9 @@ class Server(commands.Cog, name="Server"):
 
     @friendgroup.command(name="assign")
     @commands.has_guild_permissions(manage_guild=True)
-    async def friendgroup_assign(self, ctx: "PushieContext", asset_type: str, name: str) -> None:
+    async def friendgroup_assign(
+        self, ctx: "PushieContext", asset_type: str, name: str
+    ) -> None:
         """Assign a VC, role, or channel to a friend group."""
         if asset_type.lower() not in ["vc", "role", "channel"]:
             await ctx.err("*Use `vc`, `role`, or `channel`.*")
@@ -1200,7 +1308,9 @@ class Server(commands.Cog, name="Server"):
         if name not in g.fg_list:
             await ctx.err(f"*Friend group `{name}` not found.*")
             return
-        await ctx.ok(f"*Assigned {asset_type} asset to `{name}`. (Use the appropriate channel/role as the next arg)*")
+        await ctx.ok(
+            f"*Assigned {asset_type} asset to `{name}`. (Use the appropriate channel/role as the next arg)*"
+        )
 
     @friendgroup.command(name="clear")
     @commands.has_guild_permissions(manage_guild=True)
@@ -1267,7 +1377,9 @@ class Server(commands.Cog, name="Server"):
                 await ctx.guild.edit(banner=data)
                 await ctx.ok("*Server banner updated.*")
         except discord.Forbidden:
-            await ctx.err("*I don't have permission to edit the server (requires Level 2 Boost for banner).*")
+            await ctx.err(
+                "*I don't have permission to edit the server (requires Level 2 Boost for banner).*"
+            )
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to update: `{e}`*")
 
@@ -1293,12 +1405,16 @@ class Server(commands.Cog, name="Server"):
         await ctx.send(embed=embed)
 
     @user_cmd.command(name="report")
-    async def user_report(self, ctx: "PushieContext", user: discord.User, *, reason: str | None = None) -> None:
+    async def user_report(
+        self, ctx: "PushieContext", user: discord.User, *, reason: str | None = None
+    ) -> None:
         """Report a user to moderation (via ticket system)."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
         if not g.ticket_report_enabled:
-            await ctx.err("*Report system is not enabled. Ask a moderator to enable it.*")
+            await ctx.err(
+                "*Report system is not enabled. Ask a moderator to enable it.*"
+            )
             return
         if not g.ticket_reports_channel:
             await ctx.err("*No reports channel configured.*")
@@ -1310,8 +1426,8 @@ class Server(commands.Cog, name="Server"):
         embed = discord.Embed(
             title=f"`{Emoji.WARN}` User Report",
             description=f"> **Reported:** {user.mention}\n"
-                        f"> **By:** {ctx.author.mention}\n"
-                        f"> **Reason:** {reason or 'No reason provided'}",
+            f"> **By:** {ctx.author.mention}\n"
+            f"> **Reason:** {reason or 'No reason provided'}",
             color=0xFAB9EC,
         )
         await ch.send(embed=embed)
@@ -1334,7 +1450,9 @@ class Server(commands.Cog, name="Server"):
         await ctx.ok(f"Button role added: {emoji} → {role.mention}")
 
     @buttonrole.command(name="remove")
-    async def buttonrole_remove(self, ctx: "PushieContext", channel: discord.TextChannel, emoji: str) -> None:
+    async def buttonrole_remove(
+        self, ctx: "PushieContext", channel: discord.TextChannel, emoji: str
+    ) -> None:
         """Remove button role."""
         await ctx.ok(f"Button role removed: {emoji}")
 
@@ -1364,17 +1482,23 @@ class Server(commands.Cog, name="Server"):
         await ctx.ok(f"Prefix changed to: `{new_prefix}`")
 
     @config.command(name="icon")
-    async def config_icon(self, ctx: "PushieContext", *, icon: str | None = None) -> None:
+    async def config_icon(
+        self, ctx: "PushieContext", *, icon: str | None = None
+    ) -> None:
         """Change bot icon in guild."""
         await ctx.ok("*Bot icon updated.*")
 
     @config.command(name="banner")
-    async def config_banner(self, ctx: "PushieContext", *, banner: str | None = None) -> None:
+    async def config_banner(
+        self, ctx: "PushieContext", *, banner: str | None = None
+    ) -> None:
         """Change bot banner in guild."""
         await ctx.ok("*Bot banner updated.*")
 
     @config.command(name="status")
-    async def config_status(self, ctx: "PushieContext", *, status: str | None = None) -> None:
+    async def config_status(
+        self, ctx: "PushieContext", *, status: str | None = None
+    ) -> None:
         """Change status in guild."""
         await ctx.ok("*Bot status updated.*")
 
@@ -1435,7 +1559,9 @@ class Server(commands.Cog, name="Server"):
 
     @commands.command(name="ci", aliases=["channelinfo"])
     @commands.guild_only()
-    async def quick_channel_info(self, ctx: "PushieContext", channel: discord.TextChannel) -> None:
+    async def quick_channel_info(
+        self, ctx: "PushieContext", channel: discord.TextChannel
+    ) -> None:
         """Channel info."""
         embed = discord.Embed(
             title=f"`{Emoji.CHANNEL}` #{channel.name}",
@@ -1468,7 +1594,9 @@ class Server(commands.Cog, name="Server"):
 
     @commands.command(name="vi", aliases=["voiceinfo"])
     @commands.guild_only()
-    async def quick_voice_info(self, ctx: "PushieContext", channel: discord.VoiceChannel) -> None:
+    async def quick_voice_info(
+        self, ctx: "PushieContext", channel: discord.VoiceChannel
+    ) -> None:
         """Voice channel info."""
         embed = discord.Embed(
             title=f"`{Emoji.CHANNEL}` {channel.name}",
@@ -1544,7 +1672,9 @@ class Server(commands.Cog, name="Server"):
         members_text = "\n".join(
             f"> `{i+1}.` {m.mention}" for i, m in enumerate(role.members[:15])
         )
-        extra = f"\n> *+{len(role.members) - 15} more...*" if len(role.members) > 15 else ""
+        extra = (
+            f"\n> *+{len(role.members) - 15} more...*" if len(role.members) > 15 else ""
+        )
 
         embed = discord.Embed(
             title=f"`{Emoji.ROLE}` Users in {role.name}",

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, Any
 
 import discord
 from discord.ext import commands
 
 from emojis import Emoji
 from ui import UI
+from storage import GuildData
 
 if TYPE_CHECKING:
     from main import Pushie, PushieContext
@@ -15,15 +16,15 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+# ── VOICE COG ──────────────────────────────────────────────────────────────
+
 class Voice(commands.Cog, name="Voice"):
     """Voice channel management and VoiceCenter temp-channel system."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # =========================================================================
-    # VOICECENTER EVENT LISTENER
-    # =========================================================================
+    # ── VOICECENTER EVENT LISTENER──────────────────────────────────────────
 
     @commands.Cog.listener()
     async def on_voice_state_update(
@@ -47,7 +48,9 @@ class Voice(commands.Cog, name="Voice"):
                     if joined_voice and role not in member.roles:
                         await member.add_roles(role, reason="VoiceCenter: joined voice")
                     elif left_voice and role in member.roles:
-                        await member.remove_roles(role, reason="VoiceCenter: left voice")
+                        await member.remove_roles(
+                            role, reason="VoiceCenter: left voice"
+                        )
                 except discord.HTTPException:
                     pass
 
@@ -65,8 +68,7 @@ class Voice(commands.Cog, name="Voice"):
             if ch_str in g.voicecenter_temp_channels:
                 live = guild.get_channel(before.channel.id)
                 if not live or (
-                    isinstance(live, discord.VoiceChannel)
-                    and len(live.members) == 0
+                    isinstance(live, discord.VoiceChannel) and len(live.members) == 0
                 ):
                     if live:
                         try:
@@ -80,17 +82,18 @@ class Voice(commands.Cog, name="Voice"):
         self,
         member: discord.Member,
         guild: discord.Guild,
-        g: object,
+        g: GuildData,
     ) -> None:
-        defaults = getattr(g, "voicecenter_defaults", None) or {}
+        """Create a temporary voice channel for a user."""
+        defaults: dict[str, Any] = g.voicecenter_defaults or {}
         raw_name: str = defaults.get("name", "{username}'s vc")
         name = raw_name.replace("{username}", member.display_name)
         bitrate_default = int(float(defaults.get("bitrate", 64000)))
         bitrate = min(bitrate_default, int(guild.bitrate_limit))
 
         category: discord.CategoryChannel | None = None
-        if getattr(g, "voicecenter_category", None):
-            cat = guild.get_channel(g.voicecenter_category)  # type: ignore[attr-defined]
+        if g.voicecenter_category:
+            cat = guild.get_channel(g.voicecenter_category)
             if isinstance(cat, discord.CategoryChannel):
                 category = cat
 
@@ -108,9 +111,11 @@ class Voice(commands.Cog, name="Voice"):
                 reason="VoiceCenter: owner permissions",
             )
             await member.move_to(new_ch, reason="VoiceCenter: moved to temp channel")
-            g.voicecenter_temp_channels[new_ch.id] = {"owner_id": member.id}  # type: ignore[attr-defined]
-            await self.bot.storage.save_guild(g)  # type: ignore[arg-type]
-            log.info("VoiceCenter: created %r for %s in guild %s", name, member, guild.id)
+            g.voicecenter_temp_channels[str(new_ch.id)] = {"owner_id": member.id}
+            await self.bot.storage.save_guild(g)
+            log.info(
+                "VoiceCenter: created %r for %s in guild %s", name, member, guild.id
+            )
         except discord.Forbidden:
             log.warning("VoiceCenter: missing permissions in guild %s", guild.id)
         except discord.HTTPException as e:
@@ -210,7 +215,9 @@ class Voice(commands.Cog, name="Voice"):
             return
         try:
             await ch.edit(user_limit=limit)
-            msg = "*User limit removed.*" if limit == 0 else f"*Limit set to `{limit}`.*"
+            msg = (
+                "*User limit removed.*" if limit == 0 else f"*Limit set to `{limit}`.*"
+            )
             await ctx.ok(f"`{Emoji.CHANNEL}` {msg}")
         except discord.Forbidden:
             await ctx.err("*Missing permission to edit this channel.*")
@@ -292,7 +299,9 @@ class Voice(commands.Cog, name="Voice"):
         try:
             member = await ctx.guild.fetch_member(user.id)
             await ch.set_permissions(member, connect=True, view_channel=True)
-            await ctx.ok(f"`{Emoji.WHITELIST}` *{user.mention} admitted to **{ch.name}**.*")
+            await ctx.ok(
+                f"`{Emoji.WHITELIST}` *{user.mention} admitted to **{ch.name}**.*"
+            )
         except discord.NotFound:
             await ctx.err("*That user is not in this server.*")
         except (discord.Forbidden, discord.HTTPException) as e:
@@ -314,7 +323,9 @@ class Voice(commands.Cog, name="Voice"):
             await ch.set_permissions(member, connect=False)
             if member.voice and member.voice.channel == ch:
                 await member.move_to(None, reason="VoiceCenter: rejected")
-            await ctx.ok(f"`{Emoji.BLACKLIST}` *{user.mention} blocked from **{ch.name}**.*")
+            await ctx.ok(
+                f"`{Emoji.BLACKLIST}` *{user.mention} blocked from **{ch.name}**.*"
+            )
         except discord.NotFound:
             await ctx.err("*That user is not in this server.*")
         except (discord.Forbidden, discord.HTTPException) as e:
@@ -335,7 +346,7 @@ class Voice(commands.Cog, name="Voice"):
         g = self.bot.storage.get_guild_sync(ctx.guild.id)
         owner_id: int | None = None
         if g:
-            data = g.voicecenter_temp_channels.get(ch.id)
+            data = g.voicecenter_temp_channels.get(str(ch.id))
             if data:
                 owner_id = data.get("owner_id")
 
@@ -354,7 +365,11 @@ class Voice(commands.Cog, name="Voice"):
                 f"> **ID** — `{ch.id}`\n"
                 f"> **Bitrate** — `{ch.bitrate // 1000}` kbps\n"
                 f"> **Limit** — `{ch.user_limit or 'unlimited'}`\n"
-                + (f"> **Owner** — <@{owner_id}>" if owner_id else "> **Type** — Regular voice")
+                + (
+                    f"> **Owner** — <@{owner_id}>"
+                    if owner_id
+                    else "> **Type** — Regular voice"
+                )
             ),
             inline=False,
         )
@@ -380,10 +395,10 @@ class Voice(commands.Cog, name="Voice"):
 
         deleted = 0
         stale = 0
-        to_remove: list[int] = []
+        to_remove: list[str] = []
 
         for ch_id in list(g.voicecenter_temp_channels.keys()):
-            ch = ctx.guild.get_channel(ch_id)
+            ch = ctx.guild.get_channel(int(ch_id))
             if not ch:
                 stale += 1
                 to_remove.append(ch_id)
@@ -423,7 +438,9 @@ class Voice(commands.Cog, name="Voice"):
             member = await ctx.guild.fetch_member(user.id)
             if member.voice and member.voice.channel:
                 await member.move_to(ch, reason="VoiceCenter: dragged")
-                await ctx.ok(f"`{Emoji.CHANNEL}` *Dragged {user.mention} to **{ch.name}**.*")
+                await ctx.ok(
+                    f"`{Emoji.CHANNEL}` *Dragged {user.mention} to **{ch.name}**.*"
+                )
             else:
                 await ctx.err(f"*{user.mention} is not in a voice channel.*")
         except discord.NotFound:
@@ -474,7 +491,9 @@ class Voice(commands.Cog, name="Voice"):
             await ctx.err("*You must be in a voice channel.*")
             return
         if name:
-            await ctx.ok(f"`{Emoji.CHANNEL}` *Channel restricted to **{name}** friend group.*")
+            await ctx.ok(
+                f"`{Emoji.CHANNEL}` *Channel restricted to **{name}** friend group.*"
+            )
         else:
             await ctx.ok(f"`{Emoji.CHANNEL}` *Friend group restriction removed.*")
 
@@ -488,7 +507,9 @@ class Voice(commands.Cog, name="Voice"):
             await ctx.err("*You must be in a voice channel.*")
             return
         try:
-            await ch.set_permissions(ctx.guild.default_role, connect=None, view_channel=None)
+            await ch.set_permissions(
+                ctx.guild.default_role, connect=None, view_channel=None
+            )
             await ctx.ok(f"`{Emoji.CHANNEL}` ***{ch.name}** is now public.*")
         except discord.Forbidden:
             await ctx.err("*Missing permission to edit this channel.*")
@@ -542,7 +563,9 @@ class Voice(commands.Cog, name="Voice"):
         try:
             member = await ctx.guild.fetch_member(user.id)
             await ch.set_permissions(member, stream=False)
-            await ctx.ok(f"`{Emoji.MUTE}` *Video disabled for {user.mention} in **{ch.name}**.*")
+            await ctx.ok(
+                f"`{Emoji.MUTE}` *Video disabled for {user.mention} in **{ch.name}**.*"
+            )
         except discord.NotFound:
             await ctx.err("*That user is not in this server.*")
         except (discord.Forbidden, discord.HTTPException) as e:
@@ -560,7 +583,9 @@ class Voice(commands.Cog, name="Voice"):
     @voice_group.command(name="joinrole")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    async def voice_joinrole(self, ctx: "PushieContext", role: discord.Role | None = None) -> None:
+    async def voice_joinrole(
+        self, ctx: "PushieContext", role: discord.Role | None = None
+    ) -> None:
         """Set default join role."""
         if role:
             await ctx.ok(f"`{Emoji.ROLE}` *Default join role set to {role.mention}.*")
@@ -570,7 +595,9 @@ class Voice(commands.Cog, name="Voice"):
     @voice_group.command(name="interface")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    async def voice_interface(self, ctx: "PushieContext", *, setting: str | None = None) -> None:
+    async def voice_interface(
+        self, ctx: "PushieContext", *, setting: str | None = None
+    ) -> None:
         """Set interface channel or mode."""
         if setting:
             await ctx.ok(f"*Interface set to `{setting}`.*")
@@ -601,7 +628,9 @@ class Voice(commands.Cog, name="Voice"):
     @voice_group.command(name="allowed")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    async def voice_allowed(self, ctx: "PushieContext", role: discord.Role | None = None) -> None:
+    async def voice_allowed(
+        self, ctx: "PushieContext", role: discord.Role | None = None
+    ) -> None:
         """Add allowed role or list allowed roles."""
         if role:
             await ctx.ok(f"`{Emoji.WHITELIST}` *{role.mention} added to allowlist.*")
@@ -639,10 +668,14 @@ class Voice(commands.Cog, name="Voice"):
     @voice_group.command(name="category")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    async def voice_category_cmd(self, ctx: "PushieContext", category: discord.CategoryChannel | None = None) -> None:
+    async def voice_category_cmd(
+        self, ctx: "PushieContext", category: discord.CategoryChannel | None = None
+    ) -> None:
         """Bind temp channels to a category."""
         if category:
-            await ctx.ok(f"`{Emoji.CHANNEL}` *Temp channels will be created in {category.mention}.*")
+            await ctx.ok(
+                f"`{Emoji.CHANNEL}` *Temp channels will be created in {category.mention}.*"
+            )
         else:
             await ctx.ok(f"`{Emoji.RESET}` *Category binding removed.*")
 
@@ -658,7 +691,9 @@ class Voice(commands.Cog, name="Voice"):
         try:
             member = await ctx.guild.fetch_member(user.id)
             await ch.set_permissions(member, connect=True, view_channel=True)
-            await ctx.ok(f"`{Emoji.WHITELIST}` *{user.mention} permitted to **{ch.name}**.*")
+            await ctx.ok(
+                f"`{Emoji.WHITELIST}` *{user.mention} permitted to **{ch.name}**.*"
+            )
         except discord.NotFound:
             await ctx.err("*That user is not in this server.*")
         except (discord.Forbidden, discord.HTTPException) as e:
@@ -857,9 +892,7 @@ class Voice(commands.Cog, name="Voice"):
     # ERROR HANDLER
     # =========================================================================
 
-    async def cog_command_error(
-        self, ctx: commands.Context, error: Exception
-    ) -> None:
+    async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, commands.MissingPermissions):

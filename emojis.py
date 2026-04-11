@@ -5,16 +5,18 @@ class Emoji:
     """Named emoji constants for the entire bot.
 
     Usage example:
-        from emoji import Emoji
+        from emojis import Emoji
         embed = discord.Embed(description=f"> {Emoji.SUCCESS} *Action completed*")
     """
 
+    # ── RESPONSE STATUS ─────────────────────────────────────────────────────
     SUCCESS = "☑"
     ERROR = "❌"
     WARNING = "⚠"
     INFO = "ℹ"
     LOADING = "⏳"
 
+    # ── MODERATION ──────────────────────────────────────────────────────────
     JAIL = "🔒"
     UNJAIL = "🔓"
     KICK = "👢"
@@ -36,15 +38,18 @@ class Emoji:
     NICK = "📝"
     RESET = "🔄"
 
+    # ── SETUP & CONFIGURATION ───────────────────────────────────────────────
     SETUP = "⚙"
     CHANNEL = "📢"
     SYNC = "🔁"
-
     ROLE = "🏷"
+
+    # ── WELCOME & ROLES ─────────────────────────────────────────────────────
     WELCOME = "👋"
     AUTOROLE = "⭐"
     BOOSTER = "🚀"
 
+    # ── PAGINATION & NAVIGATION ─────────────────────────────────────────────
     PREV = "◂"
     NEXT = "▸"
     GOTO = "◆"
@@ -52,29 +57,33 @@ class Emoji:
     LAST = "⏩"
     STOP = "🗑"
 
+    # ── ACTIONS ─────────────────────────────────────────────────────────────
     CONFIRM = "✓"
     CANCEL = "✕"
-
     PING = "🏓"
     HEART = "💖"
-    PUSHEEN = "🐱"  # main bot mascot emoji
+    PUSHEEN = "🐱"
     STICKY = "📌"
 
+    # ── ADMIN & SUDO ────────────────────────────────────────────────────────
     SUDO = "🛠"
     COG = "📦"
     RESTART = "🔄"
     STATS = "📊"
 
+    # ── EVENTS ──────────────────────────────────────────────────────────────
     JOIN = "📥"
     LEAVE = "📤"
     EDIT = "📝"
     DELETE = "🗑"
 
+    # ── SECURITY ────────────────────────────────────────────────────────────
     LOCK = "🔐"
     UNLOCK = "🔓"
     WHITELIST = "✅"
     BLACKLIST = "🚫"
 
+    # ── EMBEDS & MODALS ─────────────────────────────────────────────────────
     EMBED = "📋"
     MODAL = "📝"
 

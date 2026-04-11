@@ -22,28 +22,41 @@ from supabase_client import close_client
 log = logging.getLogger("pushie")
 
 
+# ── CONTEXT & BOT SETUP ────────────────────────────────────────────────────
+
 class PushieContext(commands.Context):
+    """Extended context with helper methods for common responses."""
+
     bot: "Pushie"
 
     async def ok(self, msg: str) -> discord.Message:
+        """Send a success embed."""
         return await self.send(embed=UI.success(msg))
 
     async def err(self, msg: str) -> discord.Message:
+        """Send an error embed."""
         return await self.send(embed=UI.error(msg))
 
     async def warn(self, msg: str) -> discord.Message:
+        """Send a warning embed."""
         return await self.send(embed=UI.warning(msg))
 
     async def info(self, msg: str) -> discord.Message:
+        """Send an info embed."""
         return await self.send(embed=UI.info(msg))
 
 
+# ── MAIN BOT CLASS ────────────────────────────────────────────────────────
+
 class Pushie(commands.Bot):
+    """Main Discord bot with storage, session, and cog management."""
+
     storage: StorageManager
     session: aiohttp.ClientSession
     _uptime: datetime.datetime
 
     def __init__(self) -> None:
+        """Initialize bot with intents and command settings."""
         intents = discord.Intents.default()
         intents.members = True
         intents.message_content = True
@@ -58,6 +71,7 @@ class Pushie(commands.Bot):
         )
 
     async def _get_prefix(self, bot: "Pushie", message: discord.Message) -> list[str]:
+        """Resolve the command prefix for a message."""
         if not message.guild:
             return commands.when_mentioned_or("!")(bot, message)
         g = bot.storage.get_guild_sync(message.guild.id)
@@ -70,9 +84,13 @@ class Pushie(commands.Bot):
         *,
         cls: type[commands.Context] = PushieContext,
     ) -> PushieContext:
+        """Create a PushieContext for commands."""
         return await super().get_context(message, cls=cls)  # type: ignore[return-value]
 
+    # ── INITIALIZATION ──────────────────────────────────────────────────────
+
     async def setup_hook(self) -> None:
+        """Initialize storage, session, and load all cogs."""
         self._uptime = datetime.datetime.now(datetime.UTC)
         self.storage = StorageManager()
         self.session = aiohttp.ClientSession()
@@ -80,6 +98,7 @@ class Pushie(commands.Bot):
         await self._load_cogs()
 
     async def _load_cogs(self) -> None:
+        """Dynamically load all cogs from the cogs directory."""
         cogs_dir = Path("cogs")
         if not cogs_dir.is_dir():
             log.warning("No cogs directory found")
@@ -95,16 +114,23 @@ class Pushie(commands.Bot):
                 log.error("Failed to load %s\n%s", ext, traceback.format_exc())
 
     async def close(self) -> None:
+        """Cleanup session and Supabase client on shutdown."""
         if hasattr(self, "session") and self.session:
             await self.session.close()
         await close_client()
         await super().close()
 
+    # ── PROPERTIES & STATUS ────────────────────────────────────────────────
+
     @property
     def uptime(self) -> datetime.timedelta:
+        """Get bot uptime duration."""
         return datetime.datetime.now(datetime.UTC) - self._uptime
 
+    # ── EVENT HANDLERS ────────────────────────────────────────────────────
+
     async def on_ready(self) -> None:
+        """Initialize bot state and sync slash commands on ready."""
         if self.user:
             log.info(
                 "Ready — %s (%s) | %d guilds", self.user, self.user.id, len(self.guilds)
@@ -121,6 +147,7 @@ class Pushie(commands.Bot):
             log.error("Failed to sync slash commands: %s", e)
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
+        """Handle bot being added to a guild - reject if banned."""
         if self.storage.is_banned_guild(guild.id):
             log.warning("Joined banned guild %s — leaving", guild.id)
             await guild.leave()
@@ -136,6 +163,7 @@ class Pushie(commands.Bot):
                 break
 
     async def _send_welcome_message(self, channel: discord.TextChannel) -> None:
+        """Send welcome message with instructions to new guild."""
         class WelcomeView(discord.ui.LayoutView):
             container = (
                 discord.ui.Container()
@@ -173,9 +201,11 @@ class Pushie(commands.Bot):
         await channel.send(view=WelcomeView())
 
     async def on_guild_remove(self, guild: discord.Guild) -> None:
+        """Log when bot leaves a guild."""
         log.info("Left guild %s (%s)", guild.name, guild.id)
 
     async def on_message(self, message: discord.Message) -> None:
+        """Handle messages: prefix display, AFK tracking, command processing."""
         if message.author.bot:
             return
         if not message.guild:
@@ -246,6 +276,7 @@ class Pushie(commands.Bot):
     async def on_command_error(  # type: ignore[override]
         self, ctx: commands.Context["Pushie"], error: commands.CommandError
     ) -> None:
+        """Handle command errors with user-friendly messages."""
         if hasattr(ctx.command, "on_error"):
             return
         if ctx.cog and ctx.cog.has_error_handler():
@@ -294,6 +325,7 @@ class Pushie(commands.Bot):
     async def on_error(
         self, event: str, *args: typing.Any, **kwargs: typing.Any
     ) -> None:
+        """Log unhandled errors in event handlers."""
         log.error("Error in event %s:\n%s", event, traceback.format_exc())
 
 

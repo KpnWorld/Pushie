@@ -17,21 +17,23 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+# ── MODERATION COG ────────────────────────────────────────────────────────
+
 class Moderation(commands.Cog, name="Moderation"):
     """User moderation, warnings, muting, banning, and channel management."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
-        # In-memory snipe caches keyed by channel_id
         self._snipes: dict[int, dict] = {}
         self._editsnipes: dict[int, dict] = {}
         self._reactionsnipes: dict[int, dict] = {}
-        # Tracks running mass-role operations so they can be cancelled
         self._mass_role_tasks: dict[int, bool] = {}
 
-    # ======== Snipe Listeners ========
+    # ── SNIPE LISTENERS ────────────────────────────────────────────────────
+
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message) -> None:
+        """Capture deleted message for snipe command."""
         if message.author.bot or not message.guild:
             return
         self._snipes[message.channel.id] = {
@@ -43,6 +45,7 @@ class Moderation(commands.Cog, name="Moderation"):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message) -> None:
+        """Capture edited message for editsnipe command."""
         if before.author.bot or not before.guild:
             return
         if before.content == after.content:

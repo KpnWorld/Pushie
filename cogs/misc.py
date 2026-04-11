@@ -16,11 +16,15 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+# ── MISCELLANEOUS COG ──────────────────────────────────────────────────────
+
 class Misc(commands.Cog, name="Miscellaneous"):
     """Autoresponders, reaction roles, embed builder, and polls."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
+
+    # ── AUTORESPONDERS ─────────────────────────────────────────────────────
 
     @commands.group(
         name="autoresponder",

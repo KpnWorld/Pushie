@@ -16,13 +16,16 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+# ── SUDO COG ───────────────────────────────────────────────────────────────
+
 class Sudo(commands.Cog, name="Sudo"):
     """Bot owner commands for managing sudo access and bot configuration."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # ======== Sudo User Management ========
+    # ── SUDO USER MANAGEMENT ────────────────────────────────────────────────
+
     @commands.group(name="sudo", aliases=["su"], invoke_without_command=True)
     @commands.is_owner()
     async def sudo(self, ctx: "PushieContext") -> None:

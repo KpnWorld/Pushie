@@ -15,15 +15,19 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+# ── GATE COG ───────────────────────────────────────────────────────────────
+
 class Gate(commands.Cog, name="Gate"):
-    """Welcome, leave, and ping on join."""
+    """Welcome, leave, and ping on join features."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # ======== Events ========
+    # ── EVENT LISTENERS ─────────────────────────────────────────────────────
+
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
+        """Handle new member join: apply autoroles, greet, and ping."""
         guild = member.guild
         g = self.bot.storage.get_guild_sync(guild.id)
         if not g:
@@ -85,12 +89,15 @@ class Gate(commands.Cog, name="Gate"):
         key = str(member.id)
         if key in g.forced_nicks:
             try:
-                await member.edit(nick=g.forced_nicks[key], reason="Forced nick re-applied")
+                await member.edit(
+                    nick=g.forced_nicks[key], reason="Forced nick re-applied"
+                )
             except (discord.Forbidden, discord.HTTPException):
                 pass
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member) -> None:
+        """Handle member leave: trigger leave message."""
         guild = member.guild
         g = self.bot.storage.get_guild_sync(guild.id)
         if not g:
@@ -111,7 +118,7 @@ class Gate(commands.Cog, name="Gate"):
                 except (discord.Forbidden, discord.HTTPException):
                     pass
 
-    # ======== Greet System ========
+    # ── GREET SYSTEM ───────────────────────────────────────────────────────
     @commands.group(name="greet", invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -140,18 +147,24 @@ class Gate(commands.Cog, name="Gate"):
         assert ctx.guild is not None
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, greet_enabled=enabled)
-        status = f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        status = (
+            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        )
         await ctx.ok(f"Greet system {status}")
 
     @greet.command(name="config")
-    async def greet_config(self, ctx: "PushieContext", channel: discord.TextChannel, *, message: str) -> None:
+    async def greet_config(
+        self, ctx: "PushieContext", channel: discord.TextChannel, *, message: str
+    ) -> None:
         """One-shot greet setup: set channel and message at once."""
         assert ctx.guild is not None
         await self.bot.storage.set_greet_config(ctx.guild.id, channel.id, message)
         await ctx.ok(f"Greet system configured — channel: {channel.mention}")
 
     @greet.command(name="channel")
-    async def greet_channel(self, ctx: "PushieContext", channel: discord.TextChannel) -> None:
+    async def greet_channel(
+        self, ctx: "PushieContext", channel: discord.TextChannel
+    ) -> None:
         """Set greet channel."""
         assert ctx.guild is not None
         await self.bot.storage.update_setup(ctx.guild.id, greet_channel=channel.id)
@@ -163,7 +176,10 @@ class Gate(commands.Cog, name="Gate"):
         assert ctx.guild is not None
         parsed = parse_input(message)
         if parsed.kind == "modal":
-            async def _on_build(embed: discord.Embed, interaction: discord.Interaction) -> None:
+
+            async def _on_build(
+                embed: discord.Embed, interaction: discord.Interaction
+            ) -> None:
                 parts = [f"$em {embed.description or ''}"]
                 if embed.title:
                     parts.append(f"$title {embed.title}")
@@ -174,10 +190,16 @@ class Gate(commands.Cog, name="Gate"):
                 if embed.color and embed.color.value != 0xFAB9EC:
                     parts.append(f"$color {embed.color.value:06X}")
                 stored = " ".join(parts)
-                await self.bot.storage.update_setup(ctx.guild.id, greet_msg=stored)
-                await interaction.followup.send(embed=UI.success("*Greet message updated.*"), ephemeral=True)
+                guild_id = ctx.guild.id if ctx.guild else 0
+                await self.bot.storage.update_setup(guild_id, greet_msg=stored)
+                await interaction.followup.send(
+                    embed=UI.success("*Greet message updated.*"), ephemeral=True
+                )
+
             view = EmbedBuilderView(ctx.author, _on_build)
-            await ctx.send(embed=UI.info("*Click to build your greet embed:*"), view=view)
+            await ctx.send(
+                embed=UI.info("*Click to build your greet embed:*"), view=view
+            )
             return
         await self.bot.storage.update_setup(ctx.guild.id, greet_msg=message)
         await ctx.ok("*Greet message updated.*")
@@ -191,7 +213,11 @@ class Gate(commands.Cog, name="Gate"):
             await ctx.info("No greet message set")
             return
         ch_mention = f"<#{g.greet_channel}>" if g.greet_channel else "*not set*"
-        enabled = f"`{Emoji.SUCCESS}` enabled" if g.greet_enabled else f"`{Emoji.CANCEL}` disabled"
+        enabled = (
+            f"`{Emoji.SUCCESS}` enabled"
+            if g.greet_enabled
+            else f"`{Emoji.CANCEL}` disabled"
+        )
         await ctx.send(
             embed=UI.info(
                 f"**Greet System** — {enabled}\n"
@@ -230,7 +256,7 @@ class Gate(commands.Cog, name="Gate"):
         else:
             await ctx.info("*No message content to preview.*")
 
-    # ======== Leave System ========
+    # ── LEAVE SYSTEM ───────────────────────────────────────────────────────
     @commands.group(name="leave", invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -259,18 +285,24 @@ class Gate(commands.Cog, name="Gate"):
         assert ctx.guild is not None
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, leave_enabled=enabled)
-        status = f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        status = (
+            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        )
         await ctx.ok(f"Leave system {status}")
 
     @leave.command(name="config")
-    async def leave_config(self, ctx: "PushieContext", channel: discord.TextChannel, *, message: str) -> None:
+    async def leave_config(
+        self, ctx: "PushieContext", channel: discord.TextChannel, *, message: str
+    ) -> None:
         """One-shot leave setup: set channel and message at once."""
         assert ctx.guild is not None
         await self.bot.storage.set_leave_config(ctx.guild.id, channel.id, message)
         await ctx.ok(f"Leave system configured — channel: {channel.mention}")
 
     @leave.command(name="channel")
-    async def leave_channel(self, ctx: "PushieContext", channel: discord.TextChannel) -> None:
+    async def leave_channel(
+        self, ctx: "PushieContext", channel: discord.TextChannel
+    ) -> None:
         """Set leave channel."""
         assert ctx.guild is not None
         await self.bot.storage.update_setup(ctx.guild.id, leave_channel=channel.id)
@@ -280,9 +312,13 @@ class Gate(commands.Cog, name="Gate"):
     async def leave_message(self, ctx: "PushieContext", *, message: str) -> None:
         """Set leave message. Use $em flags for embeds or 'embed' to open the builder."""
         assert ctx.guild is not None
+        guild_id = ctx.guild.id
         parsed = parse_input(message)
         if parsed.kind == "modal":
-            async def _on_build(embed: discord.Embed, interaction: discord.Interaction) -> None:
+
+            async def _on_build(
+                embed: discord.Embed, interaction: discord.Interaction
+            ) -> None:
                 parts = [f"$em {embed.description or ''}"]
                 if embed.title:
                     parts.append(f"$title {embed.title}")
@@ -293,12 +329,17 @@ class Gate(commands.Cog, name="Gate"):
                 if embed.color and embed.color.value != 0xFAB9EC:
                     parts.append(f"$color {embed.color.value:06X}")
                 stored = " ".join(parts)
-                await self.bot.storage.update_setup(ctx.guild.id, leave_msg=stored)
-                await interaction.followup.send(embed=UI.success("*Leave message updated.*"), ephemeral=True)
+                await self.bot.storage.update_setup(guild_id, leave_msg=stored)
+                await interaction.followup.send(
+                    embed=UI.success("*Leave message updated.*"), ephemeral=True
+                )
+
             view = EmbedBuilderView(ctx.author, _on_build)
-            await ctx.send(embed=UI.info("*Click to build your leave embed:*"), view=view)
+            await ctx.send(
+                embed=UI.info("*Click to build your leave embed:*"), view=view
+            )
             return
-        await self.bot.storage.update_setup(ctx.guild.id, leave_msg=message)
+        await self.bot.storage.update_setup(guild_id, leave_msg=message)
         await ctx.ok("*Leave message updated.*")
 
     @leave.command(name="view")
@@ -310,7 +351,11 @@ class Gate(commands.Cog, name="Gate"):
             await ctx.info("No leave message set")
             return
         ch_mention = f"<#{g.leave_channel}>" if g.leave_channel else "*not set*"
-        enabled = f"`{Emoji.SUCCESS}` enabled" if g.leave_enabled else f"`{Emoji.CANCEL}` disabled"
+        enabled = (
+            f"`{Emoji.SUCCESS}` enabled"
+            if g.leave_enabled
+            else f"`{Emoji.CANCEL}` disabled"
+        )
         await ctx.send(
             embed=UI.info(
                 f"**Leave System** — {enabled}\n"
@@ -349,7 +394,7 @@ class Gate(commands.Cog, name="Gate"):
         else:
             await ctx.info("*No message content to preview.*")
 
-    # ======== Ping on Join ========
+    # ── PING ON JOIN ────────────────────────────────────────────────────────
     @commands.group(name="pingonjoin", aliases=["poj"], invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -375,11 +420,15 @@ class Gate(commands.Cog, name="Gate"):
         assert ctx.guild is not None
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, ping_enabled=enabled)
-        status = f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        status = (
+            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+        )
         await ctx.ok(f"Ping on join {status}")
 
     @pingonjoin.command(name="add")
-    async def ping_add(self, ctx: "PushieContext", channel: discord.TextChannel, autodelete: int = 3) -> None:
+    async def ping_add(
+        self, ctx: "PushieContext", channel: discord.TextChannel, autodelete: int = 3
+    ) -> None:
         """Add ping assignment to a channel."""
         assert ctx.guild is not None
         await self.bot.storage.add_ping_assignment(
@@ -387,10 +436,14 @@ class Gate(commands.Cog, name="Gate"):
             channel.id,
             {"autodelete": autodelete},
         )
-        await ctx.ok(f"Ping assigned to {channel.mention} (autodelete: `{autodelete}s`)")
+        await ctx.ok(
+            f"Ping assigned to {channel.mention} (autodelete: `{autodelete}s`)"
+        )
 
     @pingonjoin.command(name="remove")
-    async def ping_remove(self, ctx: "PushieContext", channel: discord.TextChannel) -> None:
+    async def ping_remove(
+        self, ctx: "PushieContext", channel: discord.TextChannel
+    ) -> None:
         """Remove ping assignment."""
         assert ctx.guild is not None
         await self.bot.storage.remove_ping_assignment(ctx.guild.id, channel.id)

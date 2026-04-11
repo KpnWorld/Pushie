@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+# ── MODULE HELP DIRECTORY ──────────────────────────────────────────────────
+
 _MODULE_HELP: dict[str, str] = {
     "core": "prefix, afk, ping, help",
     "gate": "greet, leave, pingonjoin",
@@ -28,13 +30,16 @@ _MODULE_HELP: dict[str, str] = {
 }
 
 
+# ── CORE COG ───────────────────────────────────────────────────────────────
+
 class Core(commands.Cog, name="Core"):
     """Core bot commands: prefix, AFK, help, and ping."""
 
     def __init__(self, bot: "Pushie") -> None:
         self.bot = bot
 
-    # ======================== PING ========================
+    # ── PING ────────────────────────────────────────────────────────────────
+
     @commands.command(name="ping")
     async def ping(self, ctx: "PushieContext") -> None:
         """Check the bot's response time."""
@@ -42,7 +47,8 @@ class Core(commands.Cog, name="Core"):
             embed=UI.info(f"`{Emoji.PING}` *Pong! `{round(self.bot.latency * 1000)}ms`*")
         )
 
-    # ======================== PREFIX ========================
+    # ── PREFIX ──────────────────────────────────────────────────────────────
+
     @commands.group(name="prefix", aliases=["px"], invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -70,7 +76,8 @@ class Core(commands.Cog, name="Core"):
         await self.bot.storage.set_prefix(ctx.guild.id, "!")
         await ctx.ok("Prefix reset to default: `!`")
 
-    # ======================== AFK ========================
+    # ── AFK ─────────────────────────────────────────────────────────────────
+
     @commands.group(name="afk", aliases=["a"], invoke_without_command=True)
     async def afk(self, ctx: "PushieContext") -> None:
         """Activate AFK status."""
@@ -102,7 +109,8 @@ class Core(commands.Cog, name="Core"):
         await self.bot.storage.clear_afk(ctx.guild.id, ctx.author.id)
         await ctx.ok("AFK cleared")
 
-    # ======================== HELP ========================
+    # ── HELP ────────────────────────────────────────────────────────────────
+
     @commands.group(name="help", aliases=["h"], invoke_without_command=True)
     async def help(self, ctx: "PushieContext", *, query: str | None = None) -> None:
         """Show help overview or help for a specific command/module."""

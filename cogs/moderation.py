@@ -10,6 +10,7 @@ from discord.ext import commands
 
 from emojis import Emoji
 from ui import UI
+from converters import SmartTextChannel
 
 if TYPE_CHECKING:
     from main import Pushie, PushieContext
@@ -462,7 +463,7 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
     async def lock(
-        self, ctx: "PushieContext", channel: discord.TextChannel | None = None
+        self, ctx: "PushieContext", channel: SmartTextChannel | None = None
     ) -> None:
         """Lock a channel by removing send message permission from @everyone."""
         ch = channel or ctx.channel
@@ -481,7 +482,7 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
     async def unlock(
-        self, ctx: "PushieContext", channel: discord.TextChannel | None = None
+        self, ctx: "PushieContext", channel: SmartTextChannel | None = None
     ) -> None:
         """Unlock a channel by restoring send message permission to @everyone."""
         ch = channel or ctx.channel
@@ -524,7 +525,7 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
     async def hide(
-        self, ctx: "PushieContext", channel: discord.TextChannel | None = None
+        self, ctx: "PushieContext", channel: SmartTextChannel | None = None
     ) -> None:
         """Hide a channel by removing View Channel permission from @everyone."""
         ch = channel or ctx.channel
@@ -543,7 +544,7 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
     async def unhide(
-        self, ctx: "PushieContext", channel: discord.TextChannel | None = None
+        self, ctx: "PushieContext", channel: SmartTextChannel | None = None
     ) -> None:
         """Unhide a channel by restoring View Channel permission to @everyone."""
         ch = channel or ctx.channel
@@ -717,6 +718,11 @@ class Moderation(commands.Cog, name="Moderation"):
             limit=200,
             check=lambda m: keyword.lower() in m.content.lower(),
         )
+
+    @purge.command(name="help")
+    async def purge_help(self, ctx: "PushieContext") -> None:
+        """Show all purge subcommands."""
+        await ctx.send_group_help()
 
     @commands.group(name="warn", aliases=["w"], invoke_without_command=True)
     @commands.guild_only()
@@ -1353,7 +1359,7 @@ class Moderation(commands.Cog, name="Moderation"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
     async def nsfw(
-        self, ctx: "PushieContext", channel: discord.TextChannel | None = None
+        self, ctx: "PushieContext", channel: SmartTextChannel | None = None
     ) -> None:
         """Toggle NSFW on a channel."""
         ch = channel or ctx.channel

@@ -9,6 +9,7 @@ from discord.ext import commands
 
 from emojis import Emoji
 from ui import UI, BaseView, resolve_color
+from converters import SmartTextChannel, SmartVoiceChannel, SmartCategory
 
 if TYPE_CHECKING:
     from main import Pushie, PushieContext
@@ -32,7 +33,7 @@ class Server(commands.Cog, name="Server"):
     @commands.has_guild_permissions(manage_roles=True)
     async def role(self, ctx: "PushieContext") -> None:
         """Role management."""
-        pass
+        await ctx.send_group_help()
 
     @role.command(name="list")
     async def role_list(self, ctx: "PushieContext") -> None:
@@ -312,7 +313,7 @@ class Server(commands.Cog, name="Server"):
     @commands.has_guild_permissions(manage_channels=True)
     async def channel(self, ctx: "PushieContext") -> None:
         """Channel management."""
-        pass
+        await ctx.send_group_help()
 
     @channel.command(name="list")
     async def channel_list(self, ctx: "PushieContext") -> None:
@@ -345,7 +346,7 @@ class Server(commands.Cog, name="Server"):
 
     @channel.command(name="delete")
     async def channel_delete(
-        self, ctx: "PushieContext", channel: discord.TextChannel
+        self, ctx: "PushieContext", channel: SmartTextChannel
     ) -> None:
         """Delete a channel."""
         try:
@@ -356,7 +357,7 @@ class Server(commands.Cog, name="Server"):
 
     @channel.command(name="rename")
     async def channel_rename(
-        self, ctx: "PushieContext", channel: discord.TextChannel, *, new_name: str
+        self, ctx: "PushieContext", channel: SmartTextChannel, *, new_name: str
     ) -> None:
         """Rename a channel."""
         try:
@@ -369,7 +370,7 @@ class Server(commands.Cog, name="Server"):
     async def channel_topic(
         self,
         ctx: "PushieContext",
-        channel: discord.TextChannel,
+        channel: SmartTextChannel,
         *,
         topic: str | None = None,
     ) -> None:
@@ -382,7 +383,7 @@ class Server(commands.Cog, name="Server"):
 
     @channel.command(name="info")
     async def channel_info(
-        self, ctx: "PushieContext", channel: discord.TextChannel
+        self, ctx: "PushieContext", channel: SmartTextChannel
     ) -> None:
         """Channel information."""
         embed = discord.Embed(
@@ -421,7 +422,7 @@ class Server(commands.Cog, name="Server"):
         ctx: "PushieContext",
         action: str,
         target: discord.Member | discord.Role,
-        channel: discord.TextChannel | None = None,
+        channel: SmartTextChannel | None = None,
     ) -> None:
         """Add or remove access to a channel for a user or role."""
         if action.lower() not in ["add", "remove"]:
@@ -445,7 +446,7 @@ class Server(commands.Cog, name="Server"):
     @commands.has_guild_permissions(manage_guild=True)
     async def ticket(self, ctx: "PushieContext") -> None:
         """Ticket system."""
-        pass
+        await ctx.send_group_help()
 
     @ticket.command(name="setup")
     async def ticket_setup(self, ctx: "PushieContext", toggle: str) -> None:
@@ -464,7 +465,7 @@ class Server(commands.Cog, name="Server"):
 
     @ticket.command(name="channel")
     async def ticket_channel(
-        self, ctx: "PushieContext", channel: discord.TextChannel
+        self, ctx: "PushieContext", channel: SmartTextChannel
     ) -> None:
         """Set ticket panel channel."""
         assert ctx.guild is not None
@@ -498,7 +499,7 @@ class Server(commands.Cog, name="Server"):
     @ticket.command(name="reports")
     @commands.has_guild_permissions(manage_guild=True)
     async def ticket_reports(
-        self, ctx: "PushieContext", channel: discord.TextChannel
+        self, ctx: "PushieContext", channel: SmartTextChannel
     ) -> None:
         """Set the channel where user reports are sent."""
         assert ctx.guild is not None
@@ -625,7 +626,7 @@ class Server(commands.Cog, name="Server"):
     @commands.has_guild_permissions(manage_guild=True)
     async def autorole(self, ctx: "PushieContext") -> None:
         """Auto-assign roles on join."""
-        pass
+        await ctx.send_group_help()
 
     @autorole.command(name="add")
     async def autorole_add(self, ctx: "PushieContext", role: discord.Role) -> None:
@@ -698,7 +699,7 @@ class Server(commands.Cog, name="Server"):
     @commands.guild_only()
     async def boosterrole(self, ctx: "PushieContext") -> None:
         """Booster role management."""
-        pass
+        await ctx.send_group_help()
 
     @boosterrole.command(name="setup")
     @commands.has_guild_permissions(manage_guild=True)
@@ -1032,7 +1033,7 @@ class Server(commands.Cog, name="Server"):
     @commands.has_guild_permissions(manage_guild=True)
     async def friendgroup(self, ctx: "PushieContext") -> None:
         """Friend group management."""
-        pass
+        await ctx.send_group_help()
 
     @friendgroup.command(name="setup")
     async def friendgroup_setup(self, ctx: "PushieContext", toggle: str) -> None:
@@ -1331,7 +1332,7 @@ class Server(commands.Cog, name="Server"):
     @commands.has_guild_permissions(manage_guild=True)
     async def server(self, ctx: "PushieContext") -> None:
         """Server settings."""
-        pass
+        await ctx.send_group_help()
 
     @server.command(name="info")
     async def server_info(self, ctx: "PushieContext") -> None:
@@ -1452,7 +1453,7 @@ class Server(commands.Cog, name="Server"):
 
     @buttonrole.command(name="remove")
     async def buttonrole_remove(
-        self, ctx: "PushieContext", channel: discord.TextChannel, emoji: str
+        self, ctx: "PushieContext", channel: SmartTextChannel, emoji: str
     ) -> None:
         """Remove button role."""
         await ctx.ok(f"Button role removed: {emoji}")
@@ -1561,7 +1562,7 @@ class Server(commands.Cog, name="Server"):
     @commands.command(name="ci", aliases=["channelinfo"])
     @commands.guild_only()
     async def quick_channel_info(
-        self, ctx: "PushieContext", channel: discord.TextChannel
+        self, ctx: "PushieContext", channel: SmartTextChannel
     ) -> None:
         """Channel info."""
         embed = discord.Embed(
@@ -1596,7 +1597,7 @@ class Server(commands.Cog, name="Server"):
     @commands.command(name="vi", aliases=["voiceinfo"])
     @commands.guild_only()
     async def quick_voice_info(
-        self, ctx: "PushieContext", channel: discord.VoiceChannel
+        self, ctx: "PushieContext", channel: SmartVoiceChannel
     ) -> None:
         """Voice channel info."""
         embed = discord.Embed(

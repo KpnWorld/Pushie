@@ -497,13 +497,18 @@ class Misc(commands.Cog, name="Miscellaneous"):
         embed.set_footer(text=f"{len(g.saved_colors)} color(s) saved")
         await ctx.send(embed=embed)
 
+    @color.command(name="help")
+    async def color_help(self, ctx: "PushieContext") -> None:
+        """Show all color subcommands."""
+        await ctx.send_group_help()
+
     # ======== TIMER ========
     @commands.group(name="timer", invoke_without_command=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def timer(self, ctx: "PushieContext") -> None:
         """Scheduled message timers."""
-        pass
+        await ctx.send_group_help()
 
     @timer.command(name="add")
     async def timer_add(

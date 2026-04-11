@@ -9,6 +9,7 @@ from discord.ext import commands
 from emojis import Emoji
 from ui import UI
 from storage import GuildData
+from converters import SmartTextChannel, SmartVoiceChannel, SmartCategory
 
 if TYPE_CHECKING:
     from main import Pushie, PushieContext
@@ -670,7 +671,7 @@ class Voice(commands.Cog, name="Voice"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_category_cmd(
-        self, ctx: "PushieContext", category: discord.CategoryChannel | None = None
+        self, ctx: "PushieContext", category: SmartCategory | None = None
     ) -> None:
         """Bind temp channels to a category."""
         if category:
@@ -732,7 +733,7 @@ class Voice(commands.Cog, name="Voice"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_setup_channel(
-        self, ctx: "PushieContext", channel: discord.VoiceChannel
+        self, ctx: "PushieContext", channel: SmartVoiceChannel
     ) -> None:
         """Set the join-to-create voice channel."""
         assert ctx.guild is not None
@@ -745,7 +746,7 @@ class Voice(commands.Cog, name="Voice"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_setup_category(
-        self, ctx: "PushieContext", category: discord.CategoryChannel
+        self, ctx: "PushieContext", category: SmartCategory
     ) -> None:
         """Set which category temp channels are created in."""
         assert ctx.guild is not None
@@ -798,7 +799,7 @@ class Voice(commands.Cog, name="Voice"):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_setup_panel(
-        self, ctx: "PushieContext", channel: discord.TextChannel
+        self, ctx: "PushieContext", channel: SmartTextChannel
     ) -> None:
         """Post the VoiceCenter control panel embed in a text channel."""
         assert ctx.guild is not None

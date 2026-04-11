@@ -46,6 +46,38 @@ class PushieContext(commands.Context):
         """Send an info embed."""
         return await self.send(embed=UI.info(msg))
 
+    async def send_group_help(
+        self, group: "commands.Group | None" = None
+    ) -> "discord.Message | None":
+        """Send an auto-generated help embed listing all visible subcommands.
+
+        Pass *group* explicitly when calling from a subcommand (e.g. a 'help'
+        sub) whose ctx.command is not the group itself.
+        """
+        cmd: "commands.Group | None" = group or (
+            self.command if isinstance(self.command, commands.Group) else
+            (self.command.parent if self.command and isinstance(self.command.parent, commands.Group) else None)
+        )
+        if cmd is None:
+            return None
+        prefix = self.prefix or ","
+        subs = sorted(
+            [c for c in cmd.commands if not c.hidden and c.name != "help"],
+            key=lambda c: c.name,
+        )
+        if not subs:
+            return None
+        lines = "\n".join(
+            f"> `{prefix}{cmd.name} {c.name}` — {c.short_doc or '…'}"
+            for c in subs
+        )
+        from emojis import Emoji as _Emoji
+        return await self.send(
+            embed=UI.info(
+                f"`{_Emoji.INFO}` **`{cmd.name}`** commands:\n\n{lines}"
+            )
+        )
+
 
 # ── MAIN BOT CLASS ────────────────────────────────────────────────────────
 

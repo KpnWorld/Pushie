@@ -6,7 +6,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Any
 
-from supabase_client import get_client
+from dbclient import get_client
 
 log = logging.getLogger(__name__)
 

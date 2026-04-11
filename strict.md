@@ -67,27 +67,10 @@ Pushie/
 ### 1. Storage Layer (`storage.py`)
 **Pattern:** Dataclass + Manager with caching & locking
 
+
+We cache first but now we save all guild info in our persistent supabase db this is going to be shared with other bots
+No more json and /data dir
 ```python
-@dataclass
-class GuildData:
-    id: int
-    prefix: str = "!"
-    mute_role: int | None = None
-    jail_channel: int | None = None
-    # ... 20+ more fields (voicecentre, autoroles, logs, etc.)
-
-class StorageManager:
-    async def get_guild(guild_id: int) -> GuildData
-    async def save_guild(guild: GuildData) -> None
-    async def set_prefix(guild_id: int, prefix: str) -> None
-    # 15+ convenience methods
-Thread Safety:
-
-Per-guild asyncio.Lock
-Global lock for global.json
-Cache-first strategy
-
-
 2. Command Layer (cogs/)
 Pattern: Pure Prefix Commands (no hybrid)
 Pythonclass ModCog(commands.Cog):

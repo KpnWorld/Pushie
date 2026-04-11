@@ -558,135 +558,126 @@ class Moderation(commands.Cog, name="Moderation"):
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to unhide channel: `{e}`*")
 
-    @commands.group(name="purge", aliases=["pur"], invoke_without_command=True)
-    @commands.guild_only()
-    @commands.has_guild_permissions(manage_messages=True)
-    async def purge(self, ctx: "PushieContext", limit: int = 10) -> None:
-        """Bulk delete messages from a channel."""
+    # ── PURGE HELPERS ──────────────────────────────────────────────────────
+
+    def _bulk_cutoff(self) -> datetime:
+        """Return the earliest datetime that Discord allows bulk deletion for."""
+        return datetime.now(timezone.utc) - timedelta(days=13, hours=23)
+
+    async def _do_purge(
+        self,
+        ctx: "PushieContext",
+        *,
+        limit: int,
+        check=None,
+        before=None,
+        after=None,
+    ) -> None:
+        """Run channel.purge() restricted to the bulk-delete window (< 14 days).
+
+        Messages older than 14 days cannot be bulk-deleted and cause heavy
+        per-message rate limiting. This wrapper enforces a safe cutoff so every
+        deletion goes through Discord's efficient bulk-delete endpoint.
+        """
         if not isinstance(ctx.channel, discord.TextChannel):
             await ctx.err("*This command can only be used in text channels.*")
             return
 
-        if limit < 1 or limit > 100:
-            await ctx.err("*Limit must be between `1` and `100`.*")
-            return
+        cutoff = self._bulk_cutoff()
+
+        # Combine caller's check with the age guard
+        def _safe_check(m: discord.Message) -> bool:
+            if m.created_at < cutoff:
+                return False
+            return check(m) if check else True
 
         try:
-            deleted = await ctx.channel.purge(limit=limit)
-            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages.*")
+            deleted = await ctx.channel.purge(
+                limit=limit,
+                check=_safe_check,
+                before=before,
+                after=after,
+                bulk=True,
+            )
+            if deleted:
+                await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages.*")
+            else:
+                await ctx.info(
+                    "*No eligible messages found. Messages older than 14 days cannot be bulk deleted.*"
+                )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to delete messages.*")
         except discord.HTTPException as e:
             await ctx.err(f"*Failed to purge: `{e}`*")
+
+    # ── PURGE COMMANDS ─────────────────────────────────────────────────────
+
+    @commands.group(name="purge", aliases=["pur"], invoke_without_command=True)
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_messages=True)
+    async def purge(self, ctx: "PushieContext", limit: int = 10) -> None:
+        """Bulk delete messages from a channel (only messages < 14 days old)."""
+        if limit < 1 or limit > 100:
+            await ctx.err("*Limit must be between `1` and `100`.*")
+            return
+        await self._do_purge(ctx, limit=limit)
 
     @purge.command(name="user")
     async def purge_user(
         self, ctx: "PushieContext", user: discord.User, amount: int = 50
     ) -> None:
         """Purge messages from a specific user."""
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            deleted = await ctx.channel.purge(
-                limit=min(amount, 200), check=lambda m: m.author.id == user.id
-            )
-            await ctx.ok(
-                f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages from {user.mention}.*"
-            )
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        await self._do_purge(
+            ctx,
+            limit=min(amount, 200),
+            check=lambda m: m.author.id == user.id,
+        )
 
     @purge.command(name="embeds")
     async def purge_embeds(self, ctx: "PushieContext", limit: int = 50) -> None:
         """Purge messages with embeds."""
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            deleted = await ctx.channel.purge(
-                limit=min(limit, 200), check=lambda m: bool(m.embeds)
-            )
-            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` embed messages.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        await self._do_purge(
+            ctx, limit=min(limit, 200), check=lambda m: bool(m.embeds)
+        )
 
     @purge.command(name="images")
     async def purge_images(self, ctx: "PushieContext", limit: int = 50) -> None:
         """Purge messages with images/attachments."""
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            deleted = await ctx.channel.purge(
-                limit=min(limit, 200), check=lambda m: bool(m.attachments)
-            )
-            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` image messages.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        await self._do_purge(
+            ctx, limit=min(limit, 200), check=lambda m: bool(m.attachments)
+        )
 
     @purge.command(name="voice")
     async def purge_voice(self, ctx: "PushieContext", limit: int = 50) -> None:
         """Purge voice messages."""
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            deleted = await ctx.channel.purge(
-                limit=min(limit, 200),
-                check=lambda m: any(
-                    a.content_type and "audio" in a.content_type for a in m.attachments
-                ),
-            )
-            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` voice messages.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        await self._do_purge(
+            ctx,
+            limit=min(limit, 200),
+            check=lambda m: any(
+                a.content_type and "audio" in a.content_type for a in m.attachments
+            ),
+        )
 
     @purge.command(name="mentions")
     async def purge_mentions(self, ctx: "PushieContext", limit: int = 50) -> None:
         """Purge messages with user mentions."""
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            deleted = await ctx.channel.purge(
-                limit=min(limit, 200), check=lambda m: bool(m.mentions)
-            )
-            await ctx.ok(
-                f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` mention messages.*"
-            )
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        await self._do_purge(
+            ctx, limit=min(limit, 200), check=lambda m: bool(m.mentions)
+        )
 
     @purge.command(name="humans")
     async def purge_humans(self, ctx: "PushieContext", limit: int = 50) -> None:
         """Purge messages from humans only."""
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            deleted = await ctx.channel.purge(
-                limit=min(limit, 200), check=lambda m: not m.author.bot
-            )
-            await ctx.ok(
-                f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages from humans.*"
-            )
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        await self._do_purge(
+            ctx, limit=min(limit, 200), check=lambda m: not m.author.bot
+        )
 
     @purge.command(name="bots")
     async def purge_bots(self, ctx: "PushieContext", limit: int = 50) -> None:
         """Purge messages from bots only."""
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            deleted = await ctx.channel.purge(
-                limit=min(limit, 200), check=lambda m: m.author.bot
-            )
-            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` bot messages.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        await self._do_purge(
+            ctx, limit=min(limit, 200), check=lambda m: m.author.bot
+        )
 
     @purge.command(name="invites")
     async def purge_invites(self, ctx: "PushieContext", limit: int = 50) -> None:
@@ -694,67 +685,38 @@ class Moderation(commands.Cog, name="Moderation"):
         import re as _re
 
         invite_pattern = _re.compile(r"discord\.gg/|discord\.com/invite/")
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            deleted = await ctx.channel.purge(
-                limit=min(limit, 200),
-                check=lambda m: bool(invite_pattern.search(m.content)),
-            )
-            await ctx.ok(f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` invite messages.*")
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        await self._do_purge(
+            ctx,
+            limit=min(limit, 200),
+            check=lambda m: bool(invite_pattern.search(m.content)),
+        )
 
     @purge.command(name="before")
     async def purge_before(
         self, ctx: "PushieContext", msg_id: int, limit: int = 100
     ) -> None:
-        """Purge messages before a specific message ID."""
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            target = discord.Object(id=msg_id)
-            deleted = await ctx.channel.purge(limit=min(limit, 200), before=target)
-            await ctx.ok(
-                f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages before that message.*"
-            )
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        """Purge messages before a specific message ID (within the last 14 days)."""
+        await self._do_purge(
+            ctx, limit=min(limit, 200), before=discord.Object(id=msg_id)
+        )
 
     @purge.command(name="after")
     async def purge_after(
         self, ctx: "PushieContext", msg_id: int, limit: int = 100
     ) -> None:
-        """Purge messages after a specific message ID."""
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            target = discord.Object(id=msg_id)
-            deleted = await ctx.channel.purge(limit=min(limit, 200), after=target)
-            await ctx.ok(
-                f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages after that message.*"
-            )
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        """Purge messages after a specific message ID (within the last 14 days)."""
+        await self._do_purge(
+            ctx, limit=min(limit, 200), after=discord.Object(id=msg_id)
+        )
 
     @purge.command(name="with")
     async def purge_with(self, ctx: "PushieContext", *, keyword: str) -> None:
         """Purge messages containing a keyword."""
-        if not isinstance(ctx.channel, discord.TextChannel):
-            await ctx.err("*This command can only be used in text channels.*")
-            return
-        try:
-            deleted = await ctx.channel.purge(
-                limit=200, check=lambda m: keyword.lower() in m.content.lower()
-            )
-            await ctx.ok(
-                f"`{Emoji.PURGE}` *Deleted `{len(deleted)}` messages containing `{keyword}`.*"
-            )
-        except discord.Forbidden:
-            await ctx.err("*I don't have permission to delete messages.*")
+        await self._do_purge(
+            ctx,
+            limit=200,
+            check=lambda m: keyword.lower() in m.content.lower(),
+        )
 
     @commands.group(name="warn", aliases=["w"], invoke_without_command=True)
     @commands.guild_only()

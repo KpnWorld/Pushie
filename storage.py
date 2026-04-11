@@ -1516,14 +1516,16 @@ class StorageManager:
                 .select("xp, level, total_xp")
                 .eq("guild_id", guild_id)
                 .eq("user_id", user_id)
-                .maybe_single()
                 .execute()
             )
-            if res.data:
-                new_xp = res.data["xp"] + amount
-                new_lvl = self.xp_to_level(res.data["total_xp"] + amount)
+            rows = res.data if res and res.data else []
+            if rows:
+                row = rows[0]
+                new_xp = row["xp"] + amount
+                new_total_xp = row["total_xp"] + amount
+                new_lvl = self.xp_to_level(new_total_xp)
                 await client.table("levels").update(
-                    {"xp": new_xp, "level": new_lvl, "total_xp": res.data["total_xp"] + amount}
+                    {"xp": new_xp, "level": new_lvl, "total_xp": new_total_xp}
                 ).eq("guild_id", guild_id).eq("user_id", user_id).execute()
             else:
                 await client.table("levels").insert(

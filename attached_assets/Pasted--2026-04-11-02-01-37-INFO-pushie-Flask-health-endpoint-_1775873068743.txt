@@ -1,0 +1,83 @@
+[2026-04-11 02:01:37] INFO pushie: Flask health endpoint started on port 5000
+[2026-04-11 02:01:37] INFO discord.client: logging in using static token
+ * Serving Flask app 'main'
+ * Debug mode: off
+[2026-04-11 02:01:37] INFO werkzeug: WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.92.34:5000
+[2026-04-11 02:01:37] INFO werkzeug: Press CTRL+C to quit
+[2026-04-11 02:01:38] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/sudo_users?select=user_id "HTTP/2 200 OK"
+[2026-04-11 02:01:38] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/guild_blacklist?select=target_id%2Cscope "HTTP/2 200 OK"
+[2026-04-11 02:01:38] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/guild_config?select=%2A "HTTP/2 200 OK"
+[2026-04-11 02:01:38] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/afk?select=%2A "HTTP/2 200 OK"
+[2026-04-11 02:01:38] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/antinuke_config?select=%2A "HTTP/2 200 OK"
+[2026-04-11 02:01:38] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/antinuke_whitelist?select=guild_id%2Cuser_id "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/antinuke_admins?select=guild_id%2Cuser_id "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/antiraid_config?select=%2A "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/antiraid_whitelist?select=guild_id%2Cuser_id "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/antiraid_username_patterns?select=guild_id%2Cpattern "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/autoroles?select=guild_id%2Crole_id%2Ctarget_type "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/voicecentre_config?select=%2A "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/ticket_config?select=%2A "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/ticket_managers?select=guild_id%2Ctarget_id%2Ctarget_type "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/booster_role_config?select=%2A "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/booster_roles?select=guild_id%2Cuser_id%2Crole_id "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/warn_strikes?select=guild_id%2Cstrike%2Caction "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/fake_permissions?select=guild_id%2Crole_id%2Cpermission "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/forced_nicks?select=guild_id%2Cuser_id%2Cnickname "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/filter_config?select=guild_id%2Cfilter_snipe "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/jailed_members?select=guild_id%2Cuser_id "HTTP/2 200 OK"
+[2026-04-11 02:01:39] INFO storage: Storage loaded: 4 guild(s)
+[2026-04-11 02:01:39] INFO pushie: Loaded cogs.core
+[2026-04-11 02:01:40] INFO pushie: Loaded cogs.gate
+[2026-04-11 02:01:40] INFO pushie: Loaded cogs.level
+[2026-04-11 02:01:40] INFO pushie: Loaded cogs.logz
+[2026-04-11 02:01:40] INFO pushie: Loaded cogs.misc
+[2026-04-11 02:01:40] INFO pushie: Loaded cogs.moderation
+[2026-04-11 02:01:40] INFO pushie: Loaded cogs.security
+[2026-04-11 02:01:40] INFO pushie: Loaded cogs.server
+[2026-04-11 02:01:40] INFO pushie: Loaded cogs.sudo
+[2026-04-11 02:01:40] INFO pushie: Loaded cogs.voice
+[2026-04-11 02:01:40] INFO discord.gateway: Shard ID None has connected to Gateway (Session ID: 929eda594e32c715ebbb3bf87161023a).
+[2026-04-11 02:01:43] INFO pushie: Ready — CodeCore#3163 (1474894008160616478) | 3 guilds
+[2026-04-11 02:01:43] INFO pushie: Synced 0 slash commands
+[2026-04-11 02:03:39] INFO httpx: HTTP Request: GET https://xbhkebvobikaptufronn.supabase.co/rest/v1/levels?select=xp%2Clevel%2Ctotal_xp&guild_id=eq.1474875467768008795&user_id=eq.895767962722660372 "HTTP/2 200 OK"
+[2026-04-11 02:03:39] ERROR storage: Failed to add_xp 1474875467768008795/895767962722660372: 'NoneType' object has no attribute 'data'
+[2026-04-11 02:03:43] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475245033765601340 responded with 429. Retrying in 0.30 seconds.
+[2026-04-11 02:03:44] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244997581340754 responded with 429. Retrying in 0.67 seconds.
+[2026-04-11 02:03:44] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244996457140469 responded with 429. Retrying in 0.80 seconds.
+[2026-04-11 02:03:45] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244852852818093 responded with 429. Retrying in 0.84 seconds.
+[2026-04-11 02:03:46] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244781155123213 responded with 429. Retrying in 0.82 seconds.
+[2026-04-11 02:03:47] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244780740153344 responded with 429. Retrying in 0.77 seconds.
+[2026-04-11 02:03:48] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244660707561667 responded with 429. Retrying in 0.79 seconds.
+[2026-04-11 02:03:52] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244547515879484 responded with 429. Retrying in 0.30 seconds.
+[2026-04-11 02:03:53] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244546731544862 responded with 429. Retrying in 0.65 seconds.
+[2026-04-11 02:03:53] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244525772476616 responded with 429. Retrying in 0.72 seconds.
+[2026-04-11 02:03:55] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244525147525171 responded with 429. Retrying in 0.30 seconds.
+[2026-04-11 02:03:56] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244474706825366 responded with 429. Retrying in 0.56 seconds.
+[2026-04-11 02:03:56] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244472999739392 responded with 429. Retrying in 0.84 seconds.
+[2026-04-11 02:03:57] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244447506628742 responded with 429. Retrying in 0.75 seconds.
+[2026-04-11 02:03:58] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475244446990729266 responded with 429. Retrying in 0.82 seconds.
+[2026-04-11 02:03:59] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475242693084057630 responded with 429. Retrying in 0.83 seconds.
+[2026-04-11 02:04:00] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475242692152791060 responded with 429. Retrying in 0.83 seconds.
+[2026-04-11 02:04:01] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475240486724698144 responded with 429. Retrying in 0.85 seconds.
+[2026-04-11 02:04:02] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475240486137626654 responded with 429. Retrying in 0.84 seconds.
+[2026-04-11 02:04:03] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475240443280097331 responded with 429. Retrying in 0.80 seconds.
+[2026-04-11 02:04:04] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475240442558677082 responded with 429. Retrying in 0.77 seconds.
+[2026-04-11 02:04:05] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475239903079038986 responded with 429. Retrying in 0.84 seconds.
+[2026-04-11 02:04:06] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475239902340976893 responded with 429. Retrying in 0.80 seconds.
+[2026-04-11 02:04:07] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475239854903132334 responded with 429. Retrying in 0.85 seconds.
+[2026-04-11 02:04:08] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475239853951025263 responded with 429. Retrying in 0.84 seconds.
+[2026-04-11 02:04:09] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475239420394344622 responded with 429. Retrying in 0.82 seconds.
+[2026-04-11 02:04:10] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475239418863292648 responded with 429. Retrying in 0.83 seconds.
+[2026-04-11 02:04:11] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475238915609854024 responded with 429. Retrying in 0.81 seconds.
+[2026-04-11 02:04:12] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475238914368208896 responded with 429. Retrying in 0.81 seconds.
+[2026-04-11 02:04:13] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475238860438114398 responded with 429. Retrying in 0.76 seconds.
+[2026-04-11 02:04:15] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475238859184017591 responded with 429. Retrying in 0.69 seconds.
+[2026-04-11 02:04:15] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475238827823206643 responded with 429. Retrying in 0.76 seconds.
+[2026-04-11 02:04:16] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475238827072421888 responded with 429. Retrying in 0.83 seconds.
+[2026-04-11 02:04:18] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475238812597616772 responded with 429. Retrying in 0.69 seconds.
+[2026-04-11 02:04:18] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475238811347980520 responded with 429. Retrying in 0.82 seconds.
+[2026-04-11 02:04:19] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475238212673867877 responded with 429. Retrying in 0.76 seconds.
+[2026-04-11 02:04:20] WARNING discord.http: We are being rate limited. DELETE https://discord.com/api/v10/channels/1474889237835808860/messages/1475238210958262522 responded with 429. Retrying in 0.86 seconds.

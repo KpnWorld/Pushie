@@ -333,7 +333,28 @@ class Sudo(commands.Cog, name="Sudo"):
             await ctx.ok("*Avatar updated.*")
         except Exception as e:
             await ctx.err(f"*Error: `{e}`*")
-
+            
+    @sudo.command(name="banner")
+    @commands.is_owner()
+    async def sudo_banner(self, ctx: "PushieContext", *, url: str | None = None) -> None:
+        """Update bot's banner."""
+        assert self.bot.user is not None
+        try:
+            if ctx.message.attachments:
+                data = await ctx.message.attachments[0].read()
+            elif url:
+                import aiohttp
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url) as resp:
+                        data = await resp.read()
+            else:
+                await ctx.err("*Provide a URL or attach an image.*")
+                return
+            await self.bot.user.edit(banner=data)
+            await ctx.ok("*Banner updated.*")
+        except Exception as e:
+            await ctx.err(f"*Error: `{e}`*")
+    
     @sudo.command(name="prefix")
     @commands.is_owner()
     async def sudo_prefix(self, ctx: "PushieContext", *, new_prefix: str) -> None:

@@ -308,7 +308,7 @@ class Pushie(commands.Bot):
 
         await self.process_commands(message)
 
-    async def on_command_error(  # type: ignore[override]
+    async def on_command_error( 
         self, ctx: commands.Context["Pushie"], error: commands.CommandError
     ) -> None:
         """Handle command errors with user-friendly messages."""

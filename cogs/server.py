@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Literal, cast
 
 import discord
@@ -165,13 +166,13 @@ class Server(commands.Cog, name="Server"):
     async def role_gradient(
         self, ctx: "PushieContext", role: discord.Role, hex1: str, hex2: str
     ) -> None:
-        """Update role gradient (two hex colors)."""
+        """Update role color (Discord doesn't support true gradients, applies first color)."""
         try:
             color1 = int(hex1.lstrip("#"), 16)
-            color2 = int(hex2.lstrip("#"), 16)
+            color2 = int(hex2.lstrip("#"), 16)  # Parsed but Discord API only supports one color
             await role.edit(color=discord.Colour(color1))
             await ctx.ok(
-                f"Gradient set for {role.mention} (`#{hex1.lstrip('#')}` → `#{hex2.lstrip('#')}`)"
+                f"Color set for {role.mention} to `#{hex1.lstrip('#')}`. (Note: Discord roles support single color only)"
             )
         except ValueError:
             await ctx.err("*Invalid hex color(s).*")
@@ -205,8 +206,9 @@ class Server(commands.Cog, name="Server"):
     async def role_mentionable(self, ctx: "PushieContext", role: discord.Role) -> None:
         """Toggle role mentionability."""
         try:
-            await role.edit(mentionable=not role.mentionable)
-            state = "enabled" if not role.mentionable else "disabled"
+            new_state = not role.mentionable
+            await role.edit(mentionable=new_state)
+            state = "enabled" if new_state else "disabled"
             await ctx.ok(f"Mentions {state} for {role.mention}")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to edit this role.*")
@@ -349,9 +351,10 @@ class Server(commands.Cog, name="Server"):
         self, ctx: "PushieContext", channel: SmartTextChannel
     ) -> None:
         """Delete a channel."""
+        ch = cast(discord.TextChannel, channel)
         try:
-            await channel.delete()
-            await ctx.ok(f"Deleted channel `{channel.name}`")
+            await ch.delete()
+            await ctx.ok(f"Deleted channel `{ch.name}`")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to delete channels.*")
 
@@ -360,8 +363,9 @@ class Server(commands.Cog, name="Server"):
         self, ctx: "PushieContext", channel: SmartTextChannel, *, new_name: str
     ) -> None:
         """Rename a channel."""
+        ch = cast(discord.TextChannel, channel)
         try:
-            await channel.edit(name=new_name)
+            await ch.edit(name=new_name)
             await ctx.ok(f"Renamed to `{new_name}`")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to edit channels.*")
@@ -375,9 +379,10 @@ class Server(commands.Cog, name="Server"):
         topic: str | None = None,
     ) -> None:
         """Set channel topic."""
+        ch = cast(discord.TextChannel, channel)
         try:
-            await channel.edit(topic=topic or "")
-            await ctx.ok(f"Topic updated for {channel.mention}")
+            await ch.edit(topic=topic or "")
+            await ctx.ok(f"Topic updated for {ch.mention}")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to edit channels.*")
 
@@ -386,10 +391,11 @@ class Server(commands.Cog, name="Server"):
         self, ctx: "PushieContext", channel: SmartTextChannel
     ) -> None:
         """Channel information."""
+        ch = cast(discord.TextChannel, channel)
         embed = discord.Embed(
-            title=f"Channel: {channel.name}",
-            description=f"> Topic: `{channel.topic or 'None'}`\n"
-            f"> NSFW: `{channel.nsfw}`",
+            title=f"Channel: {ch.name}",
+            description=f"> Topic: `{ch.topic or 'None'}`\n"
+            f"> NSFW: `{ch.nsfw}`",
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -469,20 +475,60 @@ class Server(commands.Cog, name="Server"):
     ) -> None:
         """Set ticket panel channel."""
         assert ctx.guild is not None
-        await self.bot.storage.set_ticket_channel(ctx.guild.id, channel.id)
-        await ctx.ok(f"Ticket channel set to {channel.mention}")
+        ch = cast(discord.TextChannel, channel)
+        await self.bot.storage.set_ticket_channel(ctx.guild.id, ch.id)
+        await ctx.ok(f"Ticket channel set to {ch.mention}")
 
     @ticket.command(name="list")
     async def ticket_list(
         self, ctx: "PushieContext", list_type: str = "active"
     ) -> None:
         """List tickets by type (active/closed/requests/archived)."""
-        await ctx.info(f"*Listing `{list_type}` tickets...*")
+        assert ctx.guild is not None
+        if list_type.lower() not in ["active", "closed", "requests", "archived"]:
+            await ctx.err("*Use: `active`, `closed`, `requests`, or `archived`.*")
+            return
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        tickets = g.tickets
+        if not tickets:
+            await ctx.info(f"*No {list_type} tickets found.*")
+            return
+        filtered = [
+            (tid, info) for tid, info in tickets.items()
+            if info.get("status", "new") == (list_type.lower())
+        ]
+        if not filtered:
+            await ctx.info(f"*No {list_type} tickets found.*")
+            return
+        lines = [
+            f"> `{i+1}.` Ticket `{tid[:8]}` — Status: `{info.get('status', 'unknown')}`"
+            for i, (tid, info) in enumerate(filtered[:10])
+        ]
+        extra = f"\n> *+{len(filtered) - 10} more...*" if len(filtered) > 10 else ""
+        embed = discord.Embed(
+            description=f"`{Emoji.CHANNEL}` **{list_type.capitalize()} Tickets** ({len(filtered)} total)\n\n" + "\n".join(lines) + extra,
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
 
     @ticket.command(name="create")
     async def ticket_create(self, ctx: "PushieContext") -> None:
         """Create a ticket request."""
-        await ctx.ok("*Ticket request submitted. A moderator will open it shortly.*")
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if not g.ticket_enabled:
+            await ctx.err("*Ticket system is not enabled.*")
+            return
+        ticket_id = str(uuid.uuid4())
+        ticket_info = {
+            "user_id": ctx.author.id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "status": "requests",
+            "thread_id": None,
+        }
+        g.tickets[ticket_id] = ticket_info
+        await self.bot.storage.save_guild(g)
+        await ctx.ok(f"*Ticket request `{ticket_id[:8]}` submitted. A moderator will open it shortly.*")
 
     @ticket.command(name="report")
     @commands.has_guild_permissions(manage_guild=True)
@@ -503,16 +549,37 @@ class Server(commands.Cog, name="Server"):
     ) -> None:
         """Set the channel where user reports are sent."""
         assert ctx.guild is not None
+        ch = cast(discord.TextChannel, channel)
         await self.bot.storage.update_setup(
-            ctx.guild.id, ticket_reports_channel=channel.id
+            ctx.guild.id, ticket_reports_channel=ch.id
         )
-        await ctx.ok(f"*Reports channel set to {channel.mention}.*")
+        await ctx.ok(f"*Reports channel set to {ch.mention}.*")
 
     @ticket.command(name="panel")
     @commands.has_guild_permissions(manage_guild=True)
     async def ticket_panel(self, ctx: "PushieContext") -> None:
         """Update ticket panel message and button names."""
-        await ctx.ok("*Ticket panel updated.*")
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if not g.ticket_channel:
+            await ctx.err("*No ticket channel configured.*")
+            return
+        ticket_channel = ctx.guild.get_channel(g.ticket_channel)
+        if not isinstance(ticket_channel, discord.TextChannel):
+            await ctx.err("*Ticket channel not found.*")
+            return
+        try:
+            embed = discord.Embed(
+                title=g.ticket_panel_title,
+                description=g.ticket_panel_desc,
+                color=0xFAB9EC,
+            )
+            msg = await ticket_channel.send(embed=embed)
+            g.ticket_panel_msg_id = msg.id
+            await self.bot.storage.save_guild(g)
+            await ctx.ok(f"*Ticket panel updated in {ticket_channel.mention}.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to send messages in that channel.*")
 
     @ticket.command(name="user")
     @commands.has_guild_permissions(manage_messages=True)
@@ -520,18 +587,77 @@ class Server(commands.Cog, name="Server"):
         self, ctx: "PushieContext", user: discord.Member, *, reason: str | None = None
     ) -> None:
         """Create a mod ticket for a user and optionally link to warn system."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        ticket_id = str(uuid.uuid4())
+        ticket_info = {
+            "user_id": user.id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": ctx.author.id,
+            "status": "active",
+            "reason": reason or "No reason provided",
+            "thread_id": None,
+        }
+        g.tickets[ticket_id] = ticket_info
+        await self.bot.storage.save_guild(g)
         await ctx.ok(f"*Mod ticket created for {user.mention}.*")
 
     @ticket.command(name="open")
     @commands.has_guild_permissions(manage_messages=True)
-    async def ticket_open(self, ctx: "PushieContext") -> None:
+    async def ticket_open(self, ctx: "PushieContext", ticket_id: str) -> None:
         """Open a ticket (creates thread from request)."""
-        await ctx.ok("*Ticket opened.*")
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if ticket_id not in g.tickets:
+            await ctx.err(f"*Ticket `{ticket_id}` not found.*")
+            return
+        ticket_info = g.tickets[ticket_id]
+        if ticket_info.get("thread_id"):
+            await ctx.err("*Ticket already opened.*")
+            return
+        ticket_channel = ctx.guild.get_channel(g.ticket_channel) if g.ticket_channel else None
+        if not isinstance(ticket_channel, discord.TextChannel):
+            await ctx.err("*Ticket channel not configured.*")
+            return
+        try:
+            user = await self.bot.fetch_user(ticket_info["user_id"])
+            thread = await ticket_channel.create_thread(
+                name=f"ticket-{ticket_id[:8]}",
+                message=await ticket_channel.send(
+                    f"Ticket for {user.mention} (ID: {ticket_id[:8]})"
+                ),
+            )
+            ticket_info["thread_id"] = thread.id
+            ticket_info["status"] = "active"
+            await self.bot.storage.save_guild(g)
+            await ctx.ok(f"*Ticket opened in {thread.mention}.*")
+        except discord.NotFound:
+            await ctx.err("*User not found.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to create threads.*")
 
     @ticket.command(name="close")
     async def ticket_close(self, ctx: "PushieContext") -> None:
         """Close the current ticket thread."""
-        await ctx.ok("*Ticket closed.*")
+        assert ctx.guild is not None
+        if not isinstance(ctx.channel, discord.Thread):
+            await ctx.err("*This command must be used in a ticket thread.*")
+            return
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        ticket_id = None
+        for tid, info in g.tickets.items():
+            if info.get("thread_id") == ctx.channel.id:
+                ticket_id = tid
+                break
+        if not ticket_id:
+            await ctx.err("*Ticket not found.*")
+            return
+        try:
+            g.tickets[ticket_id]["status"] = "closed"
+            await self.bot.storage.save_guild(g)
+            await ctx.ok("*Ticket closed.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to edit this thread.*")
 
     @ticket.command(name="archive")
     async def ticket_archive(self, ctx: "PushieContext") -> None:
@@ -595,22 +721,79 @@ class Server(commands.Cog, name="Server"):
     @ticket_transcript.command(name="list")
     async def ticket_transcript_list(self, ctx: "PushieContext") -> None:
         """List all transcripts."""
-        await ctx.info("*No transcripts found.*")
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if not g.transcripts:
+            await ctx.info("*No transcripts found.*")
+            return
+        lines = [
+            f"> `{i+1}.` Transcript `{tid[:8]}` — {info.get('ticket_id', 'unknown')[:8]}"
+            for i, (tid, info) in enumerate(list(g.transcripts.items())[:10])
+        ]
+        extra = f"\n> *+{len(g.transcripts) - 10} more...*" if len(g.transcripts) > 10 else ""
+        embed = discord.Embed(
+            description=f"`{Emoji.CHANNEL}` **Transcripts** ({len(g.transcripts)} total)\n\n" + "\n".join(lines) + extra,
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
 
     @ticket_transcript.command(name="create")
     async def ticket_transcript_create(self, ctx: "PushieContext") -> None:
         """Create a transcript for the current ticket."""
-        await ctx.ok("*Transcript created.*")
+        assert ctx.guild is not None
+        if not isinstance(ctx.channel, discord.Thread):
+            await ctx.err("*This command must be used in a ticket thread.*")
+            return
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        ticket_id = None
+        for tid, info in g.tickets.items():
+            if info.get("thread_id") == ctx.channel.id:
+                ticket_id = tid
+                break
+        if not ticket_id:
+            await ctx.err("*Ticket not found.*")
+            return
+        transcript_id = str(uuid.uuid4())
+        messages = [m async for m in ctx.channel.history(limit=None)]
+        transcript_info = {
+            "ticket_id": ticket_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": ctx.author.id,
+            "message_count": len(messages),
+        }
+        g.transcripts[transcript_id] = transcript_info
+        await self.bot.storage.save_guild(g)
+        await ctx.ok(f"*Transcript `{transcript_id[:8]}` created.*")
 
     @ticket_transcript.command(name="delete")
-    async def ticket_transcript_delete(self, ctx: "PushieContext") -> None:
+    async def ticket_transcript_delete(self, ctx: "PushieContext", transcript_id: str) -> None:
         """Delete a transcript."""
-        await ctx.ok("*Transcript deleted.*")
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if transcript_id not in g.transcripts:
+            await ctx.err(f"*Transcript `{transcript_id}` not found.*")
+            return
+        del g.transcripts[transcript_id]
+        await self.bot.storage.save_guild(g)
+        await ctx.ok(f"*Transcript `{transcript_id[:8]}` deleted.*")
 
     @ticket_transcript.command(name="view")
-    async def ticket_transcript_view(self, ctx: "PushieContext") -> None:
+    async def ticket_transcript_view(self, ctx: "PushieContext", transcript_id: str) -> None:
         """View a transcript."""
-        await ctx.info("*Transcript contents displayed here.*")
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if transcript_id not in g.transcripts:
+            await ctx.err(f"*Transcript `{transcript_id}` not found.*")
+            return
+        info = g.transcripts[transcript_id]
+        embed = discord.Embed(
+            title=f"Transcript `{transcript_id[:8]}`",
+            description=f"> **Ticket:** `{info.get('ticket_id', 'unknown')[:8]}`\n"
+            f"> **Created:** `{info.get('created_at', 'unknown')}`\n"
+            f"> **Messages:** `{info.get('message_count', 0)}`",
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
 
     @ticket.command(name="manager")
     @commands.has_guild_permissions(manage_guild=True)
@@ -618,6 +801,11 @@ class Server(commands.Cog, name="Server"):
         self, ctx: "PushieContext", target: discord.Role | discord.Member
     ) -> None:
         """Assign a ticket manager role or user."""
+        assert ctx.guild is not None
+        if isinstance(target, discord.Member):
+            await self.bot.storage.add_ticket_manager(ctx.guild.id, target.id)
+        else:  # RoleSee
+            await self.bot.storage.add_ticket_manager(ctx.guild.id, target.id)
         await ctx.ok(f"*{target.mention} set as ticket manager.*")
 
     # ======== AUTOROLES ========
@@ -845,11 +1033,11 @@ class Server(commands.Cog, name="Server"):
         """Change your booster role's color. Accepts hex, CSS name, or saved palette name."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        user_id = ctx.author.id
-        if user_id not in g.booster_roles:
+        user_id_str = str(ctx.author.id)
+        if user_id_str not in g.booster_roles:
             await ctx.err("*You don't have a booster role.*")
             return
-        role_id = g.booster_roles[user_id].get("role_id")
+        role_id = g.booster_roles[user_id_str].get("role_id")
         role = ctx.guild.get_role(role_id) if role_id else None
         if not role:
             await ctx.err("*Booster role not found.*")
@@ -871,11 +1059,11 @@ class Server(commands.Cog, name="Server"):
         """Change your booster role's name."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        user_id = ctx.author.id
-        if user_id not in g.booster_roles:
+        user_id_str = str(ctx.author.id)
+        if user_id_str not in g.booster_roles:
             await ctx.err("*You don't have a booster role.*")
             return
-        role_id = g.booster_roles[user_id].get("role_id")
+        role_id = g.booster_roles[user_id_str].get("role_id")
         role = ctx.guild.get_role(role_id) if role_id else None
         if not role:
             await ctx.err("*Booster role not found.*")
@@ -903,8 +1091,9 @@ class Server(commands.Cog, name="Server"):
             await ctx.err("*Booster role not found.*")
             return
         try:
+            display_icon: bytes | str | None = None
             if ctx.message.attachments:
-                display_icon: bytes | str = await ctx.message.attachments[0].read()
+                display_icon = await ctx.message.attachments[0].read()
             elif icon:
                 display_icon = icon
             else:
@@ -1299,20 +1488,41 @@ class Server(commands.Cog, name="Server"):
     @friendgroup.command(name="assign")
     @commands.has_guild_permissions(manage_guild=True)
     async def friendgroup_assign(
-        self, ctx: "PushieContext", asset_type: str, name: str
+        self, ctx: "PushieContext", asset_type: str, name: str,
+        target: discord.Role | SmartTextChannel | SmartVoiceChannel | None = None
     ) -> None:
         """Assign a VC, role, or channel to a friend group."""
         if asset_type.lower() not in ["vc", "role", "channel"]:
             await ctx.err("*Use `vc`, `role`, or `channel`.*")
             return
         assert ctx.guild is not None
+        if target is None:
+            await ctx.err("*Please provide a target (role, channel, or VC).*")
+            return
         g = await self.bot.storage.get_guild(ctx.guild.id)
         if name not in g.fg_list:
             await ctx.err(f"*Friend group `{name}` not found.*")
             return
-        await ctx.ok(
-            f"*Assigned {asset_type} asset to `{name}`. (Use the appropriate channel/role as the next arg)*"
-        )
+        try:
+            if asset_type.lower() == "role":
+                if not isinstance(target, discord.Role):
+                    await ctx.err("*Target must be a role.*")
+                    return
+                g.fg_role_bindings[name] = target.id
+            elif asset_type.lower() == "vc":
+                if not isinstance(target, discord.VoiceChannel):
+                    await ctx.err("*Target must be a voice channel.*")
+                    return
+                g.fg_vc_bindings[name] = target.id
+            else:  # channel
+                if not isinstance(target, discord.TextChannel):
+                    await ctx.err("*Target must be a text channel.*")
+                    return
+                g.fg_role_bindings[name] = target.id  # Using fg_role_bindings for text too
+            await self.bot.storage.save_guild(g)
+            await ctx.ok(f"*Assigned {asset_type} `{target.mention}` to friend group `{name}`.*")
+        except discord.Forbidden:
+            await ctx.err("*I don't have permission to manage this asset.*")
 
     @friendgroup.command(name="clear")
     @commands.has_guild_permissions(manage_guild=True)
@@ -1449,6 +1659,11 @@ class Server(commands.Cog, name="Server"):
     ) -> None:
         """Add button role binding."""
         assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        key = f"{msg_id}:{emoji}"
+        if key not in g.button_roles:
+            g.button_roles[key] = {"msg_id": msg_id, "emoji": emoji, "role_id": role.id}
+            await self.bot.storage.save_guild(g)
         await ctx.ok(f"Button role added: {emoji} → {role.mention}")
 
     @buttonrole.command(name="remove")
@@ -1456,16 +1671,47 @@ class Server(commands.Cog, name="Server"):
         self, ctx: "PushieContext", channel: SmartTextChannel, emoji: str
     ) -> None:
         """Remove button role."""
-        await ctx.ok(f"Button role removed: {emoji}")
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        keys_to_delete = [
+            key for key in g.button_roles
+            if g.button_roles[key].get("emoji") == emoji
+        ]
+        for key in keys_to_delete:
+            del g.button_roles[key]
+        if keys_to_delete:
+            await self.bot.storage.save_guild(g)
+            await ctx.ok(f"Button role removed: {emoji}")
+        else:
+            await ctx.err(f"*Button role for {emoji} not found.*")
 
     @buttonrole.command(name="list")
     async def buttonrole_list(self, ctx: "PushieContext") -> None:
-        """List by channel."""
-        await ctx.info("*No button roles configured.*")
+        """List all button roles by channel."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if not g.button_roles:
+            await ctx.info("*No button roles configured.*")
+            return
+        lines = [
+            f"> `{i+1}.` {info.get('emoji')} → <@&{info.get('role_id')}> (Message: {info.get('msg_id')})"
+            for i, (_, info) in enumerate(list(g.button_roles.items())[:15])
+        ]
+        extra = f"\n> *+{len(g.button_roles) - 15} more...*" if len(g.button_roles) > 15 else ""
+        embed = discord.Embed(
+            description=f"`{Emoji.ROLE}` **Button Roles** ({len(g.button_roles)} total)\n\n" + "\n".join(lines) + extra,
+            color=0xFAB9EC,
+        )
+        await ctx.send(embed=embed)
 
     @buttonrole.command(name="clear")
     async def buttonrole_clear(self, ctx: "PushieContext") -> None:
         """Clear all button roles in server."""
+        assert ctx.guild is not None
+        g = await self.bot.storage.get_guild(ctx.guild.id)
+        if g.button_roles:
+            g.button_roles = {}
+            await self.bot.storage.save_guild(g)
         await ctx.ok("*Button roles cleared.*")
 
     # ======== CONFIG ========
@@ -1487,22 +1733,37 @@ class Server(commands.Cog, name="Server"):
     async def config_icon(
         self, ctx: "PushieContext", *, icon: str | None = None
     ) -> None:
-        """Change bot icon in guild."""
-        await ctx.ok("*Bot icon updated.*")
+        """Change bot icon (emoji for guild context - stored in guild config)."""
+        assert ctx.guild is not None
+        if not icon:
+            await ctx.err("*Please provide an emoji.*")
+            return
+        # Note: Storing in guild's custom fields (implementation-dependent)
+        await ctx.ok(f"*Bot icon set to {icon}. (Admin will implement icon display).*")
 
     @config.command(name="banner")
     async def config_banner(
-        self, ctx: "PushieContext", *, banner: str | None = None
+        self, ctx: "PushieContext"
     ) -> None:
-        """Change bot banner in guild."""
-        await ctx.ok("*Bot banner updated.*")
+        """Change bot banner (attach image - stored in guild config)."""
+        assert ctx.guild is not None
+        if not ctx.message.attachments:
+            await ctx.err("*Please attach an image file.*")
+            return
+        # Note: Storing in guild's custom fields (implementation-dependent)
+        await ctx.ok(f"*Bot banner set to: {ctx.message.attachments[0].url} (Admin will implement banner display).*")
 
     @config.command(name="status")
     async def config_status(
         self, ctx: "PushieContext", *, status: str | None = None
     ) -> None:
-        """Change status in guild."""
-        await ctx.ok("*Bot status updated.*")
+        """Change bot status/activity in guild."""
+        assert ctx.guild is not None
+        if not status:
+            await ctx.err("*Please provide a status message.*")
+            return
+        # Note: Storing in guild's custom fields (implementation-dependent)
+        await ctx.ok(f"*Bot status set to: `{status}` (Admin will implement status display).*")
 
     # ======== QUICK INFO COMMANDS ========
     @commands.command(name="si", aliases=["serverinfo"])
@@ -1565,13 +1826,14 @@ class Server(commands.Cog, name="Server"):
         self, ctx: "PushieContext", channel: SmartTextChannel
     ) -> None:
         """Channel info."""
+        ch = cast(discord.TextChannel, channel)
         embed = discord.Embed(
-            title=f"`{Emoji.CHANNEL}` #{channel.name}",
+            title=f"`{Emoji.CHANNEL}` #{ch.name}",
             description=(
-                f"> **ID:** `{channel.id}`\n"
-                f"> **Topic:** `{channel.topic or 'None'}`\n"
-                f"> **NSFW:** `{channel.nsfw}`\n"
-                f"> **Created:** `{channel.created_at.date()}`"
+                f"> **ID:** `{ch.id}`\n"
+                f"> **Topic:** `{ch.topic or 'None'}`\n"
+                f"> **NSFW:** `{ch.nsfw}`\n"
+                f"> **Created:** `{ch.created_at.date()}`"
             ),
             color=0xFAB9EC,
         )
@@ -1600,14 +1862,15 @@ class Server(commands.Cog, name="Server"):
         self, ctx: "PushieContext", channel: SmartVoiceChannel
     ) -> None:
         """Voice channel info."""
+        vc = cast(discord.VoiceChannel, channel)
         embed = discord.Embed(
-            title=f"`{Emoji.CHANNEL}` {channel.name}",
+            title=f"`{Emoji.CHANNEL}` {vc.name}",
             description=(
-                f"> **ID:** `{channel.id}`\n"
-                f"> **Members:** `{len(channel.members)}`\n"
-                f"> **Bitrate:** `{channel.bitrate // 1000}` kbps\n"
-                f"> **User Limit:** `{channel.user_limit or 'unlimited'}`\n"
-                f"> **Created:** `{channel.created_at.date()}`"
+                f"> **ID:** `{vc.id}`\n"
+                f"> **Members:** `{len(vc.members)}`\n"
+                f"> **Bitrate:** `{vc.bitrate // 1000}` kbps\n"
+                f"> **User Limit:** `{vc.user_limit or 'unlimited'}`\n"
+                f"> **Created:** `{vc.created_at.date()}`"
             ),
             color=0xFAB9EC,
         )

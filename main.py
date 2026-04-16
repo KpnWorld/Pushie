@@ -12,7 +12,7 @@ import aiohttp
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify # type: ignore
 
 from storage import StorageManager
 from ui import UI, PrefixView
@@ -308,8 +308,8 @@ class Pushie(commands.Bot):
 
         await self.process_commands(message)
 
-    async def on_command_error( 
-        self, ctx: commands.Context["Pushie"], error: commands.CommandError
+    async def on_command_error(
+        self, ctx: commands.Context, error: commands.CommandError
     ) -> None:
         """Handle command errors with user-friendly messages."""
         if hasattr(ctx.command, "on_error"):

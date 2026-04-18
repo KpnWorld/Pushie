@@ -128,7 +128,7 @@ class Gate(commands.Cog, name="Gate"):
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.WELCOME}` **Greet System**\n\n"
+                f"{Emoji.WELCOME} **Greet System**\n\n"
                 f"```\n{prefix}greet setup enable/disable\n"
                 f"{prefix}greet config <channel> <message>\n"
                 f"{prefix}greet channel <channel>\n"
@@ -149,7 +149,7 @@ class Gate(commands.Cog, name="Gate"):
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, greet_enabled=enabled)
         status = (
-            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
         )
         await ctx.ok(f"Greet system {status}")
 
@@ -215,9 +215,9 @@ class Gate(commands.Cog, name="Gate"):
             return
         ch_mention = f"<#{g.greet_channel}>" if g.greet_channel else "*not set*"
         enabled = (
-            f"`{Emoji.SUCCESS}` enabled"
+            f"{Emoji.SUCCESS} enabled"
             if g.greet_enabled
-            else f"`{Emoji.CANCEL}` disabled"
+            else f"{Emoji.CANCEL} disabled"
         )
         await ctx.send(
             embed=UI.info(
@@ -266,7 +266,7 @@ class Gate(commands.Cog, name="Gate"):
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.LEAVE}` **Leave System**\n\n"
+                f"{Emoji.LEAVE} **Leave System**\n\n"
                 f"```\n{prefix}leave setup enable/disable\n"
                 f"{prefix}leave config <channel> <message>\n"
                 f"{prefix}leave channel <channel>\n"
@@ -287,7 +287,7 @@ class Gate(commands.Cog, name="Gate"):
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, leave_enabled=enabled)
         status = (
-            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
         )
         await ctx.ok(f"Leave system {status}")
 
@@ -353,9 +353,9 @@ class Gate(commands.Cog, name="Gate"):
             return
         ch_mention = f"<#{g.leave_channel}>" if g.leave_channel else "*not set*"
         enabled = (
-            f"`{Emoji.SUCCESS}` enabled"
+            f"{Emoji.SUCCESS} enabled"
             if g.leave_enabled
-            else f"`{Emoji.CANCEL}` disabled"
+            else f"{Emoji.CANCEL} disabled"
         )
         await ctx.send(
             embed=UI.info(
@@ -404,7 +404,7 @@ class Gate(commands.Cog, name="Gate"):
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.JOIN}` **Ping on Join**\n\n"
+                f"{Emoji.JOIN} **Ping on Join**\n\n"
                 f"```\n{prefix}pingonjoin setup enable/disable\n"
                 f"{prefix}pingonjoin add <channel>\n"
                 f"{prefix}pingonjoin remove <channel>\n"
@@ -422,7 +422,7 @@ class Gate(commands.Cog, name="Gate"):
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, ping_enabled=enabled)
         status = (
-            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
         )
         await ctx.ok(f"Ping on join {status}")
 
@@ -463,7 +463,7 @@ class Gate(commands.Cog, name="Gate"):
             for i, (cid, cfg) in enumerate(g.ping_assignments.items())
         ]
         embed = discord.Embed(
-            description=f"`{Emoji.INFO}` **Ping Assignments**\n\n" + "\n".join(lines),
+            description=f"{Emoji.INFO} **Ping Assignments**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)

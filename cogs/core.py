@@ -46,7 +46,7 @@ class Core(commands.Cog, name="Core"):
         """Check the bot's response time."""
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.PING}` *Pong! `{round(self.bot.latency * 1000)}ms`*"
+                f"{Emoji.PING} *Pong! `{round(self.bot.latency * 1000)}ms`*"
             )
         )
 
@@ -124,7 +124,7 @@ class Core(commands.Cog, name="Core"):
             )
             embed = discord.Embed(
                 description=(
-                    f"`{Emoji.INFO}` **Pushie Help**\n\n"
+                    f"{Emoji.INFO} **Pushie Help**\n\n"
                     f"{lines}\n\n"
                     f"> Use `{prefix}help <module>` for module detail\n"
                     f"> Use `{prefix}help <command>` for command detail\n"
@@ -139,7 +139,7 @@ class Core(commands.Cog, name="Core"):
         if q == "variables":
             await ctx.send(
                 embed=UI.info(
-                    f"`{Emoji.INFO}` **Embed Substitution Variables**\n\n"
+                    f"{Emoji.INFO} **Embed Substitution Variables**\n\n"
                     f"> **User Variables:**\n"
                     f"```\n$user.name — Display name\n"
                     f"$user.id — User ID\n"
@@ -163,7 +163,7 @@ class Core(commands.Cog, name="Core"):
                     for c in cmds[:20]
                 )
                 embed = discord.Embed(
-                    description=f"`{Emoji.INFO}` **{cog_name} Commands**\n\n{cmd_lines or '*No commands*'}",
+                    description=f"{Emoji.INFO} **{cog_name} Commands**\n\n{cmd_lines or '*No commands*'}",
                     color=0xFAB9EC,
                 )
                 await ctx.send(embed=embed)
@@ -178,7 +178,7 @@ class Core(commands.Cog, name="Core"):
             )
             embed = discord.Embed(
                 description=(
-                    f"`{Emoji.INFO}` **`{prefix}{cmd.qualified_name}`**\n\n"
+                    f"{Emoji.INFO} **`{prefix}{cmd.qualified_name}`**\n\n"
                     f"> {cmd.help or cmd.short_doc or 'No description'}\n\n"
                     f"> **Aliases:** {aliases}"
                 ),
@@ -204,7 +204,7 @@ class Core(commands.Cog, name="Core"):
         lines = "\n".join(f"> `{c}`" for c in cogs)
         await ctx.send(
             embed=discord.Embed(
-                description=f"`{Emoji.INFO}` **Available Modules**\n\n{lines}",
+                description=f"{Emoji.INFO} **Available Modules**\n\n{lines}",
                 color=0xFAB9EC,
             )
         )
@@ -214,7 +214,7 @@ class Core(commands.Cog, name="Core"):
         """List embed substitution variables."""
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.INFO}` **Embed Substitution Variables**\n\n"
+                f"{Emoji.INFO} **Embed Substitution Variables**\n\n"
                 f"> **User Variables:**\n"
                 f"```\n$user.name — Display name\n"
                 f"$user.id — User ID\n"

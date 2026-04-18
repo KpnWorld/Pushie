@@ -150,7 +150,7 @@ class Voice(commands.Cog, name="Voice"):
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"{Emoji.CHANNEL} *Voice centre commands:*\n"
+                f"*Voice centre commands:*\n"
                 f"```\n"
                 f"{prefix}voicecentre lock / unlock\n"
                 f"{prefix}voicecentre limit <n>   (0 = unlimited)\n"

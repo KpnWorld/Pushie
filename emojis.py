@@ -95,4 +95,4 @@ class Emoji:
     @classmethod
     def code(cls, emoji: str) -> str:
         """Returns emoji wrapped in backticks for the UI style."""
-        return f"`{emoji}`"
+        return f"{emoji}"

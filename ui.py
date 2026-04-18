@@ -15,7 +15,7 @@ COLOR = 0xFAB9EC
 
 def _base(msg: str, emoji: str) -> discord.Embed:
     """Create a standard themed embed."""
-    return discord.Embed(description=f"> `{emoji}` *{msg}*", color=COLOR)
+    return discord.Embed(description=f"> {emoji} *{msg}*", color=COLOR)
 
 
 # ── UI HELPER CLASS ────────────────────────────────────────────────────────

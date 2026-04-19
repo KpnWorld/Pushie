@@ -214,7 +214,7 @@ class Core(commands.Cog, name="Core"):
         """List embed substitution variables."""
         await ctx.send(
             embed=UI.info(
-                f"{Emoji.INFO} **Embed Substitution Variables**\n\n"
+                f"**Embed Substitution Variables**\n\n"
                 f"> **User Variables:**\n"
                 f"```\n$user.name — Display name\n"
                 f"$user.id — User ID\n"

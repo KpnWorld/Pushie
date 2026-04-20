@@ -74,6 +74,9 @@ class GuildData:
     autonick: str | None = None
     modlog_channel: int | None = None
 
+    # perms
+    pic_role: int | None = None
+
     # Forced Nicks
     forced_nicks: dict[str, str] = field(default_factory=dict)
 
@@ -253,6 +256,7 @@ def _map_guild_config_row(g: GuildData, row: dict) -> None:
     g.mute_role = row.get("muted_role")
     g.imute_role = row.get("imuted_role")
     g.rmute_role = row.get("rmuted_role")
+    g.pic_role = row.get("pic_role")
     g.jail_channel = row.get("jail_channel")
     g.greet_enabled = row.get("greet_enabled") or False
     g.greet_channel = row.get("greet_channel")
@@ -943,6 +947,7 @@ class StorageManager:
             "muted_role": guild.mute_role,
             "imuted_role": guild.imute_role,
             "rmuted_role": guild.rmute_role,
+            "pic_role": guild.pic_role,
             "jail_channel": guild.jail_channel,
             "greet_enabled": guild.greet_enabled,
             "greet_channel": guild.greet_channel,

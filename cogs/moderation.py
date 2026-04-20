@@ -115,7 +115,7 @@ class Moderation(commands.Cog, name="Moderation"):
 
         try:
             await member.kick(reason=reason or "No reason")
-            await ctx.ok(f"{Emoji.SUCCESS} *{member.mention} has been kicked.*")
+            await ctx.ok(f"*{member.mention} has been kicked.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to kick this member.*")
         except discord.HTTPException as e:
@@ -147,7 +147,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             await ctx.guild.ban(user, delete_message_days=delete_days, reason=reason)
             await ctx.ok(
-                f"{Emoji.SUCCESS} *{user.mention} has been banned.*"
+                f"*{user.mention} has been banned.*"
                 + (f" Reason: *{reason}*" if reason else "")
             )
         except discord.Forbidden:
@@ -163,7 +163,7 @@ class Moderation(commands.Cog, name="Moderation"):
         assert ctx.guild is not None
         try:
             await ctx.guild.unban(user)
-            await ctx.ok(f"{Emoji.SUCCESS} *{user.mention} has been unbanned.*")
+            await ctx.ok(f"*{user.mention} has been unbanned.*")
         except discord.NotFound:
             await ctx.err("*This user is not banned.*")
         except discord.Forbidden:
@@ -227,7 +227,7 @@ class Moderation(commands.Cog, name="Moderation"):
 
         try:
             await member.add_roles(mute_role, reason=reason or "Muted via mute")
-            await ctx.ok(f"{Emoji.SUCCESS} *{member.mention} has been muted.*")
+            await ctx.ok(f"*{member.mention} has been muted.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to assign the mute role.*")
         except discord.HTTPException as e:
@@ -254,7 +254,7 @@ class Moderation(commands.Cog, name="Moderation"):
 
         try:
             await member.remove_roles(mute_role, reason="Unmuted via unmute")
-            await ctx.ok(f"{Emoji.SUCCESS} *{member.mention} has been unmuted.*")
+            await ctx.ok(f"*{member.mention} has been unmuted.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to remove the mute role.*")
         except discord.HTTPException as e:
@@ -304,7 +304,7 @@ class Moderation(commands.Cog, name="Moderation"):
             until = datetime.now(timezone.utc) + timedelta(seconds=total_seconds)
             await member.edit(timed_out_until=until)
             await ctx.ok(
-                f"{Emoji.TIMEOUT} *{member.mention} has been timed out for `{duration}`.*"
+                f"*{member.mention} has been timed out for `{duration}`.*"
             )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to timeout this member.*")
@@ -325,7 +325,7 @@ class Moderation(commands.Cog, name="Moderation"):
             f"> `{i+1}.` {m.mention}" for i, m in enumerate(timed_out[:15])
         )
         embed = discord.Embed(
-            description=f"{Emoji.TIMEOUT} *Timed-out members ({len(timed_out)})*\n\n{lines}",
+            description=f"*Timed-out members ({len(timed_out)})*\n\n{lines}",
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -339,7 +339,7 @@ class Moderation(commands.Cog, name="Moderation"):
         """Remove a member's timeout."""
         try:
             await member.edit(timed_out_until=None)
-            await ctx.ok(f"{Emoji.SUCCESS} *{member.mention}'s timeout removed.*")
+            await ctx.ok(f"*{member.mention}'s timeout removed.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to remove this member's timeout.*")
         except discord.HTTPException as e:
@@ -353,7 +353,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             await member.edit(timed_out_until=None)
             await ctx.ok(
-                f"{Emoji.SUCCESS} *{member.mention}'s timeout has been removed.*"
+                f"*{member.mention}'s timeout has been removed.*"
             )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to remove timeout.*")
@@ -383,7 +383,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             await member.edit(nick=nickname)
             await ctx.ok(
-                f"{Emoji.SUCCESS} *{member.mention}'s nickname set to `{nickname}`.*"
+                f"*{member.mention}'s nickname set to `{nickname}`.*"
             )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to change this member's nickname.*")
@@ -398,7 +398,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             await member.edit(nick=None)
             await ctx.ok(
-                f"{Emoji.SUCCESS} *{member.mention}'s nickname has been removed.*"
+                f"*{member.mention}'s nickname has been removed.*"
             )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to change this member's nickname.*")
@@ -431,7 +431,7 @@ class Moderation(commands.Cog, name="Moderation"):
             g.forced_nicks[str(member.id)] = nickname
             await ctx.bot.storage.save_guild(g)
             await ctx.ok(
-                f"{Emoji.SUCCESS} *{member.mention}'s nickname has been forced to `{nickname}`.*"
+                f"*{member.mention}'s nickname has been forced to `{nickname}`.*"
             )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to change this member's nickname.*")
@@ -452,7 +452,7 @@ class Moderation(commands.Cog, name="Moderation"):
             g.forced_nicks.pop(str(member.id), None)
             await ctx.bot.storage.save_guild(g)
             await ctx.ok(
-                f"{Emoji.SUCCESS} *Forced nickname removed for {member.mention}.*"
+                f"*Forced nickname removed for {member.mention}.*"
             )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to reset this member's nickname.*")
@@ -472,7 +472,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             everyone = ch.guild.default_role
             await ch.set_permissions(everyone, send_messages=False)
-            await ctx.ok(f"{Emoji.LOCK} *{ch.mention} has been locked.*")
+            await ctx.ok(f"*{ch.mention} has been locked.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to lock this channel.*")
         except discord.HTTPException as e:
@@ -491,7 +491,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             everyone = ch.guild.default_role
             await ch.set_permissions(everyone, send_messages=None)
-            await ctx.ok(f"{Emoji.UNLOCK} *{ch.mention} has been unlocked.*")
+            await ctx.ok(f"*{ch.mention} has been unlocked.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to unlock this channel.*")
         except discord.HTTPException as e:
@@ -513,9 +513,9 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             await ctx.channel.edit(slowmode_delay=delay)
             if delay == 0:
-                await ctx.ok(f"{Emoji.SUCCESS} *Slowmode disabled.*")
+                await ctx.ok(f"*Slowmode disabled.*")
             else:
-                await ctx.ok(f"{Emoji.SLOWMODE} *Slowmode set to `{delay}` seconds.*")
+                await ctx.ok(f"*Slowmode set to `{delay}` seconds.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to change slowmode.*")
         except discord.HTTPException as e:
@@ -534,7 +534,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             everyone = ch.guild.default_role
             await ch.set_permissions(everyone, view_channel=False)
-            await ctx.ok(f"{Emoji.HIDE} *{ch.mention} has been hidden.*")
+            await ctx.ok(f"*{ch.mention} has been hidden.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to hide this channel.*")
         except discord.HTTPException as e:
@@ -553,7 +553,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             everyone = ch.guild.default_role
             await ch.set_permissions(everyone, view_channel=None)
-            await ctx.ok(f"{Emoji.UNHIDE} *{ch.mention} is now visible.*")
+            await ctx.ok(f"*{ch.mention} is now visible.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to unhide this channel.*")
         except discord.HTTPException as e:
@@ -595,7 +595,7 @@ class Moderation(commands.Cog, name="Moderation"):
                 bulk=True,
             )
             if deleted:
-                await ctx.ok(f"{Emoji.PURGE} *Deleted `{len(deleted)}` messages.*")
+                await ctx.ok(f"*Deleted `{len(deleted)}` messages.*")
             else:
                 await ctx.info(
                     "*No eligible messages found. Messages older than 14 days cannot be bulk deleted.*"
@@ -753,7 +753,7 @@ class Moderation(commands.Cog, name="Moderation"):
         await ctx.bot.storage.save_guild(g)
         warn_count = len(g.warnings[user_id])
         await ctx.ok(
-            f"{Emoji.WARN} *{member.mention} has been warned.* (Warn `{warn_count}`)"
+            f"*{member.mention} has been warned.* (Warn `{warn_count}`)"
         )
 
     @warn.command(name="list")
@@ -807,7 +807,7 @@ class Moderation(commands.Cog, name="Moderation"):
         if amount == "all":
             del g.warnings[user_id]
             await ctx.bot.storage.save_guild(g)
-            await ctx.ok(f"{Emoji.SUCCESS} *All warnings cleared for {member.mention}.*")
+            await ctx.ok(f"*All warnings cleared for {member.mention}.*")
         else:
             try:
                 n = int(amount)
@@ -816,7 +816,7 @@ class Moderation(commands.Cog, name="Moderation"):
                     del g.warnings[user_id]
                 await ctx.bot.storage.save_guild(g)
                 await ctx.ok(
-                    f"{Emoji.SUCCESS} *Cleared `{n}` warning(s) for {member.mention}.*"
+                    f"*Cleared `{n}` warning(s) for {member.mention}.*"
                 )
             except ValueError:
                 await ctx.err("*Amount must be a number or `all`.*")
@@ -829,7 +829,7 @@ class Moderation(commands.Cog, name="Moderation"):
     ) -> None:
         """Set the action triggered at a given warn strike count."""
         await ctx.ok(
-            f"{Emoji.WARN} *At `{count}` warns: `{action}` will be applied.*"
+            f"*At `{count}` warns: `{action}` will be applied.*"
         )
 
     # =========================================================================
@@ -866,7 +866,7 @@ class Moderation(commands.Cog, name="Moderation"):
 
         try:
             await member.add_roles(imute_role, reason=reason or "Image muted via imute")
-            await ctx.ok(f"{Emoji.IMUTE} *{member.mention} has been image muted.*")
+            await ctx.ok(f"*{member.mention} has been image muted.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to assign the image mute role.*")
         except discord.HTTPException as e:
@@ -888,7 +888,7 @@ class Moderation(commands.Cog, name="Moderation"):
             return
         try:
             await member.remove_roles(imute_role, reason="Image unmuted")
-            await ctx.ok(f"{Emoji.IMUTE} *{member.mention} has been image unmuted.*")
+            await ctx.ok(f"*{member.mention} has been image unmuted.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to remove the image mute role.*")
 
@@ -910,7 +910,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             await member.add_roles(role)
             await ctx.ok(
-                f"{Emoji.RMUTE} *{member.mention} has been muted via {role.mention}.*"
+                f"*{member.mention} has been muted via {role.mention}.*"
             )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to assign this role.*")
@@ -933,7 +933,7 @@ class Moderation(commands.Cog, name="Moderation"):
             return
         try:
             await member.remove_roles(rmute_role, reason="Reaction unmuted")
-            await ctx.ok(f"{Emoji.RMUTE} *{member.mention} has been reaction unmuted.*")
+            await ctx.ok(f"*{member.mention} has been reaction unmuted.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to remove the reaction mute role.*")
 
@@ -982,7 +982,7 @@ class Moderation(commands.Cog, name="Moderation"):
             await member.add_roles(pic_role, reason=f"Pic perms granted by {ctx.author}")
             status = "granted"
 
-        await ctx.ok(f"{Emoji.IMAGE} *Image permissions **{status}** for {member.mention}.*")
+        await ctx.ok(f"*Image permissions **{status}** for {member.mention}.*")
 
     @picperms.command(name="role")
     @commands.guild_only()
@@ -995,7 +995,7 @@ class Moderation(commands.Cog, name="Moderation"):
         g.pic_role = role.id
         await ctx.bot.storage.save_guild(g)
 
-        await ctx.ok(f"{Emoji.IMAGE} *Pic perms role set to {role.mention}.*")
+        await ctx.ok(f"*Pic perms role set to {role.mention}.*")
 
     # ── MOD SETUP ─────────────────────────────────────────────────────────
 
@@ -1125,7 +1125,7 @@ class Moderation(commands.Cog, name="Moderation"):
                     synced += 1
                 except (discord.Forbidden, discord.HTTPException):
                     pass
-        await ctx.ok(f"{Emoji.SYNC} *Synced `{synced}` channel permission(s).*")
+        await ctx.ok(f"*Synced `{synced}` channel permission(s).*")
 
     # ── SNIPE ─────────────────────────────────────────────────────────────
 
@@ -1292,7 +1292,7 @@ class Moderation(commands.Cog, name="Moderation"):
             for delivery, msg in deliveries.items():
                 lines.append(f"> **{action}** ({delivery}): `{msg[:60]}`")
         await ctx.send(
-            embed=UI.info(f"{Emoji.INFO} **Invoke Messages**\n\n" + "\n".join(lines))
+            embed=UI.info(f"**Invoke Messages**\n\n" + "\n".join(lines))
         )
 
     @invoke.command(name="reset")
@@ -1337,7 +1337,7 @@ class Moderation(commands.Cog, name="Moderation"):
             if member.id not in g.jailed:
                 g.jailed.append(member.id)
                 await ctx.bot.storage.save_guild(g)
-            await ctx.ok(f"{Emoji.JAIL} *{member.mention} has been jailed.*")
+            await ctx.ok(f"*{member.mention} has been jailed.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to jail this member.*")
 
@@ -1360,7 +1360,7 @@ class Moderation(commands.Cog, name="Moderation"):
             if member.id in g.jailed:
                 g.jailed.remove(member.id)
                 await ctx.bot.storage.save_guild(g)
-            await ctx.ok(f"{Emoji.UNJAIL} *{member.mention} has been unjailed.*")
+            await ctx.ok(f"*{member.mention} has been unjailed.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to unjail this member.*")
 
@@ -1411,7 +1411,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             await member.remove_roles(*roles_to_remove, reason="Strip mod perms")
             await ctx.ok(
-                f"{Emoji.CLEAR} *Stripped `{len(roles_to_remove)}` moderation role(s) from {member.mention}.*"
+                f"*Stripped `{len(roles_to_remove)}` moderation role(s) from {member.mention}.*"
             )
         except discord.Forbidden:
             await ctx.err("*I don't have permission to remove those roles.*")
@@ -1430,7 +1430,7 @@ class Moderation(commands.Cog, name="Moderation"):
         try:
             await ch.edit(nsfw=not ch.nsfw)
             state = "enabled" if not ch.nsfw else "disabled"
-            await ctx.ok(f"{Emoji.CHANNEL} *NSFW {state} for {ch.mention}.*")
+            await ctx.ok(f"*NSFW {state} for {ch.mention}.*")
         except discord.Forbidden:
             await ctx.err("*I don't have permission to edit this channel.*")
 
@@ -1450,7 +1450,7 @@ class Moderation(commands.Cog, name="Moderation"):
                 locked += 1
             except (discord.Forbidden, discord.HTTPException):
                 pass
-        await ctx.ok(f"{Emoji.LOCK} *Server locked down. (`{locked}` channels locked)*")
+        await ctx.ok(f"*Server locked down. (`{locked}` channels locked)*")
 
     @lockdown.command(name="staff")
     @commands.guild_only()
@@ -1459,7 +1459,7 @@ class Moderation(commands.Cog, name="Moderation"):
         """Set a staff role exempt from lockdown."""
         assert ctx.guild is not None
         await ctx.bot.storage.update_setup(ctx.guild.id, lockdown_staff_role=role.id)
-        await ctx.ok(f"{Emoji.WHITELIST} *{role.mention} set as lockdown-exempt staff role.*")
+        await ctx.ok(f"*{role.mention} set as lockdown-exempt staff role.*")
 
     @commands.command(name="unlockdown", aliases=["uld"])
     @commands.guild_only()
@@ -1475,7 +1475,7 @@ class Moderation(commands.Cog, name="Moderation"):
                 unlocked += 1
             except (discord.Forbidden, discord.HTTPException):
                 pass
-        await ctx.ok(f"{Emoji.UNLOCK} *Server unlocked. (`{unlocked}` channels restored)*")
+        await ctx.ok(f"*Server unlocked. (`{unlocked}` channels restored)*")
 
     # ── ERROR HANDLER ─────────────────────────────────────────────────────
 

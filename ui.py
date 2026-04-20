@@ -72,12 +72,12 @@ class UI:
     def welcome() -> discord.Embed:
         """Welcome embed for new bot joins."""
         embed = discord.Embed(
-            description=f"> ### `{Emoji.WELCOME}` Haii thank you for adding me!",
+            description=f"> ### {Emoji.WELCOME} Haii thank you for adding me!",
             color=COLOR,
         )
         embed.add_field(
             name="",
-            value=f"> `{Emoji.INFO}` *How to use:*\n```\n/help {{module}} {{cmd}}\n```\n> `{Emoji.NEXT}` *Quick setup:* \n```\n/setup --begins setup wizz\n```\n> `{Emoji.ROLE}` *Easy commands:*\n```\n@Pushie - See current prefix \n/prefix new_prefix\n/afk msg\n```",
+            value=f"> {Emoji.INFO} *How to use:*\n```\n/help {{module}} {{cmd}}\n```\n> {Emoji.NEXT} *Quick setup:* \n```\n/setup --begins setup wizz\n```\n> `{Emoji.ROLE}` *Easy commands:*\n```\n@Pushie - See current prefix \n/prefix new_prefix\n/afk msg\n```",
             inline=False,
         )
         return embed
@@ -196,7 +196,7 @@ class ChangePrefix(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
         await self._bot.storage.set_prefix(self._guild_id, new_prefix)
         await interaction.followup.send(
-            embed=UI.success(f"Prefix changed to `{new_prefix}`"),
+            embed=UI.success(f"Prefix changed to {new_prefix}`"),
             ephemeral=True,
         )
         self.stop()

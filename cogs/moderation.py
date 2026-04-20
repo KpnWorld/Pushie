@@ -1207,14 +1207,14 @@ class Moderation(commands.Cog, name="Moderation"):
         await ctx.send(
             embed=UI.info(
                 f"**Invoke Messages**\n\n"
-                f"```\n{prefix}invoke jail {{channel/dm}} <message>\n"
-                f"{prefix}invoke ban {{channel/dm}} <message>\n"
-                f"{prefix}invoke timeout {{channel/dm}} <message>\n"
-                f"{prefix}invoke mute {{channel/dm}} <message>\n"
-                f"{prefix}invoke warn {{channel/dm}} <message>\n"
-                f"{prefix}invoke list\n"
-                f"{prefix}invoke reset\n"
-                f"{prefix}invoke remove {{type}}\n```"
+                f"```\n`{prefix}`invoke jail {{channel/dm}} <message>\n"
+                f"`{prefix}`invoke ban {{channel/dm}} <message>\n"
+                f"`{prefix}`invoke timeout {{channel/dm}} <message>\n"
+                f"`{prefix}`invoke mute {{channel/dm}} <message>\n"
+                f"`{prefix}`invoke warn {{channel/dm}} <message>\n"
+                f"`{prefix}`invoke list\n"
+                f"`{prefix}`invoke reset\n"
+                f"`{prefix}`invoke remove {{type}}\n```"
             )
         )
 

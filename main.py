@@ -74,7 +74,7 @@ class PushieContext(commands.Context):
         from emojis import Emoji as _Emoji
         return await self.send(
             embed=UI.info(
-                f"`{_Emoji.INFO}` **`{cmd.name}`** commands:\n\n{lines}"
+                f"{_Emoji.INFO} **`{cmd.name}`** commands:\n\n{lines}"
             )
         )
 
@@ -221,11 +221,11 @@ class Pushie(commands.Bot):
                 )
                 .add_item(
                     discord.ui.TextDisplay(
-                        f"> `{Emoji.INFO}` *How to use:*\n"
+                        f"> {Emoji.INFO} *How to use:*\n"
                         f"```\n/help {{module}} {{cmd}}\n```\n"
-                        f"> `{Emoji.NEXT}` *Quick setup:* \n"
+                        f"> {Emoji.NEXT} *Quick setup:* \n"
                         f"```\n/setup --begins setup wizz\n```\n"
-                        f"> `{Emoji.ROLE}` *Easy commands:*\n"
+                        f"> {Emoji.ROLE} *Easy commands:*\n"
                         f"```\n@Pushie - See current prefix \n"
                         f"/prefix new_prefix\n"
                         f"/afk msg\n```"

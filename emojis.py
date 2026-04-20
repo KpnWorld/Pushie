@@ -92,7 +92,4 @@ class Emoji:
     IMAGE = "<:image:1495556896570998844>"
     DOWNLOAD = "<:download:1495556884608978964>"
 
-    @classmethod
-    def code(cls, emoji: str) -> str:
-        """Returns emoji wrapped in backticks for the UI style."""
-        return f"{emoji}"
+

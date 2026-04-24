@@ -10,10 +10,27 @@ from dbclient import get_client
 
 log = logging.getLogger(__name__)
 
-# ── TYPE ALIAS ─────────────────────────────────────────────────────────────
-# All rows from Supabase come back as dict[str, Any]. We define this alias
-# so the type checker treats them correctly and we avoid the 413-error union.
+# ── TYPE HELPERS ───────────────────────────────────────────────────────────
+# supabase-py types .data as a broad JSON union (None | int | str | float |
+# Sequence | Mapping).  These two helpers narrow it to the concrete dict
+# types we actually use, satisfying ty/pyright without needing type: ignore.
+
 Row = dict[str, Any]
+Payload = dict[str, Any]
+
+
+def row_list(data: Any) -> list[Row]:
+    """Safely extract a list of row-dicts from a Supabase response .data."""
+    if not isinstance(data, list):
+        return []
+    return [item for item in data if isinstance(item, dict)]
+
+
+def single_row(data: Any) -> Row | None:
+    """Safely extract a single row-dict from a maybe_single() .data."""
+    if isinstance(data, dict):
+        return data
+    return None
 
 
 @dataclass
@@ -307,8 +324,7 @@ class StorageManager:
         # Load sudo users
         try:
             res = await client.table("sudo_users").select("user_id").execute()
-            for r in (res.data or []):
-                row: Row = r
+            for row in row_list(res.data):
                 self.global_data.sudo_users.append(int(row["user_id"]))
         except Exception as e:
             log.error("Failed to load sudo_users: %s", e)
@@ -320,8 +336,7 @@ class StorageManager:
                 .select("target_id, scope")
                 .execute()
             )
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 if row["scope"] == "guild":
                     self.global_data.banned_guilds.append(int(row["target_id"]))
                 elif row["scope"] == "user":
@@ -332,8 +347,7 @@ class StorageManager:
         # Load guild_config
         try:
             res = await client.table("guild_config").select("*").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -344,8 +358,7 @@ class StorageManager:
         # Load AFK data into guild caches
         try:
             res = await client.table("afk").select("*").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 uid = int(row["user_id"])
                 if gid not in self._guild_cache:
@@ -366,8 +379,7 @@ class StorageManager:
         # Load antinuke config
         try:
             res = await client.table("antinuke_config").select("*").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -384,8 +396,7 @@ class StorageManager:
         # Load antinuke whitelist
         try:
             res = await client.table("antinuke_whitelist").select("guild_id, user_id").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -398,8 +409,7 @@ class StorageManager:
         # Load antinuke admins
         try:
             res = await client.table("antinuke_admins").select("guild_id, user_id").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -412,8 +422,7 @@ class StorageManager:
         # Load antiraid config
         try:
             res = await client.table("antiraid_config").select("*").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -430,8 +439,7 @@ class StorageManager:
         # Load antiraid whitelist
         try:
             res = await client.table("antiraid_whitelist").select("guild_id, user_id").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -444,8 +452,7 @@ class StorageManager:
         # Load antiraid username patterns
         try:
             res = await client.table("antiraid_username_patterns").select("guild_id, pattern").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -458,8 +465,7 @@ class StorageManager:
         # Load autoroles
         try:
             res = await client.table("autoroles").select("guild_id, role_id, target_type").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -481,8 +487,7 @@ class StorageManager:
         # Load voicecentre config
         try:
             res = await client.table("voicecentre_config").select("*").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -503,8 +508,7 @@ class StorageManager:
         # Load ticket config
         try:
             res = await client.table("ticket_config").select("*").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -519,8 +523,7 @@ class StorageManager:
         # Load ticket managers
         try:
             res = await client.table("ticket_managers").select("guild_id, target_id, target_type").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -534,8 +537,7 @@ class StorageManager:
         # Load booster role config
         try:
             res = await client.table("booster_role_config").select("*").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -558,8 +560,7 @@ class StorageManager:
         # Load booster roles
         try:
             res = await client.table("booster_roles").select("guild_id, user_id, role_id").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -572,8 +573,7 @@ class StorageManager:
         # Load warn_strikes
         try:
             res = await client.table("warn_strikes").select("guild_id, strike, action").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -584,8 +584,7 @@ class StorageManager:
         # Load fake_permissions
         try:
             res = await client.table("fake_permissions").select("guild_id, role_id, permission").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -602,8 +601,7 @@ class StorageManager:
         # Load forced_nicks
         try:
             res = await client.table("forced_nicks").select("guild_id, user_id, nickname").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -614,8 +612,7 @@ class StorageManager:
         # Load filter_config
         try:
             res = await client.table("filter_config").select("guild_id, filter_snipe").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -626,8 +623,7 @@ class StorageManager:
         # Load jailed_members
         try:
             res = await client.table("jailed_members").select("guild_id, user_id").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -640,8 +636,7 @@ class StorageManager:
         # Load ping assignments
         try:
             res = await client.table("ping_assignments").select("guild_id, channel_id, autodelete").execute()
-            for r in (res.data or []):
-                row = r
+            for row in row_list(res.data):
                 gid = int(row["guild_id"])
                 if gid not in self._guild_cache:
                     self._guild_cache[gid] = GuildData(id=gid)
@@ -655,7 +650,6 @@ class StorageManager:
         log.info("Storage loaded: %d guild(s)", len(self._guild_cache))
 
     # ── GUILD ──────────────────────────────────────────────────────────────
-
     async def get_guild(self, guild_id: int) -> GuildData:
         """Get guild data, loading from Supabase if not cached."""
         if guild_id in self._guild_cache:
@@ -664,6 +658,7 @@ class StorageManager:
         client = await get_client()
         g = GuildData(id=guild_id)
 
+        # 1. Guild Config
         try:
             res = (
                 await client.table("guild_config")
@@ -672,16 +667,20 @@ class StorageManager:
                 .maybe_single()
                 .execute()
             )
-            if res.data:
-                _map_guild_config_row(g, res.data)
+            row = single_row(getattr(res, "data", None))
+
+            if row:
+                _map_guild_config_row(g, row)
             else:
-                await client.table("guild_config").insert(
-                    {"guild_id": guild_id, "prefix": ","}
-                ).execute()
+                await (
+                    client.table("guild_config")
+                    .insert({"guild_id": guild_id, "prefix": ","})
+                    .execute()
+                )
         except Exception as e:
             log.error("Failed to get guild_config %s: %s", guild_id, e)
 
-        # Load antinuke config
+        # 2. Load Antinuke Config
         try:
             res = (
                 await client.table("antinuke_config")
@@ -690,8 +689,8 @@ class StorageManager:
                 .maybe_single()
                 .execute()
             )
-            if res.data:
-                row: Row = res.data
+            row = single_row(getattr(res, "data", None))
+            if row:
                 g.antinuke_enabled = bool(row.get("enabled") or False)
                 g.antinuke_kick = bool(row.get("kick_protection") or False)
                 g.antinuke_ban = bool(row.get("ban_protection") or False)
@@ -701,7 +700,7 @@ class StorageManager:
         except Exception as e:
             log.error("Failed to get antinuke_config %s: %s", guild_id, e)
 
-        # Load antinuke whitelist
+        # 3. Load Antinuke Whitelist
         try:
             res = (
                 await client.table("antinuke_whitelist")
@@ -709,11 +708,13 @@ class StorageManager:
                 .eq("guild_id", guild_id)
                 .execute()
             )
-            g.antinuke_whitelist = [int(r["user_id"]) for r in (res.data or [])]
+            g.antinuke_whitelist = [
+                int(row["user_id"]) for row in row_list(getattr(res, "data", None))
+            ]
         except Exception as e:
             log.error("Failed to get antinuke_whitelist %s: %s", guild_id, e)
 
-        # Load antinuke admins
+        # 4. Load Antinuke Admins
         try:
             res = (
                 await client.table("antinuke_admins")
@@ -721,11 +722,13 @@ class StorageManager:
                 .eq("guild_id", guild_id)
                 .execute()
             )
-            g.antinuke_admins = [int(r["user_id"]) for r in (res.data or [])]
+            g.antinuke_admins = [
+                int(row["user_id"]) for row in row_list(getattr(res, "data", None))
+            ]
         except Exception as e:
             log.error("Failed to get antinuke_admins %s: %s", guild_id, e)
 
-        # Load antiraid config
+        # 5. Load Antiraid Config
         try:
             res = (
                 await client.table("antiraid_config")
@@ -734,8 +737,8 @@ class StorageManager:
                 .maybe_single()
                 .execute()
             )
-            if res.data:
-                row = res.data
+            row = single_row(getattr(res, "data", None))
+            if row:
                 g.antiraid_enabled = bool(row.get("enabled") or False)
                 g.antiraid_massmention = bool(row.get("massmention") or False)
                 g.antiraid_massjoin = bool(row.get("massjoin") or False)
@@ -745,7 +748,7 @@ class StorageManager:
         except Exception as e:
             log.error("Failed to get antiraid_config %s: %s", guild_id, e)
 
-        # Load antiraid whitelist
+        # 6. Load Antiraid Whitelist
         try:
             res = (
                 await client.table("antiraid_whitelist")
@@ -753,11 +756,13 @@ class StorageManager:
                 .eq("guild_id", guild_id)
                 .execute()
             )
-            g.antiraid_whitelist = [int(r["user_id"]) for r in (res.data or [])]
+            g.antiraid_whitelist = [
+                int(row["user_id"]) for row in row_list(getattr(res, "data", None))
+            ]
         except Exception as e:
             log.error("Failed to get antiraid_whitelist %s: %s", guild_id, e)
 
-        # Load antiraid username patterns
+        # 7. Load Antiraid Username Patterns
         try:
             res = (
                 await client.table("antiraid_username_patterns")
@@ -765,11 +770,13 @@ class StorageManager:
                 .eq("guild_id", guild_id)
                 .execute()
             )
-            g.antiraid_username_patterns = [str(r["pattern"]) for r in (res.data or [])]
+            g.antiraid_username_patterns = [
+                str(row["pattern"]) for row in row_list(getattr(res, "data", None))
+            ]
         except Exception as e:
             log.error("Failed to get antiraid_username_patterns %s: %s", guild_id, e)
 
-        # Load autoroles
+        # 8. Load Autoroles
         try:
             res = (
                 await client.table("autoroles")
@@ -777,9 +784,9 @@ class StorageManager:
                 .eq("guild_id", guild_id)
                 .execute()
             )
-            for r in (res.data or []):
-                rid = int(r["role_id"])
-                t = str(r.get("target_type") or "all")
+            for row in row_list(getattr(res, "data", None)):
+                rid = int(row["role_id"])
+                t = str(row.get("target_type") or "all")
                 if t == "human":
                     g.autoroles_human.append(rid)
                 elif t == "bot":
@@ -789,7 +796,7 @@ class StorageManager:
         except Exception as e:
             log.error("Failed to get autoroles %s: %s", guild_id, e)
 
-        # Load voicecentre config
+        # 9. Load Voicecentre Config
         try:
             res = (
                 await client.table("voicecentre_config")
@@ -798,8 +805,8 @@ class StorageManager:
                 .maybe_single()
                 .execute()
             )
-            if res.data:
-                row = res.data
+            row = single_row(getattr(res, "data", None))
+            if row:
                 g.voicecenter_allowance = bool(row.get("enabled") or False)
                 g.voicecenter_channel = row.get("create_channel_id")
                 g.voicecenter_category = row.get("category_id")
@@ -807,13 +814,15 @@ class StorageManager:
                 g.voicecenter_rolejoin = row.get("join_role_id")
                 si = row.get("send_interface")
                 g.voicecenter_send_interface = bool(si) if si is not None else True
-                g.voicecenter_default_name = str(row.get("default_name") or "{username} channel")
+                g.voicecenter_default_name = str(
+                    row.get("default_name") or "{username} channel"
+                )
                 g.voicecenter_default_bitrate = int(row.get("default_bitrate") or 64000)
                 g.voicecenter_default_region = row.get("default_region")
         except Exception as e:
             log.error("Failed to get voicecentre_config %s: %s", guild_id, e)
 
-        # Load ticket config
+        # 10. Load Ticket Config
         try:
             res = (
                 await client.table("ticket_config")
@@ -822,8 +831,8 @@ class StorageManager:
                 .maybe_single()
                 .execute()
             )
-            if res.data:
-                row = res.data
+            row = single_row(getattr(res, "data", None))
+            if row:
                 g.ticket_category = row.get("category_id")
                 g.ticket_support_role = row.get("support_role_id")
                 g.ticket_log_channel = row.get("log_channel_id")
@@ -831,7 +840,7 @@ class StorageManager:
         except Exception as e:
             log.error("Failed to get ticket_config %s: %s", guild_id, e)
 
-        # Load ticket managers
+        # 11. Load Ticket Managers
         try:
             res = (
                 await client.table("ticket_managers")
@@ -840,154 +849,12 @@ class StorageManager:
                 .execute()
             )
             g.ticket_managers = [
-                int(r["target_id"]) for r in (res.data or []) if r.get("target_type") == "user"
+                int(row["target_id"])
+                for row in row_list(getattr(res, "data", None))
+                if row.get("target_type") == "user"
             ]
         except Exception as e:
             log.error("Failed to get ticket_managers %s: %s", guild_id, e)
-
-        # Load booster role config
-        try:
-            res = (
-                await client.table("booster_role_config")
-                .select("*")
-                .eq("guild_id", guild_id)
-                .maybe_single()
-                .execute()
-            )
-            if res.data:
-                row = res.data
-                g.booster_setup_enabled = bool(row.get("enabled") or False)
-                g.booster_base_role = row.get("base_role_id")
-                g.booster_base_position = str(row.get("base_position") or "below")
-                g.booster_limit = int(row.get("role_limit") or 1)
-                g.booster_shares_limit = int(row.get("share_limit") or 5)
-                g.booster_shares_max = int(row.get("share_max") or 3)
-                g.booster_award_role = row.get("award_role_id")
-                hn = row.get("hoist_new")
-                g.booster_hoist = bool(hn) if hn is not None else True
-                bw = row.get("blacklisted_words")
-                if bw and isinstance(bw, list):
-                    g.booster_filters = [str(w) for w in bw]
-        except Exception as e:
-            log.error("Failed to get booster_role_config %s: %s", guild_id, e)
-
-        # Load booster roles
-        try:
-            res = (
-                await client.table("booster_roles")
-                .select("user_id, role_id")
-                .eq("guild_id", guild_id)
-                .execute()
-            )
-            for r in (res.data or []):
-                g.booster_roles[str(r["user_id"])] = {"role_id": int(r["role_id"])}
-        except Exception as e:
-            log.error("Failed to get booster_roles %s: %s", guild_id, e)
-
-        # Load warn_strikes
-        try:
-            res = (
-                await client.table("warn_strikes")
-                .select("strike, action")
-                .eq("guild_id", guild_id)
-                .execute()
-            )
-            for r in (res.data or []):
-                g.warn_strikes[str(r["strike"])] = {"action": str(r["action"])}
-        except Exception as e:
-            log.error("Failed to get warn_strikes %s: %s", guild_id, e)
-
-        # Load fake_permissions
-        try:
-            res = (
-                await client.table("fake_permissions")
-                .select("role_id, permission")
-                .eq("guild_id", guild_id)
-                .execute()
-            )
-            for r in (res.data or []):
-                key = str(r["role_id"])
-                if key not in g.fake_permissions:
-                    g.fake_permissions[key] = []
-                perm = r.get("permission")
-                if perm and str(perm) not in g.fake_permissions[key]:
-                    g.fake_permissions[key].append(str(perm))
-        except Exception as e:
-            log.error("Failed to get fake_permissions %s: %s", guild_id, e)
-
-        # Load forced_nicks
-        try:
-            res = (
-                await client.table("forced_nicks")
-                .select("user_id, nickname")
-                .eq("guild_id", guild_id)
-                .execute()
-            )
-            for r in (res.data or []):
-                g.forced_nicks[str(r["user_id"])] = str(r["nickname"])
-        except Exception as e:
-            log.error("Failed to get forced_nicks %s: %s", guild_id, e)
-
-        # Load filter_config
-        try:
-            res = (
-                await client.table("filter_config")
-                .select("filter_snipe")
-                .eq("guild_id", guild_id)
-                .maybe_single()
-                .execute()
-            )
-            if res.data:
-                g.filter_snipe = bool(res.data.get("filter_snipe") or False)
-        except Exception as e:
-            log.error("Failed to get filter_config %s: %s", guild_id, e)
-
-        # Load jailed members
-        try:
-            res = (
-                await client.table("jailed_members")
-                .select("user_id")
-                .eq("guild_id", guild_id)
-                .execute()
-            )
-            g.jailed = [int(r["user_id"]) for r in (res.data or [])]
-        except Exception as e:
-            log.error("Failed to get jailed_members %s: %s", guild_id, e)
-
-        # Load ping assignments
-        try:
-            res = (
-                await client.table("ping_assignments")
-                .select("channel_id, autodelete")
-                .eq("guild_id", guild_id)
-                .execute()
-            )
-            for r in (res.data or []):
-                g.ping_assignments[str(r["channel_id"])] = {
-                    "autodelete": int(r.get("autodelete") or 3)
-                }
-        except Exception as e:
-            log.error("Failed to get ping_assignments %s: %s", guild_id, e)
-
-        # Load AFK data
-        try:
-            res = (
-                await client.table("afk")
-                .select("user_id, status, set_at")
-                .eq("guild_id", guild_id)
-                .execute()
-            )
-            for r in (res.data or []):
-                uid = int(r["user_id"])
-                set_at = r.get("set_at")
-                since = (
-                    datetime.fromisoformat(set_at).timestamp()
-                    if set_at
-                    else 0.0
-                )
-                g.afks[str(uid)] = {"reason": str(r.get("status") or ""), "since": since}
-        except Exception as e:
-            log.error("Failed to get afk %s: %s", guild_id, e)
 
         self._guild_cache[guild_id] = g
         return g
@@ -1000,7 +867,7 @@ class StorageManager:
         """Persist guild_config columns to Supabase."""
         self._guild_cache[guild.id] = guild
         client = await get_client()
-        payload: Row = {
+        payload: Payload = {
             "guild_id": guild.id,
             "prefix": guild.prefix,
             "bot_lock": guild.bot_lock,
@@ -1585,7 +1452,7 @@ class StorageManager:
                 .eq("user_id", user_id)
                 .execute()
             )
-            rows = res.data if res and res.data else []
+            rows = row_list(getattr(res, "data", None))
             if rows:
                 existing: Row = rows[0]
                 new_xp = int(existing["xp"]) + amount

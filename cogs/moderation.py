@@ -828,6 +828,12 @@ class Moderation(commands.Cog, name="Moderation"):
         self, ctx: "PushieContext", count: int, *, action: str
     ) -> None:
         """Set the action triggered at a given warn strike count."""
+        assert ctx.guild is not None
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g:
+            await ctx.err("*Guild data not initialized.*")
+            return
+        g.warn_strikes[str(count)] = {"action": action}
         await ctx.ok(
             f"*At `{count}` warns: `{action}` will be applied.*"
         )
@@ -1076,7 +1082,10 @@ class Moderation(commands.Cog, name="Moderation"):
                 else "> *All roles already exist*"
             )
             await msg.edit(
-                embed=UI.success(f"{Emoji.SETUP} *Moderation setup complete!*\n\n{summary}")
+                embed=discord.Embed(
+                    description=f"{Emoji.SETUP} *Moderation setup complete!*\n\n{summary}",
+                    color=0xFAB9EC,
+                )
             )
         except discord.Forbidden:
             await msg.edit(
@@ -1207,14 +1216,14 @@ class Moderation(commands.Cog, name="Moderation"):
         await ctx.send(
             embed=UI.info(
                 f"**Invoke Messages**\n\n"
-                f"```\n`{prefix}`invoke jail {{channel/dm}} <message>\n"
-                f"`{prefix}`invoke ban {{channel/dm}} <message>\n"
-                f"`{prefix}`invoke timeout {{channel/dm}} <message>\n"
-                f"`{prefix}`invoke mute {{channel/dm}} <message>\n"
-                f"`{prefix}`invoke warn {{channel/dm}} <message>\n"
-                f"`{prefix}`invoke list\n"
-                f"`{prefix}`invoke reset\n"
-                f"`{prefix}`invoke remove {{type}}\n```"
+                f"```\n{prefix}invoke jail {{channel/dm}} <message>\n"
+                f"{prefix}invoke ban {{channel/dm}} <message>\n"
+                f"{prefix}invoke timeout {{channel/dm}} <message>\n"
+                f"{prefix}invoke mute {{channel/dm}} <message>\n"
+                f"{prefix}invoke warn {{channel/dm}} <message>\n"
+                f"{prefix}invoke list\n"
+                f"{prefix}invoke reset\n"
+                f"{prefix}invoke remove {{type}}\n```"
             )
         )
 

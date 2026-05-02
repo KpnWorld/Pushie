@@ -578,9 +578,18 @@ class Voice(commands.Cog, name="Voice"):
     @voice_group.command(name="add")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
-    async def voice_add(self, ctx: "PushieContext") -> None:
-        """Add secondary VoiceCenter system."""
-        await ctx.ok("*Secondary system added.* (implementation pending)")
+    async def voice_add(self, ctx: "PushieContext", channel: discord.VoiceChannel) -> None:
+        """Add a secondary join-to-create channel."""
+        assert ctx.guild is not None
+        g = await ctx.bot.storage.get_guild(ctx.guild.id)
+        for sys in g.voicecenter_systems:
+            if sys.get("channel_id") == channel.id:
+                await ctx.err(f"*{channel.mention} is already a secondary system.*")
+                return
+        g.voicecenter_systems.append({"channel_id": channel.id})
+        await ctx.ok(
+            f"{Emoji.CHANNEL} *{channel.mention} added as a secondary join-to-create channel.*"
+        )
 
     @voice_group.command(name="joinrole")
     @commands.guild_only()
@@ -588,44 +597,60 @@ class Voice(commands.Cog, name="Voice"):
     async def voice_joinrole(
         self, ctx: "PushieContext", role: discord.Role | None = None
     ) -> None:
-        """Set default join role."""
+        """Set or clear the default voice join role."""
+        assert ctx.guild is not None
         if role:
+            await ctx.bot.storage.set_voicecenter_rolejoin(ctx.guild.id, role.id)
             await ctx.ok(f"{Emoji.ROLE} *Default join role set to {role.mention}.*")
         else:
-            await ctx.ok(f"{Emoji.ROLE} *Default join role removed.*")
+            g = await ctx.bot.storage.get_guild(ctx.guild.id)
+            g.voicecenter_rolejoin = None
+            await ctx.bot.storage.save_guild(g)
+            await ctx.ok(f"{Emoji.ROLE} *Voice join role removed.*")
 
     @voice_group.command(name="interface")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_interface(
-        self, ctx: "PushieContext", *, setting: str | None = None
+        self, ctx: "PushieContext", channel: discord.TextChannel | None = None
     ) -> None:
-        """Set interface channel or mode."""
-        if setting:
-            await ctx.ok(f"*Interface set to `{setting}`.*")
+        """Set or clear the VoiceCenter interface channel."""
+        assert ctx.guild is not None
+        g = await ctx.bot.storage.get_guild(ctx.guild.id)
+        if channel:
+            g.voicecenter_interface = channel.id
+            await ctx.ok(f"{Emoji.CHANNEL} *Interface channel set to {channel.mention}.*")
         else:
-            await ctx.ok("*Interface not configured.*")
+            g.voicecenter_interface = None
+            await ctx.ok(f"{Emoji.RESET} *Interface channel cleared.*")
 
     @voice_group.command(name="mode")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_mode(self, ctx: "PushieContext", mode: str) -> None:
-        """Toggle voice channel mode (temp/hard)."""
-        if mode.lower() in ["temp", "hard"]:
-            await ctx.ok(f"*Mode set to `{mode.lower()}`.*")
-        else:
+        """Set voice channel mode (temp/hard)."""
+        assert ctx.guild is not None
+        if mode.lower() not in ("temp", "hard"):
             await ctx.err("*Mode must be `temp` or `hard`.*")
+            return
+        g = await ctx.bot.storage.get_guild(ctx.guild.id)
+        g.voicecenter_mode = mode.lower()
+        await ctx.ok(f"*Voice channel mode set to `{mode.lower()}`.*")
 
     @voice_group.command(name="allowance")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_allowance(self, ctx: "PushieContext", toggle: str) -> None:
-        """Enable or disable allowance system."""
-        if toggle.lower() in ["enable", "disable"]:
-            status = "enabled" if toggle.lower() == "enable" else "disabled"
-            await ctx.ok(f"*Allowance system {status}.*")
-        else:
+        """Enable or disable the voice allowance system."""
+        assert ctx.guild is not None
+        if toggle.lower() not in ("enable", "disable"):
             await ctx.err("*Use `enable` or `disable`.*")
+            return
+        g = await ctx.bot.storage.get_guild(ctx.guild.id)
+        g.voicecenter_allowance = toggle.lower() == "enable"
+        await ctx.bot.storage._save_voicecenter_config(ctx.guild.id, g)
+        status = "enabled" if g.voicecenter_allowance else "disabled"
+        await ctx.ok(f"*Allowance system {status}.*")
 
     @voice_group.command(name="allowed")
     @commands.guild_only()
@@ -633,38 +658,82 @@ class Voice(commands.Cog, name="Voice"):
     async def voice_allowed(
         self, ctx: "PushieContext", role: discord.Role | None = None
     ) -> None:
-        """Add allowed role or list allowed roles."""
+        """Add a role to the voice allowlist, or list current allowed roles."""
+        assert ctx.guild is not None
+        g = await ctx.bot.storage.get_guild(ctx.guild.id)
         if role:
+            if role.id not in g.voicecenter_allowed:
+                g.voicecenter_allowed.append(role.id)
             await ctx.ok(f"{Emoji.WHITELIST} *{role.mention} added to allowlist.*")
         else:
-            await ctx.info("*No allowed roles configured.*")
+            if not g.voicecenter_allowed:
+                await ctx.info("*No allowed roles configured.*")
+                return
+            lines = "\n".join(
+                f"> {r.mention}" if (r := ctx.guild.get_role(rid)) else f"> <@&{rid}>"
+                for rid in g.voicecenter_allowed
+            )
+            await ctx.send(
+                embed=discord.Embed(
+                    description=f"{Emoji.WHITELIST} *Allowed roles:*\n\n{lines}",
+                    color=0xFAB9EC,
+                )
+            )
 
     @voice_group.command(name="disallow")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_disallow(self, ctx: "PushieContext", role: discord.Role) -> None:
-        """Disallow a role."""
+        """Remove a role from the voice allowlist."""
+        assert ctx.guild is not None
+        g = await ctx.bot.storage.get_guild(ctx.guild.id)
+        if role.id not in g.voicecenter_allowed:
+            await ctx.err(f"*{role.mention} is not in the allowlist.*")
+            return
+        g.voicecenter_allowed.remove(role.id)
         await ctx.ok(f"{Emoji.BLACKLIST} *{role.mention} removed from allowlist.*")
 
     @voice_group.command(name="sendinterface")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_sendinterface(self, ctx: "PushieContext") -> None:
-        """Send the user interface embed."""
-        await ctx.ok("*Interface sent.* (implementation pending)")
+        """Toggle whether the control panel embed is sent when a temp channel is created."""
+        assert ctx.guild is not None
+        g = await ctx.bot.storage.get_guild(ctx.guild.id)
+        g.voicecenter_send_interface = not g.voicecenter_send_interface
+        await ctx.bot.storage._save_voicecenter_config(ctx.guild.id, g)
+        state = "enabled" if g.voicecenter_send_interface else "disabled"
+        await ctx.ok(f"{Emoji.CHANNEL} *Auto-send interface {state}.*")
 
     @voice_group.command(name="list")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_list(self, ctx: "PushieContext") -> None:
-        """List all secondary systems."""
-        await ctx.info("*No secondary systems configured.*")
+        """List all secondary join-to-create systems."""
+        assert ctx.guild is not None
+        g = ctx.bot.storage.get_guild_sync(ctx.guild.id)
+        if not g or not g.voicecenter_systems:
+            await ctx.info("*No secondary systems configured.*")
+            return
+        lines = []
+        for i, sys in enumerate(g.voicecenter_systems, 1):
+            ch_id = sys.get("channel_id")
+            ch = ctx.guild.get_channel(ch_id) if ch_id else None
+            lines.append(f"> `{i}.` {ch.mention if ch else f'<#{ch_id}>'}")
+        await ctx.send(
+            embed=discord.Embed(
+                description=f"{Emoji.CHANNEL} *Secondary systems:*\n\n" + "\n".join(lines),
+                color=0xFAB9EC,
+            )
+        )
 
     @voice_group.command(name="clear")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     async def voice_clear(self, ctx: "PushieContext") -> None:
-        """Reset VoiceCenter configuration."""
+        """Reset all VoiceCenter configuration."""
+        assert ctx.guild is not None
+        await ctx.bot.storage.clear_voicecenter(ctx.guild.id)
         await ctx.ok(f"{Emoji.RESET} *VoiceCenter configuration cleared.*")
 
     @voice_group.command(name="category")
@@ -673,12 +742,17 @@ class Voice(commands.Cog, name="Voice"):
     async def voice_category_cmd(
         self, ctx: "PushieContext", category: discord.CategoryChannel | None = None
     ) -> None:
-        """Bind temp channels to a category."""
+        """Set or clear the category where temp channels are created."""
+        assert ctx.guild is not None
         if category:
+            await ctx.bot.storage.set_voicecenter_category(ctx.guild.id, category.id)
             await ctx.ok(
                 f"{Emoji.CHANNEL} *Temp channels will be created in {category.mention}.*"
             )
         else:
+            g = await ctx.bot.storage.get_guild(ctx.guild.id)
+            g.voicecenter_category = None
+            await ctx.bot.storage._save_voicecenter_config(ctx.guild.id, g)
             await ctx.ok(f"{Emoji.RESET} *Category binding removed.*")
 
     @voice_group.command(name="permit")

@@ -69,7 +69,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
         await ctx.bot.storage.save_guild(g)
 
         await ctx.ok(
-            f"`{Emoji.INFO}` *Autoresponder added:* `{trigger}` → *{message[:50]}...*"
+            f"{Emoji.INFO} *Autoresponder added:* `{trigger}` → *{message[:50]}...*"
         )
 
     @autoresponder.command(name="remove", description="Remove an autoresponder")
@@ -90,7 +90,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
         del g.autoresponders[trigger.lower()]
         await ctx.bot.storage.save_guild(g)
-        await ctx.ok(f"`{Emoji.INFO}` *Autoresponder for `{trigger}` deleted.*")
+        await ctx.ok(f"{Emoji.INFO} *Autoresponder for `{trigger}` deleted.*")
 
     @autoresponder.command(name="list", description="List all autoresponders")
     @commands.guild_only()
@@ -109,7 +109,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
         extra = f"\n> *+{len(triggers) - 10} more...*" if len(triggers) > 10 else ""
 
         embed = discord.Embed(
-            description=f"`{Emoji.INFO}` *Autoresponders ({len(triggers)} total)*\n\n{resp_text}{extra}",
+            description=f"{Emoji.INFO} *Autoresponders ({len(triggers)} total)*\n\n{resp_text}{extra}",
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -138,7 +138,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
         g.autoresponders[trigger.lower()]["response"] = new_message
         await ctx.bot.storage.save_guild(g)
-        await ctx.ok(f"`{Emoji.INFO}` *Autoresponder `{trigger}` updated.*")
+        await ctx.ok(f"{Emoji.INFO} *Autoresponder `{trigger}` updated.*")
 
     @commands.group(
         name="reactionrole",
@@ -182,14 +182,14 @@ class Misc(commands.Cog, name="Miscellaneous"):
             await ctx.err("*You cannot assign a role higher than your own.*")
             return
 
-        await ctx.ok(f"`{Emoji.ROLE}` *{emoji} → {role.mention} reaction role added.*")
+        await ctx.ok(f"{Emoji.ROLE} *{emoji} → {role.mention} reaction role added.*")
 
     @reactionrole.command(name="remove", description="Remove a reaction role binding")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
     async def reactionrole_remove(self, ctx: "PushieContext", emoji: str) -> None:
         """Remove a reaction role binding."""
-        await ctx.ok(f"`{Emoji.ROLE}` *Reaction role {emoji} removed.*")
+        await ctx.ok(f"{Emoji.ROLE} *Reaction role {emoji} removed.*")
 
     @reactionrole.command(name="list", description="List all reaction role bindings")
     @commands.guild_only()
@@ -206,7 +206,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
     ) -> None:
         """Set or view which message reaction roles are attached to."""
         if message_link:
-            await ctx.ok(f"`{Emoji.ROLE}` *Reaction role message set.*")
+            await ctx.ok(f"{Emoji.ROLE} *Reaction role message set.*")
         else:
             await ctx.info("*No reaction role message set.*")
 
@@ -270,10 +270,10 @@ class Misc(commands.Cog, name="Miscellaneous"):
         embed = discord.Embed(
             title="Miscellaneous Commands",
             description=(
-                f"`{Emoji.WHITELIST}` **Autoresponders** — Auto-reply to triggers\n"
-                f"`{Emoji.ROLE}` **Reaction Roles** — Emoji roles system\n"
-                f"`{Emoji.EMBED}` **Embed Creator** — Custom embeds from JSON\n"
-                f"`{Emoji.INFO}` **Polls** — Create reaction polls\n"
+                f"{Emoji.WHITELIST} **Autoresponders** — Auto-reply to triggers\n"
+                f"{Emoji.ROLE} **Reaction Roles** — Emoji roles system\n"
+                f"{Emoji.EMBED} **Embed Creator** — Custom embeds from JSON\n"
+                f"{Emoji.INFO} **Polls** — Create reaction polls\n"
             ),
             color=0xFAB9EC,
         )
@@ -389,7 +389,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
             f"> `{i+1}.` `{name}`" for i, name in enumerate(g.embed_templates.keys())
         ]
         embed = discord.Embed(
-            description=f"`{Emoji.EMBED}` **Embed Templates**\n\n" + "\n".join(lines),
+            description=f"{Emoji.EMBED} **Embed Templates**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -458,7 +458,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
         g.saved_colors[name.lower()] = hex_val
         await self.bot.storage.save_guild(g)
         embed = discord.Embed(
-            description=f"> `{Emoji.SUCCESS}` *Saved `{name.lower()}` → `{hex_val}`*",
+            description=f"> {Emoji.SUCCESS} *Saved `{name.lower()}` → `{hex_val}`*",
             color=color_int,
         )
         await ctx.send(embed=embed)
@@ -543,7 +543,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
         lines = [f"> `{i+1}.` {t}" for i, t in enumerate(g.timers.keys())]
         embed = discord.Embed(
-            description=f"`{Emoji.INFO}` **Timers**\n\n" + "\n".join(lines),
+            description=f"{Emoji.INFO} **Timers**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -610,7 +610,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
         lines = [f"> `{i+1}.` <#{cid}>" for i, cid in enumerate(g.counters.keys())]
         embed = discord.Embed(
-            description=f"`{Emoji.INFO}` **Counters**\n\n" + "\n".join(lines),
+            description=f"{Emoji.INFO} **Counters**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -674,7 +674,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
             for i, r in enumerate(g.reminders.values())
         ]
         embed = discord.Embed(
-            description=f"`{Emoji.INFO}` **Reminders**\n\n" + "\n".join(lines),
+            description=f"{Emoji.INFO} **Reminders**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)

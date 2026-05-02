@@ -53,7 +53,7 @@ class Logz(commands.Cog, name="Logz"):
     async def on_member_join(self, member: discord.Member) -> None:
         """Log member join events."""
         embed = discord.Embed(
-            color=0x57F287, description=f"`{Emoji.JOIN}` **Member Joined**"
+            color=0x57F287, description=f"{Emoji.JOIN} **Member Joined**"
         )
         embed.set_author(name=str(member), icon_url=member.display_avatar.url)
         embed.add_field(name="User", value=member.mention, inline=True)
@@ -70,7 +70,7 @@ class Logz(commands.Cog, name="Logz"):
     async def on_member_remove(self, member: discord.Member) -> None:
         """Log member leave events."""
         embed = discord.Embed(
-            color=0xED4245, description=f"`{Emoji.LEAVE}` **Member Left**"
+            color=0xED4245, description=f"{Emoji.LEAVE} **Member Left**"
         )
         embed.set_author(name=str(member), icon_url=member.display_avatar.url)
         embed.add_field(name="User", value=member.mention, inline=True)
@@ -84,7 +84,7 @@ class Logz(commands.Cog, name="Logz"):
     async def on_member_ban(self, guild: discord.Guild, user: discord.User) -> None:
         """Log member ban events."""
         embed = discord.Embed(
-            color=0xED4245, description=f"`{Emoji.BAN}` **Member Banned**"
+            color=0xED4245, description=f"{Emoji.BAN} **Member Banned**"
         )
         embed.set_author(name=str(user), icon_url=user.display_avatar.url)
         embed.add_field(name="User", value=user.mention, inline=True)
@@ -95,7 +95,7 @@ class Logz(commands.Cog, name="Logz"):
     async def on_member_unban(self, guild: discord.Guild, user: discord.User) -> None:
         """Log member unban events."""
         embed = discord.Embed(
-            color=0x57F287, description=f"`{Emoji.UNBAN}` **Member Unbanned**"
+            color=0x57F287, description=f"{Emoji.UNBAN} **Member Unbanned**"
         )
         embed.set_author(name=str(user), icon_url=user.display_avatar.url)
         embed.add_field(name="User", value=user.mention, inline=True)
@@ -113,7 +113,7 @@ class Logz(commands.Cog, name="Logz"):
             removed = [r for r in before.roles if r not in after.roles]
             if added or removed:
                 embed = discord.Embed(
-                    color=0xFAB9EC, description=f"`{Emoji.ROLE}` **Roles Updated**"
+                    color=0xFAB9EC, description=f"{Emoji.ROLE} **Roles Updated**"
                 )
                 embed.set_author(name=str(after), icon_url=after.display_avatar.url)
                 if added:
@@ -131,7 +131,7 @@ class Logz(commands.Cog, name="Logz"):
                 await self._send_log(guild, "member", embed)
         if before.nick != after.nick:
             embed = discord.Embed(
-                color=0xFAB9EC, description=f"`{Emoji.NICK}` **Nickname Changed**"
+                color=0xFAB9EC, description=f"{Emoji.NICK} **Nickname Changed**"
             )
             embed.set_author(name=str(after), icon_url=after.display_avatar.url)
             embed.add_field(name="Before", value=before.nick or "*none*", inline=True)
@@ -143,7 +143,7 @@ class Logz(commands.Cog, name="Logz"):
         if not message.guild or message.author.bot:
             return
         embed = discord.Embed(
-            color=0xED4245, description=f"`{Emoji.DELETE}` **Message Deleted**"
+            color=0xED4245, description=f"{Emoji.DELETE} **Message Deleted**"
         )
         embed.set_author(
             name=str(message.author), icon_url=message.author.display_avatar.url
@@ -163,7 +163,7 @@ class Logz(commands.Cog, name="Logz"):
         if before.content == after.content:
             return
         embed = discord.Embed(
-            color=0xFEE75C, description=f"`{Emoji.EDIT}` **Message Edited**"
+            color=0xFEE75C, description=f"{Emoji.EDIT} **Message Edited**"
         )
         embed.set_author(
             name=str(after.author), icon_url=after.author.display_avatar.url
@@ -181,7 +181,7 @@ class Logz(commands.Cog, name="Logz"):
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: discord.abc.GuildChannel) -> None:
         embed = discord.Embed(
-            color=0x57F287, description=f"`{Emoji.CHANNEL}` **Channel Created**"
+            color=0x57F287, description=f"{Emoji.CHANNEL} **Channel Created**"
         )
         embed.add_field(
             name="Name",
@@ -195,7 +195,7 @@ class Logz(commands.Cog, name="Logz"):
     @commands.Cog.listener()
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
         embed = discord.Embed(
-            color=0xED4245, description=f"`{Emoji.DELETE}` **Channel Deleted**"
+            color=0xED4245, description=f"{Emoji.DELETE} **Channel Deleted**"
         )
         embed.add_field(name="Name", value=f"`#{channel.name}`", inline=True)
         embed.add_field(name="Type", value=str(channel.type), inline=True)
@@ -209,7 +209,7 @@ class Logz(commands.Cog, name="Logz"):
         if before.name == after.name:
             return
         embed = discord.Embed(
-            color=0xFEE75C, description=f"`{Emoji.EDIT}` **Channel Updated**"
+            color=0xFEE75C, description=f"{Emoji.EDIT} **Channel Updated**"
         )
         embed.add_field(name="Before", value=f"`#{before.name}`", inline=True)
         embed.add_field(
@@ -222,7 +222,7 @@ class Logz(commands.Cog, name="Logz"):
     @commands.Cog.listener()
     async def on_guild_role_create(self, role: discord.Role) -> None:
         embed = discord.Embed(
-            color=0x57F287, description=f"`{Emoji.ROLE}` **Role Created**"
+            color=0x57F287, description=f"{Emoji.ROLE} **Role Created**"
         )
         embed.add_field(name="Name", value=role.mention, inline=True)
         embed.add_field(name="ID", value=f"`{role.id}`", inline=True)
@@ -232,7 +232,7 @@ class Logz(commands.Cog, name="Logz"):
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role: discord.Role) -> None:
         embed = discord.Embed(
-            color=0xED4245, description=f"`{Emoji.DELETE}` **Role Deleted**"
+            color=0xED4245, description=f"{Emoji.DELETE} **Role Deleted**"
         )
         embed.add_field(name="Name", value=f"`@{role.name}`", inline=True)
         embed.add_field(name="ID", value=f"`{role.id}`", inline=True)
@@ -245,7 +245,7 @@ class Logz(commands.Cog, name="Logz"):
         if before.name == after.name and before.color == after.color:
             return
         embed = discord.Embed(
-            color=0xFEE75C, description=f"`{Emoji.EDIT}` **Role Updated**"
+            color=0xFEE75C, description=f"{Emoji.EDIT} **Role Updated**"
         )
         embed.add_field(name="Role", value=after.mention, inline=True)
         if before.name != after.name:
@@ -270,15 +270,15 @@ class Logz(commands.Cog, name="Logz"):
             return
         if before.channel and not after.channel:
             embed = discord.Embed(
-                color=0xED4245, description=f"`{Emoji.LEAVE}` **Left Voice**"
+                color=0xED4245, description=f"{Emoji.LEAVE} **Left Voice**"
             )
         elif not before.channel and after.channel:
             embed = discord.Embed(
-                color=0x57F287, description=f"`{Emoji.JOIN}` **Joined Voice**"
+                color=0x57F287, description=f"{Emoji.JOIN} **Joined Voice**"
             )
         else:
             embed = discord.Embed(
-                color=0xFEE75C, description=f"`{Emoji.EDIT}` **Moved Voice**"
+                color=0xFEE75C, description=f"{Emoji.EDIT} **Moved Voice**"
             )
         embed.set_author(name=str(member), icon_url=member.display_avatar.url)
         if before.channel:
@@ -306,7 +306,7 @@ class Logz(commands.Cog, name="Logz"):
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.CHANNEL}` **Log Channels**\n\n"
+                f"{Emoji.CHANNEL} **Log Channels**\n\n"
                 + "\n".join(lines)
                 + f"\n\n```\n{prefix}logz add <type> <channel>\n"
                 f"{prefix}logz remove <type>\n"
@@ -361,7 +361,7 @@ class Logz(commands.Cog, name="Logz"):
             ch_txt = f"<#{ch_id}>" if ch_id else "*inherits general*"
             lines.append(f"> **{et}** — {ch_txt}")
         await ctx.send(
-            embed=UI.info(f"`{Emoji.CHANNEL}` **Log Channels**\n\n" + "\n".join(lines))
+            embed=UI.info(f"{Emoji.CHANNEL} **Log Channels**\n\n" + "\n".join(lines))
         )
 
     @logz.command(name="color")
@@ -375,7 +375,7 @@ class Logz(commands.Cog, name="Logz"):
             return
         await self.bot.storage.update_setup(ctx.guild.id, log_color=color)
         embed = discord.Embed(
-            color=color, description=f"`{Emoji.SUCCESS}` *Log color updated.*"
+            color=color, description=f"{Emoji.SUCCESS} *Log color updated.*"
         )
         await ctx.send(embed=embed)
 
@@ -389,7 +389,7 @@ class Logz(commands.Cog, name="Logz"):
             return
         embed = discord.Embed(
             color=0xFAB9EC,
-            description=f"`{Emoji.INFO}` **Test Log — `{et}`**\nThis is a test log message.",
+            description=f"{Emoji.INFO} **Test Log — `{et}`**\nThis is a test log message.",
         )
         embed.set_footer(text="Log test by " + str(ctx.author))
         g = await self.bot.storage.get_guild(ctx.guild.id)

@@ -52,7 +52,7 @@ class Server(commands.Cog, name="Server"):
         extra = f"\n> *+{len(roles)-15} more roles...*" if len(roles) > 15 else ""
 
         embed = discord.Embed(
-            description=f"`{Emoji.ROLE}` *Roles ({len(roles)} total)*\n\n{role_lines}{extra}",
+            description=f"{Emoji.ROLE} *Roles ({len(roles)} total)*\n\n{role_lines}{extra}",
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -129,7 +129,7 @@ class Server(commands.Cog, name="Server"):
         """Role information."""
         embed = discord.Embed(
             title=f"Role: {role.name}",
-            description=f"> `{Emoji.INFO}` Members: `{len(role.members)}`\n"
+            description=f"> {Emoji.INFO} Members: `{len(role.members)}`\n"
             f"> Color: `{role.colour}`\n"
             f"> Position: `{role.position}`\n"
             f"> Mentionable: `{role.mentionable}`",
@@ -249,7 +249,7 @@ class Server(commands.Cog, name="Server"):
             except (discord.Forbidden, discord.HTTPException):
                 pass
         await ctx.ok(
-            f"`{Emoji.ROLE}` *{action.capitalize()}ed {role.mention} for `{success}/{len(bots)}` bots.*"
+            f"{Emoji.ROLE} *{action.capitalize()}ed {role.mention} for `{success}/{len(bots)}` bots.*"
         )
 
     @role.group(name="members", invoke_without_command=True)
@@ -275,7 +275,7 @@ class Server(commands.Cog, name="Server"):
             except (discord.Forbidden, discord.HTTPException):
                 pass
         await ctx.ok(
-            f"`{Emoji.ROLE}` *{action.capitalize()}ed {role.mention} for `{success}/{len(humans)}` members.*"
+            f"{Emoji.ROLE} *{action.capitalize()}ed {role.mention} for `{success}/{len(humans)}` members.*"
         )
 
     @role.group(name="all", invoke_without_command=True)
@@ -301,7 +301,7 @@ class Server(commands.Cog, name="Server"):
             except (discord.Forbidden, discord.HTTPException):
                 pass
         await ctx.ok(
-            f"`{Emoji.ROLE}` *{action.capitalize()}ed {role.mention} for `{success}/{len(everyone)}` members.*"
+            f"{Emoji.ROLE} *{action.capitalize()}ed {role.mention} for `{success}/{len(everyone)}` members.*"
         )
 
     @role.command(name="cancel")
@@ -331,7 +331,7 @@ class Server(commands.Cog, name="Server"):
         )
 
         embed = discord.Embed(
-            description=f"`{Emoji.CHANNEL}` *Channels ({len(channels)} total)*\n\n{channel_lines}{extra}",
+            description=f"{Emoji.CHANNEL} *Channels ({len(channels)} total)*\n\n{channel_lines}{extra}",
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -465,7 +465,7 @@ class Server(commands.Cog, name="Server"):
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, ticket_enabled=enabled)
         status = (
-            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
         )
         await ctx.ok(f"Ticket system {status}")
 
@@ -506,7 +506,7 @@ class Server(commands.Cog, name="Server"):
         ]
         extra = f"\n> *+{len(filtered) - 10} more...*" if len(filtered) > 10 else ""
         embed = discord.Embed(
-            description=f"`{Emoji.CHANNEL}` **{list_type.capitalize()} Tickets** ({len(filtered)} total)\n\n" + "\n".join(lines) + extra,
+            description=f"{Emoji.CHANNEL} **{list_type.capitalize()} Tickets** ({len(filtered)} total)\n\n" + "\n".join(lines) + extra,
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -732,7 +732,7 @@ class Server(commands.Cog, name="Server"):
         ]
         extra = f"\n> *+{len(g.transcripts) - 10} more...*" if len(g.transcripts) > 10 else ""
         embed = discord.Embed(
-            description=f"`{Emoji.CHANNEL}` **Transcripts** ({len(g.transcripts)} total)\n\n" + "\n".join(lines) + extra,
+            description=f"{Emoji.CHANNEL} **Transcripts** ({len(g.transcripts)} total)\n\n" + "\n".join(lines) + extra,
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -852,7 +852,7 @@ class Server(commands.Cog, name="Server"):
             for i, rid in enumerate(g.autoroles_bot)
         ]
         embed = discord.Embed(
-            description=f"`{Emoji.ROLE}` **Autoroles**\n\n" + "\n".join(lines),
+            description=f"{Emoji.ROLE} **Autoroles**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -901,7 +901,7 @@ class Server(commands.Cog, name="Server"):
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, booster_setup_enabled=enabled)
         status = (
-            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
         )
         await ctx.ok(f"Booster roles {status}")
 
@@ -919,7 +919,7 @@ class Server(commands.Cog, name="Server"):
             for user_id, info in g.booster_roles.items()
         ]
         embed = discord.Embed(
-            description=f"`{Emoji.ROLE}` **Booster Roles**\n\n" + "\n".join(lines[:10]),
+            description=f"{Emoji.ROLE} **Booster Roles**\n\n" + "\n".join(lines[:10]),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -1139,7 +1139,7 @@ class Server(commands.Cog, name="Server"):
             lines = "\n".join(f"> <@{uid}>" for uid in shares)
             await ctx.send(
                 embed=discord.Embed(
-                    description=f"`{Emoji.BOOSTER}` *Shared with:*\n{lines}",
+                    description=f"{Emoji.BOOSTER} *Shared with:*\n{lines}",
                     color=0xFAB9EC,
                 )
             )
@@ -1235,7 +1235,7 @@ class Server(commands.Cog, name="Server"):
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, fg_setup_enabled=enabled)
         status = (
-            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
         )
         await ctx.ok(f"Friend groups {status}")
 
@@ -1250,7 +1250,7 @@ class Server(commands.Cog, name="Server"):
 
         lines = [f"> `{name}`" for name in g.fg_list.keys()]
         embed = discord.Embed(
-            description=f"`{Emoji.ROLE}` **Friend Groups**\n\n" + "\n".join(lines),
+            description=f"{Emoji.ROLE} **Friend Groups**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -1462,7 +1462,7 @@ class Server(commands.Cog, name="Server"):
             return
         lines = "\n".join(f"> `{i+1}.` <@{uid}>" for i, uid in enumerate(members))
         embed = discord.Embed(
-            description=f"`{Emoji.ROLE}` *Members of `{name}` ({len(members)})*\n\n{lines}",
+            description=f"{Emoji.ROLE} *Members of `{name}` ({len(members)})*\n\n{lines}",
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -1480,7 +1480,7 @@ class Server(commands.Cog, name="Server"):
         vc_str = f"<#{vc_id}>" if vc_id else "*None*"
         role_str = f"<@&{role_id}>" if role_id else "*None*"
         embed = discord.Embed(
-            description=f"`{Emoji.ROLE}` *Assets for `{name}`*\n\n> **VC:** {vc_str}\n> **Role:** {role_str}",
+            description=f"{Emoji.ROLE} *Assets for `{name}`*\n\n> **VC:** {vc_str}\n> **Role:** {role_str}",
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -1636,7 +1636,7 @@ class Server(commands.Cog, name="Server"):
             await ctx.err("*Reports channel not found.*")
             return
         embed = discord.Embed(
-            title=f"`{Emoji.WARN}` User Report",
+            title=f"{Emoji.WARN} User Report",
             description=f"> **Reported:** {user.mention}\n"
             f"> **By:** {ctx.author.mention}\n"
             f"> **Reason:** {reason or 'No reason provided'}",
@@ -1699,7 +1699,7 @@ class Server(commands.Cog, name="Server"):
         ]
         extra = f"\n> *+{len(g.button_roles) - 15} more...*" if len(g.button_roles) > 15 else ""
         embed = discord.Embed(
-            description=f"`{Emoji.ROLE}` **Button Roles** ({len(g.button_roles)} total)\n\n" + "\n".join(lines) + extra,
+            description=f"{Emoji.ROLE} **Button Roles** ({len(g.button_roles)} total)\n\n" + "\n".join(lines) + extra,
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -1772,7 +1772,7 @@ class Server(commands.Cog, name="Server"):
         """Server info."""
         assert ctx.guild is not None
         embed = discord.Embed(
-            title=f"`{Emoji.CHANNEL}` {ctx.guild.name}",
+            title=f"{Emoji.CHANNEL} {ctx.guild.name}",
             description=(
                 f"> **Members:** `{ctx.guild.member_count}`\n"
                 f"> **Roles:** `{len(ctx.guild.roles)}`\n"
@@ -1791,7 +1791,7 @@ class Server(commands.Cog, name="Server"):
         """Bot info."""
         assert self.bot.user is not None
         embed = discord.Embed(
-            title=f"`{Emoji.HEART}` {self.bot.user.name}",
+            title=f"{Emoji.HEART} {self.bot.user.name}",
             description=(
                 f"> **ID:** `{self.bot.user.id}`\n"
                 f"> **Created:** `{self.bot.user.created_at.date()}`\n"
@@ -1808,7 +1808,7 @@ class Server(commands.Cog, name="Server"):
     async def quick_user_info(self, ctx: "PushieContext", user: discord.User) -> None:
         """User info."""
         embed = discord.Embed(
-            title=f"`{Emoji.INFO}` {user.name}",
+            title=f"{Emoji.INFO} {user.name}",
             description=(
                 f"> **ID:** `{user.id}`\n"
                 f"> **Created:** `{user.created_at.date()}`\n"
@@ -1828,7 +1828,7 @@ class Server(commands.Cog, name="Server"):
         """Channel info."""
         ch = cast(discord.TextChannel, channel)
         embed = discord.Embed(
-            title=f"`{Emoji.CHANNEL}` #{ch.name}",
+            title=f"{Emoji.CHANNEL} #{ch.name}",
             description=(
                 f"> **ID:** `{ch.id}`\n"
                 f"> **Topic:** `{ch.topic or 'None'}`\n"
@@ -1844,7 +1844,7 @@ class Server(commands.Cog, name="Server"):
     async def quick_role_info(self, ctx: "PushieContext", role: discord.Role) -> None:
         """Role info."""
         embed = discord.Embed(
-            title=f"`{Emoji.ROLE}` {role.name}",
+            title=f"{Emoji.ROLE} {role.name}",
             description=(
                 f"> **ID:** `{role.id}`\n"
                 f"> **Members:** `{len(role.members)}`\n"
@@ -1864,7 +1864,7 @@ class Server(commands.Cog, name="Server"):
         """Voice channel info."""
         vc = cast(discord.VoiceChannel, channel)
         embed = discord.Embed(
-            title=f"`{Emoji.CHANNEL}` {vc.name}",
+            title=f"{Emoji.CHANNEL} {vc.name}",
             description=(
                 f"> **ID:** `{vc.id}`\n"
                 f"> **Members:** `{len(vc.members)}`\n"
@@ -1891,7 +1891,7 @@ class Server(commands.Cog, name="Server"):
             replied_msg = await ctx.channel.fetch_message(msg_id)
             user = replied_msg.author
             embed = discord.Embed(
-                title=f"`{Emoji.PUSHEEN}` {user.name}'s Avatar",
+                title=f"{Emoji.PUSHEEN} {user.name}'s Avatar",
                 color=0xFAB9EC,
             )
             if user.avatar:
@@ -1915,7 +1915,7 @@ class Server(commands.Cog, name="Server"):
             user = replied_msg.author
             user_obj = await self.bot.fetch_user(user.id)
             embed = discord.Embed(
-                title=f"`{Emoji.PUSHEEN}` {user.name}'s Banner",
+                title=f"{Emoji.PUSHEEN} {user.name}'s Banner",
                 color=0xFAB9EC,
             )
             if user_obj.banner:
@@ -1942,7 +1942,7 @@ class Server(commands.Cog, name="Server"):
         )
 
         embed = discord.Embed(
-            title=f"`{Emoji.ROLE}` Users in {role.name}",
+            title=f"{Emoji.ROLE} Users in {role.name}",
             description=members_text + extra,
             color=role.colour or 0xFAB9EC,
         )

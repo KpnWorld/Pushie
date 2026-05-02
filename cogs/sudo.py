@@ -51,7 +51,7 @@ class Sudo(commands.Cog, name="Sudo"):
         ]
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.INFO}` **Sudo Commands**\n\n"
+                f"{Emoji.INFO} **Sudo Commands**\n\n"
                 + "\n".join(f"> `{prefix}{c}`" for c in cmds)
             )
         )
@@ -75,7 +75,7 @@ class Sudo(commands.Cog, name="Sudo"):
             for i, uid in enumerate(self.bot.storage.global_data.sudo_users)
         ]
         embed = discord.Embed(
-            description=f"`{Emoji.INFO}` **Sudo Users**\n\n" + "\n".join(lines),
+            description=f"{Emoji.INFO} **Sudo Users**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -151,7 +151,7 @@ class Sudo(commands.Cog, name="Sudo"):
             else ""
         )
         embed = discord.Embed(
-            description=f"`{Emoji.INFO}` **Guilds ({len(self.bot.guilds)} total)**\n\n"
+            description=f"{Emoji.INFO} **Guilds ({len(self.bot.guilds)} total)**\n\n"
             + "\n".join(lines)
             + extra,
             color=0xFAB9EC,
@@ -183,7 +183,7 @@ class Sudo(commands.Cog, name="Sudo"):
             except ImportError:
                 sys_info = "> *psutil not installed*\n"
             stats_text = (
-                f"> `{Emoji.INFO}` **Bot Statistics**\n"
+                f"> {Emoji.INFO} **Bot Statistics**\n"
                 f"> **Uptime** — `{uptime.days}d {hours}h {minutes}m`\n"
                 f"> **Guilds** — `{len(self.bot.guilds)}`\n"
                 f"> **Users** — `{len(self.bot.users)}`\n"
@@ -377,7 +377,7 @@ class Sudo(commands.Cog, name="Sudo"):
             await ctx.info("*Blacklist is empty.*")
             return
         await ctx.send(
-            embed=UI.info(f"`{Emoji.BLACKLIST}` **Blacklist**\n\n" + "\n".join(lines))
+            embed=UI.info(f"{Emoji.BLACKLIST} **Blacklist**\n\n" + "\n".join(lines))
         )
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:

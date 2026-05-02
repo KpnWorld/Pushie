@@ -135,15 +135,15 @@ class Level(commands.Cog, name="Levels"):
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
         enabled = (
-            f"`{Emoji.SUCCESS}` enabled"
+            f"{Emoji.SUCCESS} enabled"
             if g.levels_enabled
-            else f"`{Emoji.CANCEL}` disabled"
+            else f"{Emoji.CANCEL} disabled"
         )
         ch = f"<#{g.levels_channel}>" if g.levels_channel else "*not set*"
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.STATS}` **Level System** — {enabled}\n"
+                f"{Emoji.STATS} **Level System** — {enabled}\n"
                 f"> **Channel:** {ch}\n\n"
                 f"```\n{prefix}levels setup enable/disable\n"
                 f"{prefix}levels channel <channel>\n"
@@ -167,7 +167,7 @@ class Level(commands.Cog, name="Levels"):
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, levels_enabled=enabled)
         status = (
-            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
         )
         await ctx.ok(f"Level system {status}")
 
@@ -262,7 +262,7 @@ class Level(commands.Cog, name="Levels"):
             lines.append(f"> `{i + 1}.` <@{uid}> — Level `{level}` (`{xp} XP`)")
 
         embed = discord.Embed(
-            description=f"`{Emoji.STATS}` **Level Leaderboard**\n\n" + "\n".join(lines),
+            description=f"{Emoji.STATS} **Level Leaderboard**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)
@@ -296,7 +296,7 @@ class Level(commands.Cog, name="Levels"):
             for l in sorted(g.levels_list, key=lambda x: x["level"])
         ]
         embed = discord.Embed(
-            description=f"`{Emoji.ROLE}` **Level Roles**\n\n" + "\n".join(lines),
+            description=f"{Emoji.ROLE} **Level Roles**\n\n" + "\n".join(lines),
             color=0xFAB9EC,
         )
         await ctx.send(embed=embed)

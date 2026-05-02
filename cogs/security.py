@@ -225,7 +225,7 @@ class Security(commands.Cog, name="Security"):
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.BLACKLIST}` **Filter System**\n\n"
+                f"{Emoji.BLACKLIST} **Filter System**\n\n"
                 f"> **Keywords:** `{kw}` | **Links:** `{lk}` | **Regex:** `{rg}`\n"
                 f"> **Invites:** `{inv}`\n\n"
                 f"```\n{prefix}filter list\n"
@@ -273,7 +273,7 @@ class Security(commands.Cog, name="Security"):
             return
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.BLACKLIST}` **Active Filters**\n\n" + "\n".join(lines)
+                f"{Emoji.BLACKLIST} **Active Filters**\n\n" + "\n".join(lines)
             )
         )
 
@@ -496,14 +496,14 @@ class Security(commands.Cog, name="Security"):
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
         enabled = (
-            f"`{Emoji.SUCCESS}` enabled"
+            f"{Emoji.SUCCESS} enabled"
             if g.antinuke_enabled
-            else f"`{Emoji.CANCEL}` disabled"
+            else f"{Emoji.CANCEL} disabled"
         )
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.LOCK}` **Antinuke** — {enabled}\n\n"
+                f"{Emoji.LOCK} **Antinuke** — {enabled}\n\n"
                 f"> **Kick protection:** `{'on' if g.antinuke_kick else 'off'}`\n"
                 f"> **Ban protection:** `{'on' if g.antinuke_ban else 'off'}`\n"
                 f"> **Vanity protection:** `{'on' if g.antinuke_vanity else 'off'}`\n"
@@ -527,7 +527,7 @@ class Security(commands.Cog, name="Security"):
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, antinuke_enabled=enabled)
         state = (
-            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
         )
         await ctx.ok(f"*Antinuke {state}.*")
 
@@ -623,7 +623,7 @@ class Security(commands.Cog, name="Security"):
             return
         lines = [f"> <@{uid}>" for uid in g.antinuke_admins]
         await ctx.send(
-            embed=UI.info(f"`{Emoji.LOCK}` **Antinuke Admins**\n\n" + "\n".join(lines))
+            embed=UI.info(f"{Emoji.LOCK} **Antinuke Admins**\n\n" + "\n".join(lines))
         )
 
     @antinuke.group(name="admin", invoke_without_command=True)
@@ -670,7 +670,7 @@ class Security(commands.Cog, name="Security"):
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.LOCK}` **Fake Permissions**\n\n"
+                f"{Emoji.LOCK} **Fake Permissions**\n\n"
                 f"```\n{prefix}fakepermissions add <user> <perms>\n"
                 f"{prefix}fakepermissions list\n"
                 f"{prefix}fakepermissions remove <user>\n```"
@@ -704,7 +704,7 @@ class Security(commands.Cog, name="Security"):
             for uid, perms in g.fake_permissions.items()
         ]
         await ctx.send(
-            embed=UI.info(f"`{Emoji.LOCK}` **Fake Permissions**\n\n" + "\n".join(lines))
+            embed=UI.info(f"{Emoji.LOCK} **Fake Permissions**\n\n" + "\n".join(lines))
         )
 
     @fakepermissions.command(name="remove")
@@ -731,14 +731,14 @@ class Security(commands.Cog, name="Security"):
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
         enabled = (
-            f"`{Emoji.SUCCESS}` enabled"
+            f"{Emoji.SUCCESS} enabled"
             if g.antiraid_enabled
-            else f"`{Emoji.CANCEL}` disabled"
+            else f"{Emoji.CANCEL} disabled"
         )
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.LOCK}` **Antiraid** — {enabled}\n\n"
+                f"{Emoji.LOCK} **Antiraid** — {enabled}\n\n"
                 f"> **Mass mention:** `{'on' if g.antiraid_massmention else 'off'}`\n"
                 f"> **Mass join:** `{'on' if g.antiraid_massjoin else 'off'}`\n"
                 f"> **Account age:** `{'on' if g.antiraid_age else 'off'}`\n"
@@ -761,7 +761,7 @@ class Security(commands.Cog, name="Security"):
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, antiraid_enabled=enabled)
         state = (
-            f"`{Emoji.SUCCESS}` enabled" if enabled else f"`{Emoji.CANCEL}` disabled"
+            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
         )
         await ctx.ok(f"*Antiraid {state}.*")
 
@@ -810,7 +810,7 @@ class Security(commands.Cog, name="Security"):
         lines = [f"> `{p}`" for p in g.antiraid_username_patterns]
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.BLACKLIST}` **Username Patterns**\n\n" + "\n".join(lines)
+                f"{Emoji.BLACKLIST} **Username Patterns**\n\n" + "\n".join(lines)
             )
         )
 
@@ -905,7 +905,7 @@ class Security(commands.Cog, name="Security"):
         lines = [f"> <@{uid}>" for uid in g.antiraid_whitelist]
         await ctx.send(
             embed=UI.info(
-                f"`{Emoji.WHITELIST}` **Antiraid Whitelist**\n\n" + "\n".join(lines)
+                f"{Emoji.WHITELIST} **Antiraid Whitelist**\n\n" + "\n".join(lines)
             )
         )
 

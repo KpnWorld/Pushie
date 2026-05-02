@@ -77,7 +77,7 @@ class UI:
         )
         embed.add_field(
             name="",
-            value=f"> {Emoji.INFO} *How to use:*\n```\n/help {{module}} {{cmd}}\n```\n> {Emoji.NEXT} *Quick setup:* \n```\n/setup --begins setup wizz\n```\n> `{Emoji.ROLE}` *Easy commands:*\n```\n@Pushie - See current prefix \n/prefix new_prefix\n/afk msg\n```",
+            value=f"> {Emoji.INFO} *How to use:*\n```\n/help {{module}} {{cmd}}\n```\n> {Emoji.NEXT} *Quick setup:* \n```\n/setup --begins setup wizz\n```\n> {Emoji.ROLE} *Easy commands:*\n```\n@Pushie - See current prefix \n/prefix new_prefix\n/afk msg\n```",
             inline=False,
         )
         return embed

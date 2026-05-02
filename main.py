@@ -211,7 +211,7 @@ class Pushie(commands.Bot):
                 )
                 .add_item(
                     discord.ui.TextDisplay(
-                        f"> ### `{Emoji.WELCOME}` Haii thank you for adding me!\n\n"
+                        f"> ### {Emoji.WELCOME} Haii thank you for adding me!\n\n"
                     )
                 )
                 .add_item(

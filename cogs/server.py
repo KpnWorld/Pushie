@@ -393,7 +393,7 @@ class Server(commands.Cog, name="Server"):
         """Channel information."""
         ch = cast(discord.TextChannel, channel)
         embed = discord.Embed(
-            title=f"Channel: {ch.name}",
+            title=f"{Emoji.CHANNEL} {ch.name}",
             description=f"> Topic: `{ch.topic or 'None'}`\n"
             f"> NSFW: `{ch.nsfw}`",
             color=0xFAB9EC,
@@ -785,7 +785,7 @@ class Server(commands.Cog, name="Server"):
             return
         info = g.transcripts[transcript_id]
         embed = discord.Embed(
-            title=f"Transcript `{transcript_id[:8]}`",
+            title=f"{Emoji.INFO} Transcript `{transcript_id[:8]}`",
             description=f"> **Ticket:** `{info.get('ticket_id', 'unknown')[:8]}`\n"
             f"> **Created:** `{info.get('created_at', 'unknown')}`\n"
             f"> **Messages:** `{info.get('message_count', 0)}`",
@@ -1543,7 +1543,7 @@ class Server(commands.Cog, name="Server"):
         """Server information."""
         assert ctx.guild is not None
         embed = discord.Embed(
-            title=ctx.guild.name,
+            title=f"{Emoji.INFO} {ctx.guild.name}",
             description=f"> Members: `{ctx.guild.member_count}`\n"
             f"> Roles: `{len(ctx.guild.roles)}`\n"
             f"> Channels: `{len(ctx.guild.channels)}`\n"
@@ -1600,7 +1600,7 @@ class Server(commands.Cog, name="Server"):
     async def user_info(self, ctx: "PushieContext", user: discord.User) -> None:
         """User information."""
         embed = discord.Embed(
-            title=f"User: {user.name}",
+            title=f"{Emoji.INFO} {user.name}",
             description=f"> ID: `{user.id}`\n"
             f"> Bot: `{user.bot}`\n"
             f"> Created: `{user.created_at.date()}`",

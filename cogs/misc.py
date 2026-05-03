@@ -422,7 +422,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
             return
         hex_display = f"#{color_int:06X}"
         embed = discord.Embed(
-            description=f"> **Hex:** `{hex_display}`\n> **Decimal:** `{color_int}`\n> **Input:** `{color_input}`",
+            description=f"{Emoji.INFO} **Color**\n> **Hex:** `{hex_display}`\n> **Decimal:** `{color_int}`\n> **Input:** `{color_input}`",
             color=color_int,
         )
         await ctx.send(embed=embed)
@@ -435,7 +435,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
         rand_color = _random.randint(0, 0xFFFFFF)
         hex_display = f"#{rand_color:06X}"
         embed = discord.Embed(
-            description=f"> **Hex:** `{hex_display}`\n> **Decimal:** `{rand_color}`",
+            description=f"{Emoji.INFO} **Random Color**\n> **Hex:** `{hex_display}`\n> **Decimal:** `{rand_color}`",
             color=rand_color,
         )
         await ctx.send(embed=embed)
@@ -490,7 +490,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
             return
         lines = "\n".join(f"> `{n}` — `{h}`" for n, h in sorted(g.saved_colors.items()))
         embed = discord.Embed(
-            title="Color Palette",
+            title=f"{Emoji.INFO} Color Palette",
             description=lines,
             color=0xFAB9EC,
         )

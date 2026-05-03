@@ -1154,7 +1154,7 @@ class Moderation(commands.Cog, name="Moderation"):
             timestamp=data["timestamp"],
         )
         embed.set_author(name=str(author), icon_url=author.display_avatar.url)
-        embed.set_footer(text="Deleted")
+        embed.set_footer(text=f"{Emoji.DELETE} Deleted")
         if data.get("attachments"):
             embed.set_image(url=data["attachments"][0])
         await ctx.send(embed=embed)
@@ -1173,7 +1173,7 @@ class Moderation(commands.Cog, name="Moderation"):
             description=f"> <@{data['user_id']}> removed {data['emoji']} from [message](https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}/{data['message_id']})",
             color=0xFAB9EC,
         )
-        embed.set_footer(text="Reaction Snipe")
+        embed.set_footer(text=f"{Emoji.DELETE} Reaction Snipe")
         await ctx.send(embed=embed)
 
     @commands.command(name="editsnipe", aliases=["es"])
@@ -1190,7 +1190,7 @@ class Moderation(commands.Cog, name="Moderation"):
         embed.set_author(name=str(author), icon_url=author.display_avatar.url)
         embed.add_field(name="Before", value=data["before"][:1000] or "*empty*", inline=False)
         embed.add_field(name="After", value=data["after"][:1000] or "*empty*", inline=False)
-        embed.set_footer(text="Edit Snipe")
+        embed.set_footer(text=f"{Emoji.EDIT} Edit Snipe")
         await ctx.send(embed=embed)
 
     @commands.command(name="clearsnipes", aliases=["cs"])

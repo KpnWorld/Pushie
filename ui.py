@@ -196,7 +196,7 @@ class ChangePrefix(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
         await self._bot.storage.set_prefix(self._guild_id, new_prefix)
         await interaction.followup.send(
-            embed=UI.success(f"Prefix changed to {new_prefix}`"),
+            embed=UI.success(f"Prefix changed to `{new_prefix}`"),
             ephemeral=True,
         )
         self.stop()

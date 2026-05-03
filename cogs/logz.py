@@ -361,7 +361,7 @@ class Logz(commands.Cog, name="Logz"):
             ch_txt = f"<#{ch_id}>" if ch_id else "*inherits general*"
             lines.append(f"> **{et}** — {ch_txt}")
         await ctx.send(
-            embed=UI.info(f"{Emoji.CHANNEL} **Log Channels**\n\n" + "\n".join(lines))
+            embed=UI.info(f"**Log Channels**\n\n" + "\n".join(lines))
         )
 
     @logz.command(name="color")

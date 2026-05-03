@@ -623,7 +623,7 @@ class Security(commands.Cog, name="Security"):
             return
         lines = [f"> <@{uid}>" for uid in g.antinuke_admins]
         await ctx.send(
-            embed=UI.info(f"{Emoji.LOCK} **Antinuke Admins**\n\n" + "\n".join(lines))
+            embed=UI.info(f"**Antinuke Admins**\n\n" + "\n".join(lines))
         )
 
     @antinuke.group(name="admin", invoke_without_command=True)
@@ -704,7 +704,7 @@ class Security(commands.Cog, name="Security"):
             for uid, perms in g.fake_permissions.items()
         ]
         await ctx.send(
-            embed=UI.info(f"{Emoji.LOCK} **Fake Permissions**\n\n" + "\n".join(lines))
+            embed=UI.info(f"**Fake Permissions**\n\n" + "\n".join(lines))
         )
 
     @fakepermissions.command(name="remove")

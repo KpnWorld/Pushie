@@ -377,7 +377,7 @@ class Sudo(commands.Cog, name="Sudo"):
             await ctx.info("*Blacklist is empty.*")
             return
         await ctx.send(
-            embed=UI.info(f"{Emoji.BLACKLIST} **Blacklist**\n\n" + "\n".join(lines))
+            embed=UI.info(f"**Blacklist**\n\n" + "\n".join(lines))
         )
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:

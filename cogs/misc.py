@@ -69,7 +69,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
         await ctx.bot.storage.save_guild(g)
 
         await ctx.ok(
-            f"{Emoji.INFO} *Autoresponder added:* `{trigger}` → *{message[:50]}...*"
+            f"*Autoresponder added:* `{trigger}` → *{message[:50]}...*"
         )
 
     @autoresponder.command(name="remove", description="Remove an autoresponder")
@@ -90,7 +90,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
         del g.autoresponders[trigger.lower()]
         await ctx.bot.storage.save_guild(g)
-        await ctx.ok(f"{Emoji.INFO} *Autoresponder for `{trigger}` deleted.*")
+        await ctx.ok(f"*Autoresponder for `{trigger}` deleted.*")
 
     @autoresponder.command(name="list", description="List all autoresponders")
     @commands.guild_only()
@@ -138,7 +138,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
 
         g.autoresponders[trigger.lower()]["response"] = new_message
         await ctx.bot.storage.save_guild(g)
-        await ctx.ok(f"{Emoji.INFO} *Autoresponder `{trigger}` updated.*")
+        await ctx.ok(f"*Autoresponder `{trigger}` updated.*")
 
     @commands.group(
         name="reactionrole",
@@ -182,14 +182,14 @@ class Misc(commands.Cog, name="Miscellaneous"):
             await ctx.err("*You cannot assign a role higher than your own.*")
             return
 
-        await ctx.ok(f"{Emoji.ROLE} *{emoji} → {role.mention} reaction role added.*")
+        await ctx.ok(f"*{emoji} → {role.mention} reaction role added.*")
 
     @reactionrole.command(name="remove", description="Remove a reaction role binding")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles=True)
     async def reactionrole_remove(self, ctx: "PushieContext", emoji: str) -> None:
         """Remove a reaction role binding."""
-        await ctx.ok(f"{Emoji.ROLE} *Reaction role {emoji} removed.*")
+        await ctx.ok(f"*Reaction role {emoji} removed.*")
 
     @reactionrole.command(name="list", description="List all reaction role bindings")
     @commands.guild_only()
@@ -206,7 +206,7 @@ class Misc(commands.Cog, name="Miscellaneous"):
     ) -> None:
         """Set or view which message reaction roles are attached to."""
         if message_link:
-            await ctx.ok(f"{Emoji.ROLE} *Reaction role message set.*")
+            await ctx.ok(f"*Reaction role message set.*")
         else:
             await ctx.info("*No reaction role message set.*")
 

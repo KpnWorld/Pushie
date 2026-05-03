@@ -45,8 +45,9 @@ class Core(commands.Cog, name="Core"):
     async def ping(self, ctx: "PushieContext") -> None:
         """Check the bot's response time."""
         await ctx.send(
-            embed=UI.info(
-                f"{Emoji.PING} *Pong! `{round(self.bot.latency * 1000)}ms`*"
+            embed=discord.Embed(
+                description=f"> {Emoji.PING} *Pong! `{round(self.bot.latency * 1000)}ms`*",
+                color=0xFAB9EC,
             )
         )
 
@@ -139,7 +140,7 @@ class Core(commands.Cog, name="Core"):
         if q == "variables":
             await ctx.send(
                 embed=UI.info(
-                    f"{Emoji.INFO} **Embed Substitution Variables**\n\n"
+                    f"**Embed Substitution Variables**\n\n"
                     f"> **User Variables:**\n"
                     f"```\n$user.name — Display name\n"
                     f"$user.id — User ID\n"

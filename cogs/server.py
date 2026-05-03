@@ -464,9 +464,7 @@ class Server(commands.Cog, name="Server"):
 
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, ticket_enabled=enabled)
-        status = (
-            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
-        )
+        status = "enabled" if enabled else "disabled"
         await ctx.ok(f"Ticket system {status}")
 
     @ticket.command(name="channel")
@@ -900,9 +898,7 @@ class Server(commands.Cog, name="Server"):
 
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, booster_setup_enabled=enabled)
-        status = (
-            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
-        )
+        status = "enabled" if enabled else "disabled"
         await ctx.ok(f"Booster roles {status}")
 
     @boosterrole.command(name="list")
@@ -1234,9 +1230,7 @@ class Server(commands.Cog, name="Server"):
 
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, fg_setup_enabled=enabled)
-        status = (
-            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
-        )
+        status = "enabled" if enabled else "disabled"
         await ctx.ok(f"Friend groups {status}")
 
     @friendgroup.command(name="list")

@@ -258,7 +258,7 @@ class Sudo(commands.Cog, name="Sudo"):
         elif customize_type == "presence" and message:
             parts = message.split(" ", 1)
             if len(parts) < 2:
-                await ctx.err("*Usage: `sudo customize presence <type> <text>`*")
+                await ctx.info("*Usage: `sudo customize presence <type> <text>`*")
                 return
             act_key, act_text = parts[0].lower(), parts[1]
             atype = activity_type_map.get(act_key)

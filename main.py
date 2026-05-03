@@ -330,7 +330,8 @@ class Pushie(commands.Bot):
         msg: str
 
         if isinstance(error, commands.MissingRequiredArgument):
-            msg = f"Missing argument: `{error.param.name}`"
+            await ctx.send(embed=UI.info(f"*Missing argument: `{error.param.name}`*"))
+            return
         elif isinstance(error, commands.BadArgument):
             msg = f"Bad argument: *{error}*"
         elif isinstance(error, commands.CommandOnCooldown):

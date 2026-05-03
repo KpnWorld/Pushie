@@ -495,15 +495,11 @@ class Security(commands.Cog, name="Security"):
         """Antinuke configuration."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        enabled = (
-            f"{Emoji.SUCCESS} enabled"
-            if g.antinuke_enabled
-            else f"{Emoji.CANCEL} disabled"
-        )
+        enabled = "enabled" if g.antinuke_enabled else "disabled"
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"{Emoji.LOCK} **Antinuke** — {enabled}\n\n"
+                f"**Antinuke** — {enabled}\n\n"
                 f"> **Kick protection:** `{'on' if g.antinuke_kick else 'off'}`\n"
                 f"> **Ban protection:** `{'on' if g.antinuke_ban else 'off'}`\n"
                 f"> **Vanity protection:** `{'on' if g.antinuke_vanity else 'off'}`\n"
@@ -526,9 +522,7 @@ class Security(commands.Cog, name="Security"):
             return
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, antinuke_enabled=enabled)
-        state = (
-            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
-        )
+        state = "enabled" if enabled else "disabled"
         await ctx.ok(f"*Antinuke {state}.*")
 
     @antinuke.command(name="kick")
@@ -730,15 +724,11 @@ class Security(commands.Cog, name="Security"):
         """Antiraid configuration."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        enabled = (
-            f"{Emoji.SUCCESS} enabled"
-            if g.antiraid_enabled
-            else f"{Emoji.CANCEL} disabled"
-        )
+        enabled = "enabled" if g.antiraid_enabled else "disabled"
         prefix = ctx.prefix or "!"
         await ctx.send(
             embed=UI.info(
-                f"{Emoji.LOCK} **Antiraid** — {enabled}\n\n"
+                f"**Antiraid** — {enabled}\n\n"
                 f"> **Mass mention:** `{'on' if g.antiraid_massmention else 'off'}`\n"
                 f"> **Mass join:** `{'on' if g.antiraid_massjoin else 'off'}`\n"
                 f"> **Account age:** `{'on' if g.antiraid_age else 'off'}`\n"
@@ -760,9 +750,7 @@ class Security(commands.Cog, name="Security"):
             return
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, antiraid_enabled=enabled)
-        state = (
-            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
-        )
+        state = "enabled" if enabled else "disabled"
         await ctx.ok(f"*Antiraid {state}.*")
 
     @antiraid.group(name="username", invoke_without_command=True)

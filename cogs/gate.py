@@ -148,9 +148,7 @@ class Gate(commands.Cog, name="Gate"):
         assert ctx.guild is not None
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, greet_enabled=enabled)
-        status = (
-            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
-        )
+        status = "enabled" if enabled else "disabled"
         await ctx.ok(f"Greet system {status}")
 
     @greet.command(name="config")
@@ -214,11 +212,7 @@ class Gate(commands.Cog, name="Gate"):
             await ctx.info("No greet message set")
             return
         ch_mention = f"<#{g.greet_channel}>" if g.greet_channel else "*not set*"
-        enabled = (
-            f"{Emoji.SUCCESS} enabled"
-            if g.greet_enabled
-            else f"{Emoji.CANCEL} disabled"
-        )
+        enabled = "enabled" if g.greet_enabled else "disabled"
         await ctx.send(
             embed=UI.info(
                 f"**Greet System** — {enabled}\n"
@@ -286,9 +280,7 @@ class Gate(commands.Cog, name="Gate"):
         assert ctx.guild is not None
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, leave_enabled=enabled)
-        status = (
-            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
-        )
+        status = "enabled" if enabled else "disabled"
         await ctx.ok(f"Leave system {status}")
 
     @leave.command(name="config")
@@ -352,11 +344,7 @@ class Gate(commands.Cog, name="Gate"):
             await ctx.info("No leave message set")
             return
         ch_mention = f"<#{g.leave_channel}>" if g.leave_channel else "*not set*"
-        enabled = (
-            f"{Emoji.SUCCESS} enabled"
-            if g.leave_enabled
-            else f"{Emoji.CANCEL} disabled"
-        )
+        enabled = "enabled" if g.leave_enabled else "disabled"
         await ctx.send(
             embed=UI.info(
                 f"**Leave System** — {enabled}\n"
@@ -421,9 +409,7 @@ class Gate(commands.Cog, name="Gate"):
         assert ctx.guild is not None
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, ping_enabled=enabled)
-        status = (
-            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
-        )
+        status = "enabled" if enabled else "disabled"
         await ctx.ok(f"Ping on join {status}")
 
     @pingonjoin.command(name="add")

@@ -134,11 +134,7 @@ class Level(commands.Cog, name="Levels"):
         """Leveling system management."""
         assert ctx.guild is not None
         g = await self.bot.storage.get_guild(ctx.guild.id)
-        enabled = (
-            f"{Emoji.SUCCESS} enabled"
-            if g.levels_enabled
-            else f"{Emoji.CANCEL} disabled"
-        )
+        enabled = "enabled" if g.levels_enabled else "disabled"
         ch = f"<#{g.levels_channel}>" if g.levels_channel else "*not set*"
         prefix = ctx.prefix or "!"
         await ctx.send(
@@ -166,9 +162,7 @@ class Level(commands.Cog, name="Levels"):
         assert ctx.guild is not None
         enabled = toggle.lower() == "enable"
         await self.bot.storage.update_setup(ctx.guild.id, levels_enabled=enabled)
-        status = (
-            f"{Emoji.SUCCESS} enabled" if enabled else f"{Emoji.CANCEL} disabled"
-        )
+        status = "enabled" if enabled else "disabled"
         await ctx.ok(f"Level system {status}")
 
     @levels.command(name="channel")

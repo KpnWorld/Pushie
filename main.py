@@ -71,10 +71,9 @@ class PushieContext(commands.Context):
             f"> `{prefix}{cmd.name} {c.name}` — {c.short_doc or '…'}"
             for c in subs
         )
-        from emojis import Emoji as _Emoji
         return await self.send(
             embed=UI.info(
-                f"{_Emoji.INFO} **`{cmd.name}`** commands:\n\n{lines}"
+                f"**`{cmd.name}`** commands:\n\n{lines}"
             )
         )
 

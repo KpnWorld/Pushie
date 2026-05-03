@@ -340,7 +340,7 @@ class EmbedBuilderView(BaseView):
         self._ctx_vars = ctx_vars or {}
 
     @discord.ui.button(
-        label="Open Embed Builder", style=discord.ButtonStyle.primary, emoji="✏️"
+        label="Open Embed Builder", style=discord.ButtonStyle.primary, emoji=Emoji.EDIT
     )
     async def open_builder(
         self, interaction: discord.Interaction, button: discord.ui.Button

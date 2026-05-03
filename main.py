@@ -170,7 +170,7 @@ class Pushie(commands.Bot):
             )
         await self.change_presence(
             activity=discord.Activity(
-                type=discord.ActivityType.watching, name="over the server 🐱"
+                type=discord.ActivityType.watching, name=f"over the server {Emoji.PUSHEEN}"
             )
         )
         try:

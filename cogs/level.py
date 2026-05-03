@@ -90,7 +90,7 @@ class Level(commands.Cog, name="Levels"):
 
             # Send level-up message
             level_msg = (
-                g.levels_msg or f"🎉 {member.mention} reached **Level {new_level}**!"
+                g.levels_msg or f"{Emoji.BOOSTER} {member.mention} reached **Level {new_level}**!"
             )
             cv = build_ctx_vars(message.guild, member)
             cv["level"] = str(new_level)
